@@ -48,8 +48,8 @@ const mockTransactions = [
 ];
 
 const mockAccounts = [
-  { id: 1, name: "BBVA Cuenta", type: "bank", balance: 3847.23, number: "•••• 4521", source: "gocardless", color: "#3b82f6" },
-  { id: 2, name: "Tarjeta Visa", type: "card", balance: -234.50, number: "•••• 8834", source: "gocardless", color: "#8b5cf6" },
+  { id: 1, name: "BBVA Cuenta", type: "bank", balance: 3847.23, number: "•••• 4521", source: "enablebanking", color: "#3b82f6" },
+  { id: 2, name: "Tarjeta Visa", type: "card", balance: -234.50, number: "•••• 8834", source: "enablebanking", color: "#8b5cf6" },
   { id: 3, name: "Edenred", type: "edenred", balance: 127.40, number: "Saldo disponible", source: "scraper", color: "#f59e0b" },
 ];
 
@@ -937,8 +937,8 @@ export default function App() {
                   <div style={{ fontSize: 12, color: t.textMuted }}>{acc.number}</div>
                 </div>
               </div>
-              <div style={styles.pill(acc.source === "gocardless" ? t.accent : "#f59e0b")}>
-                {acc.source === "gocardless" ? "PSD2" : "Scraper"}
+              <div style={styles.pill(acc.source === "enablebanking" ? t.accent : "#f59e0b")}>
+                {acc.source === "enablebanking" ? "PSD2" : "Scraper"}
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

@@ -582,7 +582,7 @@ El **Balance total** del Dashboard muestra el patrimonio neto, no la suma bruta 
 
 ### 5.6 Conciliación entre tarjeta y cuenta corriente
 
-Problema: cuando GoCardless sincroniza tanto la cuenta como la tarjeta, una compra de 50€ con la tarjeta aparece dos veces:
+Problema: cuando Enable Banking sincroniza tanto la cuenta como la tarjeta, una compra de 50€ con la tarjeta aparece dos veces:
 - En la tarjeta: el día de la compra (50€)
 - En la cuenta corriente: el día del cargo mensual de la tarjeta (cargo agregado)
 

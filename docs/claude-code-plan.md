@@ -94,9 +94,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# GoCardless / Nordigen
-GOCARDLESS_SECRET_ID=
-GOCARDLESS_SECRET_KEY=
+# Enable Banking
+ENABLEBANKING_APP_ID=
+ENABLEBANKING_SECRET_KEY=
 
 # Edenred scraper (GitHub Actions → webhook)
 EDENRED_WEBHOOK_SECRET=    # genera con: openssl rand -hex 32
@@ -159,10 +159,10 @@ Una issue está **Ready** cuando:
 *(crear al terminar Fase 1)*
 
 ```
-#7  [feature] GoCardless: flujo de autorización OAuth + callback
+#7  [feature] Enable Banking: flujo de autorización OAuth + callback
     Ref: §4.4 del spec.
 
-#8  [feature] Sync de transacciones desde GoCardless + categorización automática
+#8  [feature] Sync de transacciones desde Enable Banking + categorización automática
     Ref: §4.4, §5.3 del spec.
 
 #9  [feature] Pantalla de Cuentas con datos reales
@@ -216,7 +216,7 @@ Referencia rápida del plan de implementación (ver §11 del spec para el detall
 | Fase | Contenido | Semana |
 |------|-----------|--------|
 | 1 | Setup, Supabase, Auth, Layout base, utilidades | 1 |
-| 2 | GoCardless, sync transacciones, Cuentas, Movimientos básico | 2 |
+| 2 | Enable Banking, sync transacciones, Cuentas, Movimientos básico | 2 |
 | 3 | Dashboard completo, modales detalle/nuevo, swipe, patrimonio | 3 |
 | 4 | Análisis completo: barras, donut, KPIs, drilldown categoría | 4 |
 | 5 | Edenred scraper, GitHub Actions, Onboarding real, PWA | 5 |
