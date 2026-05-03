@@ -24,7 +24,7 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 
 ### 2.1 Onboarding
 - Pantalla de bienvenida que se muestra la primera vez (flag en base de datos)
-- CTA principal: conectar banco vía GoCardless/Nordigen
+- CTA principal: conectar banco vía Enable Banking
 - CTA secundario: cargar datos de ejemplo (modo demo)
 - Accesible en cualquier momento pulsando el avatar de usuario
 
@@ -160,14 +160,14 @@ accounts (
   user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,           -- "BBVA Cuenta", "Visa", "Edenred"
   type          TEXT NOT NULL,           -- 'bank' | 'card' | 'edenred' | 'cash'
-  source        TEXT NOT NULL,           -- 'gocardless' | 'scraper' | 'manual'
+  source        TEXT NOT NULL,           -- 'enablebanking' | 'scraper' | 'manual'
   is_liability  BOOLEAN DEFAULT false,   -- true = tarjeta de crédito / préstamo (resta del patrimonio)
   balance       DECIMAL(12,2),
   number        TEXT,                    -- "•••• 4521" enmascarado
   color         TEXT,                    -- hex color para la UI
   currency      TEXT DEFAULT 'EUR',
-  external_id   TEXT,                    -- ID en GoCardless
-  requisition_id TEXT,                   -- ID de la requisition GoCardless (para renovación)
+  external_id   TEXT,                    -- ID de cuenta en Enable Banking
+  session_id    TEXT,                    -- ID de la sesión Enable Banking (para renovación)
   consent_expires_at TIMESTAMP WITH TIME ZONE, -- caducidad PSD2 (90-180 días)
   last_synced   TIMESTAMP WITH TIME ZONE,
   is_active     BOOLEAN DEFAULT true,
@@ -185,8 +185,8 @@ transactions (
   description     TEXT NOT NULL,
   category        TEXT,                    -- categoría asignada automáticamente
   category_manual TEXT,                    -- categoría editada por el usuario (override)
-  source          TEXT NOT NULL,           -- 'gocardless' | 'scraper' | 'manual'
-  external_id     TEXT,                    -- ID en GoCardless para evitar duplicados
+  source          TEXT NOT NULL,           -- 'enablebanking' | 'scraper' | 'manual'
+  external_id     TEXT,                    -- ID de transacción en Enable Banking para evitar duplicados
   is_computable   BOOLEAN DEFAULT true,    -- false = No Computable (Edenred)
   is_internal_transfer BOOLEAN DEFAULT false, -- traspaso entre cuentas propias
   notes           TEXT,
@@ -258,7 +258,7 @@ Las transacciones de Edenred tienen `is_computable = false`. En el filtro de Mov
 |------|-----------|--------|
 | Frontend | **Next.js 16.x** (App Router) | Última versión estable. Turbopack por defecto, React 19.2, mejor caching |
 | Base de datos | **Supabase** (PostgreSQL) | Auth incluida, tiempo real, SDK TypeScript |
-| Agregación bancaria | **GoCardless / Nordigen** | PSD2, gratuito, buena cobertura España |
+| Agregación bancaria | **Enable Banking** | PSD2, tier gratuito para developers, buena cobertura España |
 | Scraping Edenred | **Playwright + Node.js** | Headless Chromium para la web de Edenred |
 | Automatización | **GitHub Actions** | Cron job gratuito para el scraper diario |
 | Deploy | **Vercel** | Free tier, integración Next.js nativa |
@@ -351,8 +351,8 @@ finanzas-app/
 │       │   └── [id]/
 │       │       └── route.ts        → PATCH categoría + DELETE
 │       ├── sync/
-│       │   └── gocardless/
-│       │       └── route.ts        → POST sincronizar GoCardless
+│       │   └── enablebanking/
+│       │       └── route.ts        → POST sincronizar Enable Banking
 │       └── edenred/
 │           └── route.ts            → POST recibir datos del scraper
 ├── components/
@@ -376,7 +376,7 @@ finanzas-app/
 │       └── GranPicker.tsx          → Selector de granularidad temporal
 ├── lib/
 │   ├── supabase.ts                 → Cliente Supabase (server + client)
-│   ├── gocardless.ts               → Cliente GoCardless API
+│   ├── enablebanking.ts            → Cliente Enable Banking API
 │   ├── categories.ts               → Definición y helpers de categorías
 │   ├── formatting.ts               → fmt(), formatDate(), etc.
 │   └── analytics.ts                → Lógica de agregación de datos por período
@@ -389,14 +389,14 @@ finanzas-app/
         └── edenred-scraper.yml     → Cron job diario 07:00 (Europe/Madrid)
 ```
 
-### 4.4 Flujo de sincronización bancaria (GoCardless)
+### 4.4 Flujo de sincronización bancaria (Enable Banking)
 
 ```
 1. Usuario pulsa "Conectar banco" en Onboarding o Cuentas
-2. Next.js API route llama a GoCardless /requisitions con redirect URL
-3. GoCardless redirige al usuario al banco (OAuth del banco)
+2. Next.js API route llama a Enable Banking API para crear una sesión con redirect URL
+3. Enable Banking redirige al usuario al banco (OAuth/PSD2 del banco)
 4. Usuario autoriza en su banco y vuelve a la app
-5. GoCardless callback → Next.js guarda el requisition_id en Supabase
+5. Enable Banking callback → Next.js guarda el session_id en Supabase
 6. Cron semanal (o manual) llama a GET /accounts/{id}/transactions
 7. Se normalizan y guardan en tabla transactions (external_id evita duplicados)
 8. Se actualiza el saldo en tabla accounts
@@ -404,8 +404,8 @@ finanzas-app/
 
 **Variables de entorno necesarias:**
 ```
-GOCARDLESS_SECRET_ID=
-GOCARDLESS_SECRET_KEY=
+ENABLEBANKING_APP_ID=
+ENABLEBANKING_SECRET_KEY=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
@@ -497,7 +497,7 @@ En lugar de barras fantasma adicionales (que añaden ruido visual), se usa una *
 
 ### 5.3 Categorización automática
 
-Al importar transacciones de GoCardless, aplicar reglas de categorización basadas en la descripción:
+Al importar transacciones de Enable Banking, aplicar reglas de categorización basadas en la descripción:
 
 ```typescript
 const AUTO_RULES = [
@@ -601,12 +601,12 @@ Idealmente el usuario debería poder confirmar/rechazar la conciliación en la U
 
 ### 5.7 Comparativa YoY con histórico insuficiente
 
-GoCardless solo provee **90 días** de histórico por defecto al conectar. La comparativa "vs año anterior" simplemente no tiene datos durante el primer año.
+Enable Banking provee por defecto el histórico que permite el banco bajo PSD2 (habitualmente 90 días). La comparativa "vs año anterior" simplemente no tiene datos durante el primer año.
 
 **Comportamiento esperado:**
 - Si no hay transacciones del período del año anterior → mostrar `—` en lugar del %
 - Si hay menos del 80% de los días con datos → mostrar el % con badge "datos parciales"
-- En la primera conexión, intentar obtener el máximo histórico disponible (algunos bancos permiten hasta 24 meses con `transaction_total_days: 730` en GoCardless)
+- En la primera conexión, solicitar el máximo histórico disponible (algunos bancos permiten hasta 24 meses según sus condiciones PSD2)
 
 ---
 
@@ -755,7 +755,7 @@ El spec describe el "happy path" pero la app debe gestionar varios estados degra
 | Caso | UI |
 |---|---|
 | Primera carga del Dashboard | Skeleton cards con shimmer animation |
-| Sincronizando GoCardless | Banner superior "Sincronizando…" con spinner pequeño |
+| Sincronizando Enable Banking | Banner superior "Sincronizando…" con spinner pequeño |
 | Cambiando de período en Análisis | Crossfade suave (200ms) entre datos antiguos y nuevos |
 | Lista de movimientos cargando | 5 filas skeleton con la misma altura que TxRow |
 
@@ -763,8 +763,8 @@ El spec describe el "happy path" pero la app debe gestionar varios estados degra
 
 | Error | UI esperada |
 |---|---|
-| GoCardless caído / timeout | Banner amarillo: "No pudimos sincronizar. Reintentar →". Mostrar últimos datos disponibles |
-| Token GoCardless expirado | Banner rojo en Cuentas: "Reconecta tu banco para seguir sincronizando" + CTA |
+| Enable Banking caído / timeout | Banner amarillo: "No pudimos sincronizar. Reintentar →". Mostrar últimos datos disponibles |
+| Sesión Enable Banking expirada | Banner rojo en Cuentas: "Reconecta tu banco para seguir sincronizando" + CTA |
 | Scraper Edenred falló | Card de Edenred muestra "Sincronizado hace 3 días" en ámbar (>2 días = warning) |
 | Sin conexión a internet | Banner offline arriba: "Sin conexión. Mostrando datos guardados". UI sigue funcionando con datos cacheados |
 | Error inesperado | Toast tipo "Algo salió mal. [Reintentar]" + log a consola |
@@ -784,7 +784,7 @@ Por ley europea, la autorización PSD2 caduca cada **90-180 días** (depende del
 
 ### 9.1 Tracking de la caducidad
 
-Cuando se crea la requisition en GoCardless, se guarda `consent_expires_at` en la tabla `accounts`. El campo se calcula a partir de la respuesta de GoCardless al crear la requisition (no es trivial: depende del banco y de los flags `access_valid_for_days` solicitados).
+Cuando se crea la sesión en Enable Banking, se guarda `consent_expires_at` en la tabla `accounts`. El campo se calcula a partir de la respuesta de Enable Banking al crear la sesión (depende del banco y del período de acceso solicitado).
 
 ### 9.2 Avisos al usuario
 
@@ -802,10 +802,10 @@ Un GitHub Action diario (mismo workflow del scraper Edenred o aparte) revisa tod
 ### 9.4 Flujo de renovación
 
 Idéntico al onboarding:
-1. Usuario pulsa "Renovar conexión" → llamada a GoCardless API para crear nueva requisition
+1. Usuario pulsa "Renovar conexión" → llamada a Enable Banking API para crear nueva sesión
 2. Redirección al banco
 3. Usuario re-autoriza
-4. Callback actualiza `requisition_id` y `consent_expires_at` en `accounts`
+4. Callback actualiza `session_id` y `consent_expires_at` en `accounts`
 5. Sincronización inmediata para cubrir cualquier hueco temporal
 
 ---
@@ -860,7 +860,7 @@ El fichero `finanzas-app.jsx` es un componente React standalone que contiene:
 5. Layout base con bottom navigation y dark/light mode
 
 ### Fase 2 — Conexión bancaria (semana 2)
-1. Integración GoCardless: flujo de autorización, webhook de callback
+1. Integración Enable Banking: flujo de autorización, callback de sesión
 2. API route de sincronización de transacciones
 3. Categorización automática al importar
 4. Pantalla de Cuentas con datos reales
@@ -899,7 +899,7 @@ El fichero `finanzas-app.jsx` es un componente React standalone que contiene:
 ## 12. Consideraciones de seguridad
 
 - **Supabase RLS:** todas las tablas con Row Level Security activado. El usuario solo puede leer/escribir sus propios datos
-- **GoCardless:** solo lectura (AISP). No se almacenan credenciales bancarias
+- **Enable Banking:** solo lectura (AISP). No se almacenan credenciales bancarias
 - **Edenred:** credenciales solo en GitHub Secrets, nunca en el código ni en Supabase
 - **Webhook secret:** el endpoint `/api/edenred` valida el header `Authorization: Bearer {secret}` antes de procesar datos
 - **HTTPS:** Vercel provee TLS automáticamente
@@ -934,7 +934,7 @@ Al trabajar con este proyecto:
 
 7. **Swipe en móvil.** El `TxRow` usa `onTouchStart`/`onTouchEnd` para detectar el swipe. En Next.js esto requiere `'use client'`.
 
-8. **GoCardless tokens.** Los access tokens expiran cada 24h y los refresh tokens cada 30 días. Implementar renovación automática antes de cada llamada.
+8. **Enable Banking tokens.** Los access tokens tienen una caducidad limitada. Implementar renovación automática antes de cada llamada a la API.
 
 9. **Patrimonio neto vs balance bruto.** Las cuentas con `is_liability = true` (tarjetas de crédito) deben restarse del patrimonio neto, no sumarse. La pantalla de Cuentas las muestra agrupadas separando "Activos" de "Deudas".
 
