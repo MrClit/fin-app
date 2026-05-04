@@ -17,11 +17,11 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-[100]
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-105 z-100
                  border-t border-border safe-bottom"
       style={{ background: 'var(--app-nav-bg)', backdropFilter: 'blur(20px)' }}
     >
-      <div className="flex pt-[10px]">
+      <div className="flex pt-2.5">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const active = pathname === href
           return (
@@ -29,7 +29,7 @@ export function BottomNav() {
               key={href}
               href={href}
               className={cn(
-                'flex flex-1 flex-col items-center gap-[3px] py-[6px] text-[10px] transition-colors duration-200',
+                'flex flex-1 flex-col items-center gap-0.75 py-1.5 text-[10px] transition-colors duration-200',
                 active ? 'text-primary font-semibold' : 'text-muted-foreground font-normal'
               )}
             >
