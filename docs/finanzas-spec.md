@@ -230,15 +230,15 @@ CREATE POLICY "Users access own config" ON user_config
 
 ```typescript
 const CATEGORIES = [
-  { id: 'supermercado', name: 'Supermercado', color: '#22c55e' },
-  { id: 'restaurante',  name: 'Restaurante',  color: '#f59e0b' },
-  { id: 'transporte',   name: 'Transporte',   color: '#8b5cf6' },
-  { id: 'hogar',        name: 'Hogar',        color: '#06b6d4' },
-  { id: 'ocio',         name: 'Ocio',         color: '#ef4444' },
-  { id: 'compras',      name: 'Compras',      color: '#ec4899' },
-  { id: 'salud',        name: 'Salud',        color: '#10b981' },
-  { id: 'ingresos',     name: 'Ingresos',     color: '#3b82f6' },
-  { id: 'otros',        name: 'Otros',        color: '#64748b' },
+  { id: 'groceries',   name: 'Supermercado', color: '#22c55e' },
+  { id: 'restaurant',  name: 'Restaurante',  color: '#f59e0b' },
+  { id: 'transport',   name: 'Transporte',   color: '#8b5cf6' },
+  { id: 'home',        name: 'Hogar',        color: '#06b6d4' },
+  { id: 'leisure',     name: 'Ocio',         color: '#ef4444' },
+  { id: 'shopping',    name: 'Compras',      color: '#ec4899' },
+  { id: 'health',      name: 'Salud',        color: '#10b981' },
+  { id: 'income',      name: 'Ingresos',     color: '#3b82f6' },
+  { id: 'other',       name: 'Otros',        color: '#64748b' },
 ]
 ```
 

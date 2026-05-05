@@ -43,20 +43,20 @@ export const darkTheme: ThemeColors = {
 }
 
 export const CATEGORY_COLORS: Record<CategoryId, string> = {
-  supermercado: '#22c55e',
-  restaurante: '#f59e0b',
-  transporte: '#8b5cf6',
-  hogar: '#06b6d4',
-  ocio: '#ef4444',
-  compras: '#ec4899',
-  salud: '#10b981',
-  ingresos: '#3b82f6',
-  otros: '#64748b',
+  groceries: '#22c55e',
+  restaurant: '#f59e0b',
+  transport: '#8b5cf6',
+  home: '#06b6d4',
+  leisure: '#ef4444',
+  shopping: '#ec4899',
+  health: '#10b981',
+  income: '#3b82f6',
+  other: '#64748b',
 }
 
 export const GRADIENTS = {
-  patrimonio: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-  ingresos: 'linear-gradient(180deg, #4ade80, #22c55e)',
-  gastos: 'linear-gradient(180deg, #818cf8, #6366f1)',
-  inversiones: 'linear-gradient(135deg, #059669, #10b981)',
+  netWorth: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  income: 'linear-gradient(180deg, #4ade80, #22c55e)',
+  expenses: 'linear-gradient(180deg, #818cf8, #6366f1)',
+  investments: 'linear-gradient(135deg, #059669, #10b981)',
 }

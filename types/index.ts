@@ -1,15 +1,15 @@
 export type AccountType = 'bank' | 'card' | 'edenred' | 'cash'
 export type DataSource = 'enablebanking' | 'scraper' | 'manual'
 export type CategoryId =
-  | 'supermercado'
-  | 'restaurante'
-  | 'transporte'
-  | 'hogar'
-  | 'ocio'
-  | 'compras'
-  | 'salud'
-  | 'ingresos'
-  | 'otros'
+  | 'groceries'
+  | 'restaurant'
+  | 'transport'
+  | 'home'
+  | 'leisure'
+  | 'shopping'
+  | 'health'
+  | 'income'
+  | 'other'
 
 export interface Account {
   id: string
