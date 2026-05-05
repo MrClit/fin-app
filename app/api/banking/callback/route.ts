@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getSession } from '@/lib/enablebanking'
+import { createSessionFromCode } from '@/lib/enablebanking'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
-  const sessionId = searchParams.get('session_id')
+  const code = searchParams.get('code')
   const error = searchParams.get('error')
 
-  if (error || !sessionId) {
+  if (error || !code) {
     return NextResponse.redirect(`${origin}/cuentas?error=bank_auth_cancelled`)
   }
 
@@ -17,37 +17,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login`)
   }
 
-  let ebSession
+  let session
   try {
-    ebSession = await getSession(sessionId)
+    session = await createSessionFromCode(code)
   } catch (err) {
-    console.error('[EB callback] getSession error:', err)
+    console.error('[EB callback] createSessionFromCode error:', err)
     return NextResponse.redirect(`${origin}/cuentas?error=session_fetch_failed`)
   }
 
-  if (ebSession.status !== 'AUTHORIZED') {
-    return NextResponse.redirect(`${origin}/cuentas?error=not_authorized`)
-  }
-
-  for (const acc of ebSession.accounts) {
+  for (const acc of session.accounts) {
     const lastFour = acc.iban ? acc.iban.replace(/\s/g, '').slice(-4) : null
-    const balanceEntry = acc.balances?.find(
-      b => b.balance_type === 'INTERIM_AVAILABLE' || b.balance_type === 'BOOKED'
-    )
-    const balance = balanceEntry ? parseFloat(balanceEntry.balance_amount.amount) : null
 
     await supabase.from('accounts').upsert(
       {
         user_id: user.id,
-        name: acc.name ?? acc.product ?? 'Cuenta bancaria',
+        name: acc.account_holder ?? 'Cuenta bancaria',
         type: 'bank',
         source: 'enablebanking',
-        balance,
+        balance: null,
         number: lastFour ? `•••• ${lastFour}` : null,
         currency: acc.currency ?? 'EUR',
-        external_id: acc.account_id,
-        session_id: sessionId,
-        consent_expires_at: ebSession.access.valid_until,
+        external_id: acc.uid,
+        session_id: session.session_id,
+        consent_expires_at: session.access.valid_until,
         is_active: true,
       },
       { onConflict: 'user_id,external_id' }

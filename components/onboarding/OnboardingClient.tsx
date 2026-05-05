@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { BarChart2, Wallet, Home } from 'lucide-react'
+import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 
 const FEATURES = [
   {
@@ -22,22 +22,8 @@ const FEATURES = [
 ]
 
 export function OnboardingClient() {
-  const [loading, setLoading] = useState(false)
-
-  async function handleConnect() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/banking/connect', { method: 'POST' })
-      if (!res.ok) throw new Error('connect failed')
-      const { url } = await res.json()
-      window.location.href = url
-    } catch {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-background px-6 pt-[60px] pb-10 flex flex-col overflow-clip">
+    <div className="min-h-screen bg-background px-6 pt-[60px] pb-10 flex flex-col">
       <div className="flex-1 flex flex-col justify-center text-center">
         <div
           className="size-24 mx-auto mb-7 rounded-[28px] flex items-center justify-center"
@@ -79,17 +65,7 @@ export function OnboardingClient() {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <button
-          onClick={handleConnect}
-          disabled={loading}
-          className="w-full rounded-2xl py-4 text-[15px] font-bold text-white transition-opacity disabled:opacity-60"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            boxShadow: '0 10px 30px rgba(99,102,241,0.35)',
-          }}
-        >
-          {loading ? 'Iniciando…' : 'Conectar mi primer banco'}
-        </button>
+        <ConnectBankButton />
         <button className="py-2.5 text-[13px] font-semibold text-muted-foreground">
           Empezar con datos de ejemplo
         </button>

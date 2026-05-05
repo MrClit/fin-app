@@ -8,8 +8,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login')
 
   return (
-    <div className="relative mx-auto w-full max-w-[420px] min-h-screen overflow-clip bg-background">
-      <main className="pb-[90px] animate-fade-in">
+    <div className="relative mx-auto w-full max-w-105 min-h-screen overflow-clip bg-background">
+      <main className="pb-22.5 animate-fade-in">
         {children}
       </main>
       <BottomNav />
