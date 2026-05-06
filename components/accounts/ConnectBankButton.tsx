@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Search } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 
 interface Aspsp {
   name: string
@@ -64,7 +64,7 @@ export function ConnectBankButton() {
         className="w-full rounded-[20px] border-2 border-dashed p-5 flex items-center justify-center gap-2 transition-opacity"
         style={{ borderColor: '#6366f140', background: '#6366f108' }}
       >
-        <Plus className="size-[18px]" style={{ color: '#6366f1' }} />
+        <Plus className="size-4.5" style={{ color: '#6366f1' }} />
         <span className="text-[14px] font-semibold" style={{ color: '#6366f1' }}>
           Conectar nueva cuenta
         </span>
