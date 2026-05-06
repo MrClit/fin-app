@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={dmSans.variable} suppressHydrationWarning>
-      <body className="min-h-full overflow-clip antialiased">
+      <body className="min-h-full antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
