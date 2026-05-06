@@ -3,7 +3,9 @@ import { SignJWT, importPKCS8 } from 'jose'
 const BASE_URL = 'https://api.enablebanking.com'
 
 export async function signJWT(): Promise<string> {
-  const rawKey = process.env.ENABLEBANKING_SECRET_KEY!.replace(/\\n/g, '\n')
+  const raw = process.env.ENABLEBANKING_SECRET_KEY ?? ''
+  console.log('[EB key] length:', raw.length, '| first30:', JSON.stringify(raw.slice(0, 30)), '| hasLiteralN:', raw.includes('\\n'), '| hasRealN:', raw.includes('\n'))
+  const rawKey = raw.replace(/\\n/g, '\n')
   const key = await importPKCS8(rawKey, 'RS256')
   return new SignJWT({})
     .setProtectedHeader({ alg: 'RS256', kid: process.env.ENABLEBANKING_APP_ID! })
