@@ -1,5 +1,4 @@
 -- Permite upsert seguro en accounts al reconectar el mismo banco
--- external_id puede ser NULL (cuentas manuales), de ahí el WHERE
-CREATE UNIQUE INDEX idx_accounts_user_external
-  ON accounts(user_id, external_id)
-  WHERE external_id IS NOT NULL;
+-- UNIQUE constraint (no índice parcial) para que ON CONFLICT funcione con el cliente Supabase
+DROP INDEX IF EXISTS idx_accounts_user_external;
+ALTER TABLE accounts ADD CONSTRAINT accounts_user_external_unique UNIQUE (user_id, external_id);

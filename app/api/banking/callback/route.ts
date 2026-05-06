@@ -27,12 +27,13 @@ export async function GET(request: NextRequest) {
   }
 
   for (const acc of session.accounts) {
-    const lastFour = acc.iban ? acc.iban.replace(/\s/g, '').slice(-4) : null
+    const iban = acc.account_id?.iban ?? null
+    const lastFour = iban ? iban.replace(/\s/g, '').slice(-4) : null
 
     await supabase.from('accounts').upsert(
       {
         user_id: user.id,
-        name: acc.account_holder ?? 'Cuenta bancaria',
+        name: acc.name ?? 'Cuenta bancaria',
         type: 'bank',
         source: 'enablebanking',
         balance: null,

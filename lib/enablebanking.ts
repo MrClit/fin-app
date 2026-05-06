@@ -21,8 +21,8 @@ export interface EBAuthResponse {
 
 export interface EBAccount {
   uid: string
-  iban: string | null
-  account_holder: string | null
+  account_id: { iban: string | null } | null
+  name: string | null
   currency: string
 }
 
