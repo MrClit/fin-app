@@ -4,6 +4,14 @@ import { signJWT } from '@/lib/enablebanking'
 export async function GET(request: NextRequest) {
   const country = new URL(request.url).searchParams.get('country') ?? 'ES'
 
+  const raw = process.env.ENABLEBANKING_SECRET_KEY ?? ''
+  const keyDiag = {
+    length: raw.length,
+    first30: raw.slice(0, 30),
+    hasLiteralBackslashN: raw.includes('\\n'),
+    hasRealNewline: raw.includes('\n'),
+  }
+
   try {
     const jwt = await signJWT()
     const res = await fetch(
@@ -24,6 +32,6 @@ export async function GET(request: NextRequest) {
     )
   } catch (err) {
     console.error('[EB aspsps] exception:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: String(err), keyDiag }, { status: 500 })
   }
 }
