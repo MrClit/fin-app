@@ -3,18 +3,19 @@ import { createClient } from '@/lib/supabase/server'
 import { createSessionFromCode } from '@/lib/enablebanking'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const code = searchParams.get('code')
   const error = searchParams.get('error')
 
   if (error || !code) {
-    return NextResponse.redirect(`${origin}/cuentas?error=bank_auth_cancelled`)
+    return NextResponse.redirect(`${appUrl}/cuentas?error=bank_auth_cancelled`)
   }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${appUrl}/login`)
   }
 
   let session
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     session = await createSessionFromCode(code)
   } catch (err) {
     console.error('[EB callback] createSessionFromCode error:', err)
-    return NextResponse.redirect(`${origin}/cuentas?error=session_fetch_failed`)
+    return NextResponse.redirect(`${appUrl}/cuentas?error=session_fetch_failed`)
   }
 
   for (const acc of session.accounts) {
@@ -50,5 +51,5 @@ export async function GET(request: NextRequest) {
     .from('user_config')
     .upsert({ user_id: user.id, has_onboarded: true }, { onConflict: 'user_id' })
 
-  return NextResponse.redirect(`${origin}/cuentas?connected=true`)
+  return NextResponse.redirect(`${appUrl}/cuentas?connected=true`)
 }
