@@ -23,7 +23,7 @@ const FEATURES = [
 
 export function OnboardingClient() {
   return (
-    <div className="min-h-screen bg-background px-6 pt-[60px] pb-10 flex flex-col">
+    <div className="min-h-screen bg-background px-6 pt-15 pb-10 flex flex-col">
       <div className="flex-1 flex flex-col justify-center text-center">
         <div
           className="size-24 mx-auto mb-7 rounded-[28px] flex items-center justify-center"
@@ -50,10 +50,10 @@ export function OnboardingClient() {
               className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card border border-border"
             >
               <div
-                className="size-10 rounded-[12px] shrink-0 flex items-center justify-center"
+                className="size-10 rounded-xl shrink-0 flex items-center justify-center"
                 style={{ background: '#6366f115' }}
               >
-                <Icon className="size-[18px]" style={{ color: '#6366f1' }} strokeWidth={2} />
+                <Icon className="size-4.5" style={{ color: '#6366f1' }} strokeWidth={2} />
               </div>
               <div>
                 <div className="text-sm font-bold text-foreground mb-0.5">{title}</div>

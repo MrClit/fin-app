@@ -24,7 +24,7 @@ export function AccountCard({ account }: { account: Account }) {
             className="size-11 rounded-[14px] flex items-center justify-center"
             style={{ background: color + '22' }}
           >
-            <div className="size-[18px] rounded-[5px]" style={{ background: color }} />
+            <div className="size-4.5 rounded-[5px]" style={{ background: color }} />
           </div>
           <div>
             <div className="text-[15px] font-bold text-foreground leading-tight">
