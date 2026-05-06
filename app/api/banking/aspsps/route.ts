@@ -11,14 +11,19 @@ export async function GET(request: NextRequest) {
       { headers: { Authorization: `Bearer ${jwt}` } }
     )
 
-    if (!res.ok) return NextResponse.json([])
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('[EB aspsps] API error:', res.status, body)
+      return NextResponse.json({ error: `Enable Banking ${res.status}`, detail: body }, { status: 502 })
+    }
 
     const data = await res.json()
     const list = Array.isArray(data) ? data : (data.aspsps ?? [])
     return NextResponse.json(
       list.map((a: { name: string; country: string }) => ({ name: a.name, country: a.country }))
     )
-  } catch {
-    return NextResponse.json([])
+  } catch (err) {
+    console.error('[EB aspsps] exception:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
