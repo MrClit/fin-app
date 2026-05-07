@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "tunnel": "ngrok http --domain=decidable-rendering-propeller.ngrok-free.dev 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
