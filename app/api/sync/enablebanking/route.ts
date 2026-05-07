@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getAccountTransactions, getAccountBalance } from '@/lib/enablebanking'
+import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorize } from '@/lib/categories'
 
 export async function POST() {
@@ -54,7 +54,12 @@ export async function POST() {
 
     if (ebTransactions.length > 0) {
       const rows = ebTransactions.map(tx => {
-        const description = tx.remittance_information_unstructured?.trim() || 'Sin descripción'
+        const externalId = tx.entry_reference ?? tx.transaction_id
+        const description =
+          tx.remittance_information?.[0]?.trim() ||
+          tx.creditor?.name ||
+          tx.debtor?.name ||
+          'Sin descripción'
         const sign = tx.credit_debit_indicator === 'DBIT' ? -1 : 1
         const amount = parseFloat(tx.transaction_amount.amount) * sign
 
@@ -66,7 +71,7 @@ export async function POST() {
           description,
           category:             categorize(description),
           source:               'enablebanking' as const,
-          external_id:          tx.transaction_id,
+          external_id:          externalId,
           is_computable:        true,
           is_internal_transfer: false,
         }
@@ -83,20 +88,15 @@ export async function POST() {
       }
     }
 
-    // Update balance and last_synced
-    try {
-      const balance = await getAccountBalance(account.external_id, account.session_id)
-      await db
-        .from('accounts')
-        .update({ ...(balance !== null && { balance }), last_synced: new Date().toISOString() })
-        .eq('id', account.id)
-    } catch (err) {
-      console.error(`[sync/eb] getBalance ${account.external_id}:`, err)
-      await db
-        .from('accounts')
-        .update({ last_synced: new Date().toISOString() })
-        .eq('id', account.id)
-    }
+    // Update balance from last transaction's balance_after_transaction
+    const lastTx = ebTransactions.at(-1)
+    const balance = lastTx?.balance_after_transaction
+      ? parseFloat(lastTx.balance_after_transaction.amount)
+      : null
+    await db
+      .from('accounts')
+      .update({ ...(balance !== null && { balance }), last_synced: new Date().toISOString() })
+      .eq('id', account.id)
   }
 
   const { error: transferError } = await db.rpc('mark_internal_transfers', { p_user_id: user.id })

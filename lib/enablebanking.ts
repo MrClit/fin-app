@@ -102,11 +102,15 @@ async function signJWTForSession(sessionId: string): Promise<string> {
 }
 
 export interface EBTransaction {
-  transaction_id: string
+  entry_reference: string | null
+  transaction_id: string | null
   booking_date: string
   transaction_amount: { amount: string; currency: string }
   credit_debit_indicator: 'CRDT' | 'DBIT'
-  remittance_information_unstructured?: string
+  remittance_information: string[] | null
+  creditor: { name: string | null } | null
+  debtor: { name: string | null } | null
+  balance_after_transaction: { amount: string; currency: string } | null
 }
 
 export interface EBBalance {
