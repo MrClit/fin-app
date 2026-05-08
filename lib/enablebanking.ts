@@ -88,3 +88,76 @@ export async function createSessionFromCode(code: string): Promise<EBSession> {
 
   return res.json()
 }
+
+async function signJWTForSession(sessionId: string): Promise<string> {
+  const rawKey = (process.env.ENABLEBANKING_SECRET_KEY ?? '').replace(/\\n/g, '\n')
+  const key = await importPKCS8(rawKey, 'RS256')
+  return new SignJWT({ session_id: sessionId })
+    .setProtectedHeader({ alg: 'RS256', kid: process.env.ENABLEBANKING_APP_ID! })
+    .setIssuer('enablebanking.com')
+    .setAudience('api.enablebanking.com')
+    .setIssuedAt()
+    .setExpirationTime('60s')
+    .sign(key)
+}
+
+export interface EBTransaction {
+  entry_reference: string | null
+  transaction_id: string | null
+  booking_date: string
+  transaction_amount: { amount: string; currency: string }
+  credit_debit_indicator: 'CRDT' | 'DBIT'
+  remittance_information: string[] | null
+  creditor: { name: string | null } | null
+  debtor: { name: string | null } | null
+  balance_after_transaction: { amount: string; currency: string } | null
+}
+
+export interface EBBalance {
+  balance_type: string
+  balance_amount: { amount: string; currency: string }
+}
+
+export async function getAccountTransactions(
+  accountUid: string,
+  sessionId: string,
+  dateFrom?: string
+): Promise<EBTransaction[]> {
+  const jwt = await signJWTForSession(sessionId)
+  const url = new URL(`${BASE_URL}/accounts/${accountUid}/transactions`)
+  if (dateFrom) url.searchParams.set('date_from', dateFrom)
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${jwt}` },
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`EB getTransactions ${accountUid}: ${res.status} — ${body}`)
+  }
+
+  const data: { transactions?: EBTransaction[] } = await res.json()
+  return data.transactions ?? []
+}
+
+export async function getAccountBalance(
+  accountUid: string,
+  sessionId: string
+): Promise<number | null> {
+  const jwt = await signJWTForSession(sessionId)
+  const res = await fetch(`${BASE_URL}/accounts/${accountUid}/balances`, {
+    headers: { Authorization: `Bearer ${jwt}` },
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`EB getBalance ${accountUid}: ${res.status} — ${body}`)
+  }
+
+  const data: { balances?: EBBalance[] } = await res.json()
+  const chosen =
+    data.balances?.find(b => b.balance_type === 'closingBooked') ??
+    data.balances?.[0] ??
+    null
+  return chosen ? parseFloat(chosen.balance_amount.amount) : null
+}
