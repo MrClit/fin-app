@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { getDashboardData } from '@/lib/dashboard'
+import { DashboardBalanceCard } from '@/components/dashboard/DashboardBalanceCard'
+import { DashboardAccountGrid } from '@/components/dashboard/DashboardAccountGrid'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -16,12 +18,16 @@ export default async function HomePage() {
     if (!config?.has_onboarded) redirect('/onboarding')
   }
 
+  const { balance, weeklyDelta, dailyBalances, accounts } = await getDashboardData()
+
   return (
-    <div className="px-6 pt-14 flex flex-col gap-4">
-      <div className="flex justify-end">
-        <ThemeToggle />
-      </div>
-      <p className="text-muted-foreground text-sm">Dashboard — próximamente</p>
+    <div className="px-4 pt-12 pb-6 flex flex-col gap-4">
+      <DashboardBalanceCard
+        balance={balance}
+        weeklyDelta={weeklyDelta}
+        dailyBalances={dailyBalances}
+      />
+      <DashboardAccountGrid accounts={accounts} />
     </div>
   )
 }
