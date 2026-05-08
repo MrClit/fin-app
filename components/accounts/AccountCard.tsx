@@ -1,20 +1,42 @@
-import { Check } from 'lucide-react'
+import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
 import type { Account } from '@/types'
 
-function formatRelativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const hours = Math.floor(diffMs / 3_600_000)
-  if (hours < 1) return 'hace menos de 1 hora'
-  if (hours < 24) return `hace ${hours} hora${hours > 1 ? 's' : ''}`
-  const days = Math.floor(hours / 24)
-  return `hace ${days} día${days > 1 ? 's' : ''}`
+function getSyncStatus(iso: string | null): { label: string; color: string; Icon: typeof Check } {
+  if (!iso) return { label: 'Nunca sincronizado', color: 'var(--muted-foreground)', Icon: XCircle }
+  const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000
+  const label =
+    hours < 1
+      ? 'hace menos de 1 hora'
+      : hours < 24
+        ? `hace ${Math.floor(hours)} hora${Math.floor(hours) > 1 ? 's' : ''}`
+        : `hace ${Math.floor(hours / 24)} día${Math.floor(hours / 24) > 1 ? 's' : ''}`
+  if (hours < 24) return { label, color: '#22c55e', Icon: Check }
+  if (hours < 72) return { label, color: '#f59e0b', Icon: AlertTriangle }
+  return { label, color: '#ef4444', Icon: XCircle }
+}
+
+function SourceBadge({ source }: { source: Account['source'] }) {
+  const config =
+    source === 'enablebanking'
+      ? { label: 'PSD2', bg: '#6366f122', color: '#6366f1' }
+      : source === 'scraper'
+        ? { label: 'Scraper', bg: '#f59e0b22', color: '#f59e0b' }
+        : { label: 'Manual', bg: '#64748b22', color: '#64748b' }
+  return (
+    <span
+      className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+      style={{ background: config.bg, color: config.color }}
+    >
+      {config.label}
+    </span>
+  )
 }
 
 export function AccountCard({ account }: { account: Account }) {
   const color = account.color ?? '#6366f1'
-  const isPsd2 = account.source === 'enablebanking'
   const isNegative = (account.balance ?? 0) < 0
+  const { label: syncLabel, color: syncColor, Icon: SyncIcon } = getSyncStatus(account.last_synced)
 
   return (
     <div className="bg-card rounded-[20px] p-5 border border-border">
@@ -36,15 +58,7 @@ export function AccountCard({ account }: { account: Account }) {
           </div>
         </div>
 
-        <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-          style={{
-            background: isPsd2 ? '#6366f122' : '#f59e0b22',
-            color: isPsd2 ? '#6366f1' : '#f59e0b',
-          }}
-        >
-          {isPsd2 ? 'PSD2' : 'Scraper'}
-        </span>
+        <SourceBadge source={account.source} />
       </div>
 
       <div className="flex items-end justify-between">
@@ -66,8 +80,8 @@ export function AccountCard({ account }: { account: Account }) {
       </div>
 
       <div className="mt-3.5 pt-3.5 border-t border-border text-[11px] text-muted-foreground flex items-center gap-1.5">
-        <Check className="size-3 shrink-0" style={{ color: '#22c55e' }} />
-        {account.last_synced ? formatRelativeTime(account.last_synced) : 'Nunca sincronizado'}
+        <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
+        <span style={{ color: syncColor }}>{syncLabel}</span>
       </div>
     </div>
   )

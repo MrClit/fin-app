@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Check } from 'lucide-react'
+import { Check, Landmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
@@ -53,9 +53,26 @@ export default async function CuentasPage({
         </div>
       )}
 
-      {(accounts ?? []).map((account: Account) => (
-        <AccountCard key={account.id} account={account} />
-      ))}
+      {(accounts ?? []).length === 0 ? (
+        <div className="flex flex-col items-center text-center gap-3 py-10">
+          <div
+            className="size-16 rounded-[20px] flex items-center justify-center"
+            style={{ background: '#6366f115' }}
+          >
+            <Landmark className="size-7" style={{ color: '#6366f1' }} />
+          </div>
+          <div>
+            <div className="text-[15px] font-bold text-foreground">No tienes cuentas conectadas</div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Conecta tu primer banco para empezar a ver tus finanzas
+            </div>
+          </div>
+        </div>
+      ) : (
+        (accounts ?? []).map((account: Account) => (
+          <AccountCard key={account.id} account={account} />
+        ))
+      )}
 
       <ConnectBankButton />
     </div>
