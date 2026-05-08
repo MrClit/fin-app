@@ -53,6 +53,10 @@ export interface Category {
   color: string
 }
 
+export interface TransactionWithAccount extends Transaction {
+  account: Pick<Account, 'id' | 'name' | 'color'>
+}
+
 export interface UserConfig {
   user_id: string
   has_onboarded: boolean
