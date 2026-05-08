@@ -30,22 +30,39 @@ export async function GET(request: NextRequest) {
     const iban = acc.account_id?.iban ?? null
     const lastFour = iban ? iban.replace(/\s/g, '').slice(-4) : null
 
-    await supabase.from('accounts').upsert(
-      {
-        user_id: user.id,
-        name: acc.name ?? 'Cuenta bancaria',
-        type: 'bank',
-        source: 'enablebanking',
-        balance: null,
-        number: lastFour ? `•••• ${lastFour}` : null,
-        currency: acc.currency ?? 'EUR',
-        external_id: acc.uid,
-        session_id: session.session_id,
-        consent_expires_at: session.access.valid_until,
-        is_active: true,
-      },
-      { onConflict: 'user_id,external_id' }
-    )
+    const accountData = {
+      user_id: user.id,
+      name: acc.product ?? acc.name ?? 'Cuenta bancaria',
+      type: 'bank' as const,
+      source: 'enablebanking' as const,
+      number: lastFour ? `•••• ${lastFour}` : null,
+      iban,
+      currency: acc.currency ?? 'EUR',
+      external_id: acc.uid,
+      session_id: session.session_id,
+      consent_expires_at: session.access.valid_until,
+      is_active: true,
+    }
+
+    if (iban) {
+      const { data: existing } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('iban', iban)
+        .maybeSingle()
+
+      if (existing) {
+        await supabase.from('accounts').update(accountData).eq('id', existing.id)
+      } else {
+        await supabase.from('accounts').insert({ ...accountData, balance: null })
+      }
+    } else {
+      await supabase.from('accounts').upsert(
+        { ...accountData, balance: null },
+        { onConflict: 'user_id,external_id' }
+      )
+    }
   }
 
   await supabase

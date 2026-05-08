@@ -23,6 +23,7 @@ export interface EBAccount {
   uid: string
   account_id: { iban: string | null } | null
   name: string | null
+  product: string | null
   currency: string
 }
 

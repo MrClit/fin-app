@@ -1,3 +1,5 @@
+import { ShoppingCart, UtensilsCrossed, Car, Home, Gamepad2, ShoppingBag, HeartPulse, TrendingUp, MoreHorizontal } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { CategoryId } from '@/types'
 
 interface ThemeColors {
@@ -52,6 +54,24 @@ export const CATEGORY_COLORS: Record<CategoryId, string> = {
   health: '#10b981',
   income: '#3b82f6',
   other: '#64748b',
+}
+
+interface CategoryMeta {
+  label: string
+  color: string
+  Icon: LucideIcon
+}
+
+export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
+  groceries:  { label: 'Supermercado', color: '#22c55e', Icon: ShoppingCart    },
+  restaurant: { label: 'Restaurante',  color: '#f59e0b', Icon: UtensilsCrossed },
+  transport:  { label: 'Transporte',   color: '#8b5cf6', Icon: Car             },
+  home:       { label: 'Hogar',        color: '#06b6d4', Icon: Home            },
+  leisure:    { label: 'Ocio',         color: '#ef4444', Icon: Gamepad2        },
+  shopping:   { label: 'Compras',      color: '#ec4899', Icon: ShoppingBag     },
+  health:     { label: 'Salud',        color: '#10b981', Icon: HeartPulse      },
+  income:     { label: 'Ingresos',     color: '#3b82f6', Icon: TrendingUp      },
+  other:      { label: 'Otros',        color: '#64748b', Icon: MoreHorizontal  },
 }
 
 export const GRADIENTS = {
