@@ -90,7 +90,10 @@ gh project field-list 2 --owner MrClit --format json  # → field-id y option-id
 | Al terminar implementación y validaciones | Mover a **Review** |
 | Al cerrar la issue | Mover a **Done** + comentar resumen con `mcp__github__add_issue_comment` |
 
-Si el usuario pide mergear la PR, hacerlo directamente con `mcp__github__merge_pull_request` (sin aprobación previa — GitHub no permite que el autor apruebe su propia PR).
+Si el usuario pide mergear la PR, usar **siempre** `gh pr merge` — el MCP devuelve error de permisos:
+```bash
+gh pr merge <número> --squash --subject "título del commit"
+```
 
 Nunca trabajar directamente en `develop` ni en `main` durante la implementación.
 
