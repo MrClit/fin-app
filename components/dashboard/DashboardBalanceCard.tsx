@@ -15,7 +15,7 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
 
   return (
     <div
-      className="rounded-[24px] px-5 pt-5 overflow-hidden"
+      className="rounded-3xl px-5 pt-5 overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
     >
       <div className="text-[13px] font-medium text-white/70 mb-1">Balance total</div>
@@ -29,6 +29,9 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
         </span>
       </div>
       <Sparkline data={dailyBalances} />
+      <div className="text-[10px] mt-1 pb-4" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        Últimos 30 días
+      </div>
     </div>
   )
 }
