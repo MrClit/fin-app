@@ -12,7 +12,7 @@ export default async function MovimientosPage() {
   cutoff.setDate(cutoff.getDate() - 90)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
-  const [{ data: transactions }, { data: accounts }] = await Promise.all([
+  const [{ data: transactions }, { data: accounts }, { data: manualAcc }] = await Promise.all([
     supabase
       .from('transactions')
       .select('*, account:accounts(id, name, color)')
@@ -27,12 +27,29 @@ export default async function MovimientosPage() {
       .select('id, name, color, number')
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
+    supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('source', 'manual')
+      .maybeSingle(),
   ])
+
+  let manualAccountId = manualAcc?.id
+  if (!manualAccountId) {
+    const { data: created } = await supabase
+      .from('accounts')
+      .insert({ user_id: user.id, name: 'Manual', type: 'cash', source: 'manual', color: '#64748b' })
+      .select('id')
+      .single()
+    manualAccountId = created?.id
+  }
 
   return (
     <MovimientosClient
       initialTransactions={(transactions ?? []) as TransactionWithAccount[]}
       accounts={accounts ?? []}
+      manualAccountId={manualAccountId ?? ''}
     />
   )
 }

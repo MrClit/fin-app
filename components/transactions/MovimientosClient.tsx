@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, X, ChevronDown, Box } from 'lucide-react'
+import { Search, X, ChevronDown, Box, Plus } from 'lucide-react'
 import { TxRow } from './TxRow'
 import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
+import { AddTxModal } from './AddTxModal'
 import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { Account, CategoryId, TransactionWithAccount } from '@/types'
@@ -22,6 +23,7 @@ const TYPE_PILLS: { key: TypeFilter; label: string }[] = [
 interface MovimientosClientProps {
   initialTransactions: TransactionWithAccount[]
   accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
+  manualAccountId: string
 }
 
 function formatDayLabel(dateStr: string): string {
@@ -36,12 +38,13 @@ function formatDayLabel(dateStr: string): string {
   return `${d} ${MONTHS[m - 1]} ${y}`
 }
 
-export function MovimientosClient({ initialTransactions, accounts }: MovimientosClientProps) {
+export function MovimientosClient({ initialTransactions, accounts, manualAccountId }: MovimientosClientProps) {
   const [transactions, setTransactions] = useState(initialTransactions)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [showAccountFilter, setShowAccountFilter] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
@@ -273,6 +276,38 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
           onSelect={handleSelect}
         />
       )}
+
+      {/* Add transaction bottom sheet */}
+      {showAddModal && (
+        <AddTxModal
+          manualAccountId={manualAccountId}
+          onClose={() => setShowAddModal(false)}
+          onSave={tx => setTransactions(prev => [tx, ...prev])}
+        />
+      )}
+
+      {/* FAB */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        style={{
+          position: 'fixed',
+          bottom: 90,
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          background: '#6366f1',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+          zIndex: 110,
+        }}
+      >
+        <Plus size={24} color="white" strokeWidth={2.5} />
+      </button>
     </div>
   )
 }

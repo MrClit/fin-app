@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const { amount, description, date, category_manual, account_id } = body
+
+  if (!amount || !description || !date || !account_id) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  const { data: tx, error } = await supabase
+    .from('transactions')
+    .insert({
+      user_id: user.id,
+      account_id,
+      amount,
+      description,
+      date,
+      category_manual: category_manual ?? null,
+      source: 'manual',
+      is_computable: true,
+      is_internal_transfer: false,
+    })
+    .select('*, account:accounts(id, name, color)')
+    .single()
+
+  if (error) {
+    console.error('[POST /api/transactions]', error)
+    return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  }
+
+  return NextResponse.json({ data: tx }, { status: 201 })
+}
+
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
