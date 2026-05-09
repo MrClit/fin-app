@@ -32,10 +32,12 @@ export default async function MovimientosPage() {
       .select('id')
       .eq('user_id', user.id)
       .eq('source', 'manual')
-      .maybeSingle(),
+      .order('created_at', { ascending: true })
+      .limit(1),
   ])
 
-  let manualAccountId = manualAcc?.id
+  // manualAcc es un array (limit(1)), tomar el primero
+  let manualAccountId = (manualAcc as { id: string }[] | null)?.[0]?.id
   if (!manualAccountId) {
     const { data: created } = await supabase
       .from('accounts')

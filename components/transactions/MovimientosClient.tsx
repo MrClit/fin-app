@@ -291,7 +291,7 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
         onClick={() => setShowAddModal(true)}
         style={{
           position: 'fixed',
-          bottom: 90,
+          bottom: 104,
           right: 20,
           width: 56,
           height: 56,
