@@ -4,9 +4,10 @@ import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface TxRowProps {
   tx: TransactionWithAccount
+  onTap: (tx: TransactionWithAccount) => void
 }
 
-export function TxRow({ tx }: TxRowProps) {
+export function TxRow({ tx, onTap }: TxRowProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
   const meta = CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other
   const Icon = meta.Icon
@@ -16,7 +17,7 @@ export function TxRow({ tx }: TxRowProps) {
   const amountColor = tx.amount > 0 ? '#22c55e' : '#ef4444'
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-muted/40 transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => onTap(tx)}>
       <div
         className="flex items-center justify-center rounded-[14px] shrink-0"
         style={{

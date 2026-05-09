@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { Search, X, ChevronDown, Box } from 'lucide-react'
 import { TxRow } from './TxRow'
+import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
+import { CategoryPicker } from './CategoryPicker'
 import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { Account, CategoryId, TransactionWithAccount } from '@/types'
@@ -35,10 +37,15 @@ function formatDayLabel(dateStr: string): string {
 }
 
 export function MovimientosClient({ initialTransactions, accounts }: MovimientosClientProps) {
+  const [transactions, setTransactions] = useState(initialTransactions)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [showAccountFilter, setShowAccountFilter] = useState(false)
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+  const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
+
+  const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
   // Derived: account button label
   const accountLabel =
@@ -48,8 +55,41 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
         ? (accounts.find(a => a.id === selectedAccountIds[0])?.name ?? '1 cuenta')
         : `${selectedAccountIds.length} cuentas`
 
+  function handleTxTap(tx: TransactionWithAccount) {
+    setSelectedTxId(tx.id)
+  }
+
+  function handleRecategorize(tx: TransactionWithAccount) {
+    setCatPickerTx(tx)
+  }
+
+  async function handleSelect(txId: string, category: CategoryId) {
+    setTransactions(prev => prev.map(t =>
+      t.id === txId ? { ...t, category_manual: category } : t
+    ))
+    const res = await fetch(`/api/transactions/${txId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category_manual: category }),
+    })
+    if (!res.ok) {
+      setTransactions(initialTransactions)
+      console.error('[handleSelect] Error recategorizando:', await res.text())
+    }
+  }
+
+  async function handleDelete(txId: string) {
+    setSelectedTxId(null)
+    setTransactions(prev => prev.filter(t => t.id !== txId))
+    const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      setTransactions(initialTransactions)
+      console.error('[handleDelete] Error eliminando:', await res.text())
+    }
+  }
+
   // Client-side filtering
-  let filtered = initialTransactions
+  let filtered = transactions
 
   if (selectedAccountIds.length > 0) {
     filtered = filtered.filter(tx => selectedAccountIds.includes(tx.account_id))
@@ -187,7 +227,7 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
                 {/* Transactions */}
                 <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
                   {group.transactions.map(tx => (
-                    <TxRow key={tx.id} tx={tx} />
+                    <TxRow key={tx.id} tx={tx} onTap={handleTxTap} />
                   ))}
                 </div>
               </div>
@@ -203,6 +243,25 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
           selectedIds={selectedAccountIds}
           onSelectionChange={setSelectedAccountIds}
           onClose={() => setShowAccountFilter(false)}
+        />
+      )}
+
+      {/* Transaction detail bottom sheet */}
+      {selectedTx && (
+        <TxModal
+          tx={selectedTx}
+          onClose={() => setSelectedTxId(null)}
+          onRecategorize={handleRecategorize}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* Category picker bottom sheet (zIndex 400, overlays TxModal) */}
+      {catPickerTx && (
+        <CategoryPicker
+          tx={catPickerTx}
+          onClose={() => setCatPickerTx(null)}
+          onSelect={handleSelect}
         />
       )}
     </div>
