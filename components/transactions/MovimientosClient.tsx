@@ -100,12 +100,15 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
     filtered = filtered.filter(tx => selectedAccountIds.includes(tx.account_id))
   }
 
-  if (typeFilter === 'ingresos') {
-    filtered = filtered.filter(tx => tx.amount > 0 && tx.is_computable)
-  } else if (typeFilter === 'gastos') {
-    filtered = filtered.filter(tx => tx.amount < 0 && tx.is_computable)
-  } else if (typeFilter === 'no-computable') {
-    filtered = filtered.filter(tx => !tx.is_computable)
+  if (typeFilter !== 'todos') {
+    filtered = filtered.filter(tx => {
+      const catId = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
+      const catType = CATEGORY_META[catId]?.type
+      if (typeFilter === 'ingresos')       return catType === 'income'
+      if (typeFilter === 'gastos')         return catType === 'expense'
+      if (typeFilter === 'no-computable')  return catType === 'non_computable' || !tx.is_computable
+      return true
+    })
   }
 
   if (searchQuery.trim()) {

@@ -3,8 +3,17 @@ import { createClient } from '@/lib/supabase/server'
 import type { CategoryId } from '@/types'
 
 const VALID_CATEGORIES: CategoryId[] = [
-  'groceries', 'restaurant', 'transport', 'home',
-  'leisure', 'shopping', 'health', 'income', 'other',
+  // Gastos
+  'groceries', 'restaurant', 'transport', 'fuel', 'parking', 'vehicle',
+  'mortgage', 'community_fees', 'electricity', 'gas', 'water', 'internet',
+  'home', 'clothing', 'shopping', 'electronics', 'health', 'pharmacy',
+  'leisure', 'sports', 'subscriptions', 'travel', 'education', 'insurance',
+  'beauty', 'gifts', 'charity', 'memberships', 'taxes', 'loans', 'cash',
+  'fees', 'other',
+  // Ingresos
+  'income', 'returns', 'reimbursement', 'other_income',
+  // No Computable
+  'investment', 'savings', 'transfer', 'loan_payment',
 ]
 
 export async function PATCH(

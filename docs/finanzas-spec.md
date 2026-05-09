@@ -59,7 +59,8 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 
 **Filtros de tipo**
 - Pills horizontales: Todos / Ingresos / Gastos / No Computable
-- "No Computable" = Edenred/tickets restaurante
+- El filtro usa `CATEGORY_META[effectiveCategory].type` — no el signo del importe
+- "No Computable" incluye: transacciones con `is_computable = false` (Edenred) **y** transacciones cuya categoría efectiva tiene `type = 'non_computable'` (inversión, ahorro, transferencias...)
 
 **Lista agrupada por día**
 - Encabezado de día: "Hoy", "Ayer" o fecha formateada + neto del día
@@ -228,25 +229,27 @@ CREATE POLICY "Users access own config" ON user_config
 
 ### 3.2 Categorías predefinidas
 
-```typescript
-const CATEGORIES = [
-  { id: 'groceries',   name: 'Supermercado', color: '#22c55e' },
-  { id: 'restaurant',  name: 'Restaurante',  color: '#f59e0b' },
-  { id: 'transport',   name: 'Transporte',   color: '#8b5cf6' },
-  { id: 'home',        name: 'Hogar',        color: '#06b6d4' },
-  { id: 'leisure',     name: 'Ocio',         color: '#ef4444' },
-  { id: 'shopping',    name: 'Compras',      color: '#ec4899' },
-  { id: 'health',      name: 'Salud',        color: '#10b981' },
-  { id: 'income',      name: 'Ingresos',     color: '#3b82f6' },
-  { id: 'other',       name: 'Otros',        color: '#64748b' },
-]
-```
+**41 categorías** con tres tipos (`CategoryType`): `expense`, `income`, `non_computable`.  
+Definidas en `lib/theme.ts` (`CATEGORY_META`) y en la tabla `categories` de Supabase (para JOINs en queries de Análisis).
 
-La categoría `category_manual` en la tabla `transactions` sobreescribe `category` en la UI. Si `category_manual` tiene valor, se muestra con badge "EDITADA".
+| Tipo | Categorías (IDs) |
+|---|---|
+| `expense` (33) | `groceries`, `restaurant`, `transport`, `fuel`, `parking`, `vehicle`, `mortgage`, `community_fees`, `electricity`, `gas`, `water`, `internet`, `home`, `clothing`, `shopping`, `electronics`, `health`, `pharmacy`, `leisure`, `sports`, `subscriptions`, `travel`, `education`, `insurance`, `beauty`, `gifts`, `charity`, `memberships`, `taxes`, `loans`, `cash`, `fees`, `other` |
+| `income` (4) | `income`, `returns`, `reimbursement`, `other_income` |
+| `non_computable` (4) | `investment`, `savings`, `transfer`, `loan_payment` |
+
+La categoría efectiva se obtiene como `COALESCE(category_manual, category)`. Si `category_manual` tiene valor, se muestra con badge "EDITADA".
+
+El `CategoryPicker` agrupa las categorías por tipo con un selector de 3 tabs (Gastos / Ingresos / No Computable) y abre automáticamente en la sección de la categoría actual.
 
 ### 3.3 Lógica de "No Computable"
 
-Las transacciones de Edenred tienen `is_computable = false`. En el filtro de Movimientos se llaman "No Computable" y se excluyen de los totales de Gastos en Análisis.
+Dos mecanismos que coexisten:
+
+1. **`is_computable = false`** en la transacción — asignado automáticamente a las transacciones de Edenred (scraper). No modificable por el usuario.
+2. **`category.type = 'non_computable'`** — cuando el usuario categoriza una transacción como `investment`, `savings`, `transfer` o `loan_payment`.
+
+Ambos casos se excluyen de los totales de Gastos e Ingresos en Análisis, y ambos aparecen en la pill "No Computable" de Movimientos.
 
 ---
 
@@ -497,24 +500,18 @@ En lugar de barras fantasma adicionales (que añaden ruido visual), se usa una *
 
 ### 5.3 Categorización automática
 
-Al importar transacciones de Enable Banking, aplicar reglas de categorización basadas en la descripción:
+Al importar transacciones de Enable Banking, se aplican reglas en `lib/categories.ts` (`AUTO_RULES`) basadas en la descripción. Devuelven un `CategoryId` (en inglés). Si no hay coincidencia, la transacción queda sin categoría (`null`) y se muestra como `other` en la UI.
 
 ```typescript
+// Ejemplos representativos — ver lib/categories.ts para la lista completa
 const AUTO_RULES = [
-  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski/i, category: 'Supermercado' },
-  { pattern: /netflix|spotify|hbo|disney|amazon prime/i,    category: 'Ocio' },
-  { pattern: /repsol|cepsa|bp\b|galp|campsa/i,              category: 'Transporte' },
-  { pattern: /farmacia|clinica|hospital|sanitas|adeslas/i,  category: 'Salud' },
-  { pattern: /nomina|salario|payroll/i,                     category: 'Ingresos' },
-  // ...añadir más según uso real
+  { pattern: /mercadona|carrefour|lidl|aldi|eroski/i,               category: 'groceries'     },
+  { pattern: /repsol|cepsa|bp\b|galp|campsa/i,                      category: 'fuel'          },
+  { pattern: /netflix|spotify|apple\.com\/bill|youtube premium/i,   category: 'subscriptions' },
+  { pattern: /nomina|salario|payroll/i,                              category: 'income'        },
+  { pattern: /degiro|myinvestor|indexa capital/i,                    category: 'investment'    },
+  // ...
 ]
-
-const categorize = (description: string): string => {
-  for (const rule of AUTO_RULES) {
-    if (rule.pattern.test(description)) return rule.category
-  }
-  return 'Otros'
-}
 ```
 
 Si el usuario ha establecido `category_manual`, esa tiene prioridad sobre la automática.
