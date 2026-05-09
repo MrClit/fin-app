@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, X, ChevronDown, Box } from 'lucide-react'
 import { TxRow } from './TxRow'
 import { AccountFilter } from './AccountFilter'
+import { CategoryPicker } from './CategoryPicker'
 import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { Account, CategoryId, TransactionWithAccount } from '@/types'
@@ -35,12 +36,14 @@ function formatDayLabel(dateStr: string): string {
 }
 
 export function MovimientosClient({ initialTransactions, accounts }: MovimientosClientProps) {
+  const [transactions, setTransactions] = useState(initialTransactions)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [showAccountFilter, setShowAccountFilter] = useState(false)
+  const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
+  const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
 
-  // Derived: account button label
   const accountLabel =
     selectedAccountIds.length === 0
       ? 'Todas las cuentas'
@@ -48,8 +51,28 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
         ? (accounts.find(a => a.id === selectedAccountIds[0])?.name ?? '1 cuenta')
         : `${selectedAccountIds.length} cuentas`
 
+  function handleRecategorize(tx: TransactionWithAccount) {
+    setCatPickerTx(tx)
+    setSwipedTxId(null)
+  }
+
+  async function handleSelect(txId: string, category: CategoryId) {
+    setTransactions(prev => prev.map(t =>
+      t.id === txId ? { ...t, category_manual: category } : t
+    ))
+    const res = await fetch(`/api/transactions/${txId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category_manual: category }),
+    })
+    if (!res.ok) {
+      setTransactions(initialTransactions)
+      console.error('[handleSelect] Error recategorizando:', await res.text())
+    }
+  }
+
   // Client-side filtering
-  let filtered = initialTransactions
+  let filtered = transactions
 
   if (selectedAccountIds.length > 0) {
     filtered = filtered.filter(tx => selectedAccountIds.includes(tx.account_id))
@@ -187,7 +210,13 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
                 {/* Transactions */}
                 <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
                   {group.transactions.map(tx => (
-                    <TxRow key={tx.id} tx={tx} />
+                    <TxRow
+                      key={tx.id}
+                      tx={tx}
+                      swipedId={swipedTxId}
+                      onSwipe={setSwipedTxId}
+                      onRecategorize={handleRecategorize}
+                    />
                   ))}
                 </div>
               </div>
@@ -203,6 +232,15 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
           selectedIds={selectedAccountIds}
           onSelectionChange={setSelectedAccountIds}
           onClose={() => setShowAccountFilter(false)}
+        />
+      )}
+
+      {/* Category picker bottom sheet */}
+      {catPickerTx && (
+        <CategoryPicker
+          tx={catPickerTx}
+          onClose={() => setCatPickerTx(null)}
+          onSelect={handleSelect}
         />
       )}
     </div>

@@ -20,6 +20,7 @@ export default async function MovimientosPage() {
       .gte('date', cutoffStr)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(200),
     supabase
       .from('accounts')
