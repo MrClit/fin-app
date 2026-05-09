@@ -1,15 +1,52 @@
 export type AccountType = 'bank' | 'card' | 'edenred' | 'cash'
 export type DataSource = 'enablebanking' | 'scraper' | 'manual'
+export type CategoryType = 'expense' | 'income' | 'non_computable'
+
 export type CategoryId =
+  // Gastos
   | 'groceries'
   | 'restaurant'
   | 'transport'
+  | 'fuel'
+  | 'parking'
+  | 'vehicle'
+  | 'mortgage'
+  | 'community_fees'
+  | 'electricity'
+  | 'gas'
+  | 'water'
+  | 'internet'
   | 'home'
-  | 'leisure'
+  | 'clothing'
   | 'shopping'
+  | 'electronics'
   | 'health'
-  | 'income'
+  | 'pharmacy'
+  | 'leisure'
+  | 'sports'
+  | 'subscriptions'
+  | 'travel'
+  | 'education'
+  | 'insurance'
+  | 'beauty'
+  | 'gifts'
+  | 'charity'
+  | 'memberships'
+  | 'taxes'
+  | 'loans'
+  | 'cash'
+  | 'fees'
   | 'other'
+  // Ingresos
+  | 'income'
+  | 'returns'
+  | 'reimbursement'
+  | 'other_income'
+  // No Computable
+  | 'investment'
+  | 'savings'
+  | 'transfer'
+  | 'loan_payment'
 
 export interface Account {
   id: string
@@ -51,6 +88,7 @@ export interface Category {
   id: CategoryId
   name: string
   color: string
+  type: CategoryType
 }
 
 export interface TransactionWithAccount extends Transaction {
