@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     .gte('date', cutoffStr)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(limit)
 
   if (type === 'ingresos') {

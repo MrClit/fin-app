@@ -42,12 +42,12 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [showAccountFilter, setShowAccountFilter] = useState(false)
+  const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
-  // Derived: account button label
   const accountLabel =
     selectedAccountIds.length === 0
       ? 'Todas las cuentas'
@@ -57,10 +57,22 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
 
   function handleTxTap(tx: TransactionWithAccount) {
     setSelectedTxId(tx.id)
+    setSwipedTxId(null)
   }
 
   function handleRecategorize(tx: TransactionWithAccount) {
     setCatPickerTx(tx)
+    setSwipedTxId(null)
+  }
+
+  async function handleDelete(txId: string) {
+    setSelectedTxId(null)
+    setTransactions(prev => prev.filter(t => t.id !== txId))
+    const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      setTransactions(initialTransactions)
+      console.error('[handleDelete] Error eliminando:', await res.text())
+    }
   }
 
   async function handleSelect(txId: string, category: CategoryId) {
@@ -75,16 +87,6 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
     if (!res.ok) {
       setTransactions(initialTransactions)
       console.error('[handleSelect] Error recategorizando:', await res.text())
-    }
-  }
-
-  async function handleDelete(txId: string) {
-    setSelectedTxId(null)
-    setTransactions(prev => prev.filter(t => t.id !== txId))
-    const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
-    if (!res.ok) {
-      setTransactions(initialTransactions)
-      console.error('[handleDelete] Error eliminando:', await res.text())
     }
   }
 
@@ -227,7 +229,14 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
                 {/* Transactions */}
                 <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
                   {group.transactions.map(tx => (
-                    <TxRow key={tx.id} tx={tx} onTap={handleTxTap} />
+                    <TxRow
+                      key={tx.id}
+                      tx={tx}
+                      swipedId={swipedTxId}
+                      onSwipe={setSwipedTxId}
+                      onRecategorize={handleRecategorize}
+                      onTap={handleTxTap}
+                    />
                   ))}
                 </div>
               </div>

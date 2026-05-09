@@ -49,13 +49,9 @@ export function CategoryPicker({ tx, onClose, onSelect }: CategoryPickerProps) {
                 }}
               >
                 <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
+                  width: 36, height: 36, borderRadius: 10,
                   background: meta.color + '22',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <Icon size={18} style={{ color: meta.color }} strokeWidth={2} />
                 </div>
