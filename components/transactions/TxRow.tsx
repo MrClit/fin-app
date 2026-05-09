@@ -11,26 +11,30 @@ interface TxRowProps {
   swipedId: string | null
   onSwipe: (id: string | null) => void
   onRecategorize: (tx: TransactionWithAccount) => void
+  onTap: (tx: TransactionWithAccount) => void
 }
 
 const ACTION_WIDTH = 120
 
-export function TxRow({ tx, swipedId, onSwipe, onRecategorize }: TxRowProps) {
+export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
   const meta = CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other
   const Icon = meta.Icon
 
   const isOpen = swipedId === tx.id
   const startX = useRef<number | null>(null)
+  const didMove = useRef(false)
   const [dragX, setDragX] = useState(0)
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX
+    didMove.current = false
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startX.current === null) return
     const dx = e.touches[0].clientX - startX.current
+    if (Math.abs(dx) > 8) didMove.current = true
     if (!isOpen && dx > 0) setDragX(Math.min(dx, ACTION_WIDTH))
     if (isOpen && dx < 0) setDragX(ACTION_WIDTH + Math.max(dx, -ACTION_WIDTH))
   }
@@ -46,6 +50,7 @@ export function TxRow({ tx, swipedId, onSwipe, onRecategorize }: TxRowProps) {
 
   const handleTouchCancel = () => {
     startX.current = null
+    didMove.current = false
     setDragX(0)
   }
 
@@ -115,7 +120,11 @@ export function TxRow({ tx, swipedId, onSwipe, onRecategorize }: TxRowProps) {
         <div
           className="flex items-center gap-3 px-3 py-2.5 bg-card"
           style={{ flex: 1, minWidth: 0 }}
-          onClick={() => isOpen && onSwipe(null)}
+          onClick={() => {
+            if (didMove.current) { didMove.current = false; return }
+            if (isOpen) onSwipe(null)
+            else onTap(tx)
+          }}
         >
           <div
             className="flex items-center justify-center rounded-[14px] shrink-0"

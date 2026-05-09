@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Search, X, ChevronDown, Box } from 'lucide-react'
 import { TxRow } from './TxRow'
+import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
 import { CATEGORY_META } from '@/lib/theme'
@@ -42,7 +43,10 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [showAccountFilter, setShowAccountFilter] = useState(false)
   const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
+
+  const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
   const accountLabel =
     selectedAccountIds.length === 0
@@ -51,9 +55,24 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
         ? (accounts.find(a => a.id === selectedAccountIds[0])?.name ?? '1 cuenta')
         : `${selectedAccountIds.length} cuentas`
 
+  function handleTxTap(tx: TransactionWithAccount) {
+    setSelectedTxId(tx.id)
+    setSwipedTxId(null)
+  }
+
   function handleRecategorize(tx: TransactionWithAccount) {
     setCatPickerTx(tx)
     setSwipedTxId(null)
+  }
+
+  async function handleDelete(txId: string) {
+    setSelectedTxId(null)
+    setTransactions(prev => prev.filter(t => t.id !== txId))
+    const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      setTransactions(initialTransactions)
+      console.error('[handleDelete] Error eliminando:', await res.text())
+    }
   }
 
   async function handleSelect(txId: string, category: CategoryId) {
@@ -216,6 +235,7 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
                       swipedId={swipedTxId}
                       onSwipe={setSwipedTxId}
                       onRecategorize={handleRecategorize}
+                      onTap={handleTxTap}
                     />
                   ))}
                 </div>
@@ -235,7 +255,17 @@ export function MovimientosClient({ initialTransactions, accounts }: Movimientos
         />
       )}
 
-      {/* Category picker bottom sheet */}
+      {/* Transaction detail bottom sheet */}
+      {selectedTx && (
+        <TxModal
+          tx={selectedTx}
+          onClose={() => setSelectedTxId(null)}
+          onRecategorize={handleRecategorize}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* Category picker bottom sheet (zIndex 400, overlays TxModal) */}
       {catPickerTx && (
         <CategoryPicker
           tx={catPickerTx}
