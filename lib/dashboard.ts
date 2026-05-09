@@ -6,6 +6,8 @@ export interface DashboardData {
   weeklyDelta: number
   dailyBalances: number[]
   accounts: Account[]
+  patrimonioData: { label: string; value: number }[]
+  annualDelta: number | null
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
@@ -65,5 +67,46 @@ export async function getDashboardData(): Promise<DashboardData> {
   // Index 22 = 7 days ago (29 - 7 = 22)
   const weeklyDelta = balance - dailyBalances[22]
 
-  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[] }
+  // ── Patrimonio neto mensual (últimos 12 meses) ────────────────────────────
+  const twelveMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1)
+
+  const { data: monthlyTxData } = await supabase
+    .from('transactions')
+    .select('date, amount')
+    .eq('user_id', user.id)
+    .eq('is_computable', true)
+    .eq('is_internal_transfer', false)
+    .gte('date', twelveMonthsAgo.toISOString().split('T')[0])
+
+  const txByMonth: Record<string, number> = {}
+  for (const tx of monthlyTxData ?? []) {
+    const key = tx.date.substring(0, 7)
+    txByMonth[key] = (txByMonth[key] ?? 0) + tx.amount
+  }
+
+  const allMonths = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - (11 - i), 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const firstIdx = allMonths.findIndex(m => txByMonth[m] !== undefined)
+  const activeMonths = firstIdx === -1
+    ? [allMonths[allMonths.length - 1]]
+    : allMonths.slice(firstIdx)
+
+  const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const values = new Array<number>(activeMonths.length)
+  values[activeMonths.length - 1] = balance
+  for (let i = activeMonths.length - 2; i >= 0; i--) {
+    values[i] = values[i + 1] - (txByMonth[activeMonths[i + 1]] ?? 0)
+  }
+
+  const patrimonioData = activeMonths.map((m, i) => ({
+    label: MONTH_LABELS[Number(m.split('-')[1]) - 1],
+    value: Math.round(values[i]),
+  }))
+
+  const annualDelta = activeMonths.length === 12 ? Math.round(balance - values[0]) : null
+
+  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[], patrimonioData, annualDelta }
 }

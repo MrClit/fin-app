@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDashboardData } from '@/lib/dashboard'
 import { DashboardBalanceCard } from '@/components/dashboard/DashboardBalanceCard'
 import { DashboardAccountGrid } from '@/components/dashboard/DashboardAccountGrid'
+import { PatrimonioChart } from '@/components/dashboard/PatrimonioChart'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -18,7 +19,7 @@ export default async function HomePage() {
     if (!config?.has_onboarded) redirect('/onboarding')
   }
 
-  const { balance, weeklyDelta, dailyBalances, accounts } = await getDashboardData()
+  const { balance, weeklyDelta, dailyBalances, accounts, patrimonioData, annualDelta } = await getDashboardData()
 
   return (
     <div className="px-4 pt-12 pb-6 flex flex-col gap-4">
@@ -27,6 +28,7 @@ export default async function HomePage() {
         weeklyDelta={weeklyDelta}
         dailyBalances={dailyBalances}
       />
+      <PatrimonioChart data={patrimonioData} annualDelta={annualDelta} />
       <DashboardAccountGrid accounts={accounts} />
     </div>
   )
