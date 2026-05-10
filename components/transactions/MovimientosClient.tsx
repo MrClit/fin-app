@@ -294,8 +294,8 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
         onClick={() => setShowAddModal(true)}
         style={{
           position: 'fixed',
-          bottom: 104,
-          right: 20,
+          bottom: 'calc(max(env(safe-area-inset-bottom), 1.5rem) + 84px)',
+          right: 'max(20px, calc(50vw - 190px))',
           width: 56,
           height: 56,
           borderRadius: '50%',
