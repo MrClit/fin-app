@@ -98,3 +98,10 @@ export function yoyDelta(current: number, previous: number): string {
 export function toISODate(d: Date): string {
   return d.toISOString().split('T')[0]
 }
+
+export const PERIOD_LABELS: Record<Granularity, string> = {
+  week: 'Esta semana',
+  month: 'Este mes',
+  quarter: 'Este trimestre',
+  year: 'Este año',
+}
