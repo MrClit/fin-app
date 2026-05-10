@@ -103,3 +103,27 @@ export interface UserConfig {
   created_at: string
   updated_at: string
 }
+
+export type Granularity = 'week' | 'month' | 'quarter' | 'year'
+
+export interface CategoryBreakdown {
+  category: CategoryId | null
+  amount: number
+}
+
+export interface PeriodData {
+  label: string
+  start: string        // 'YYYY-MM-DD'
+  end: string          // 'YYYY-MM-DD'
+  ingresos: number
+  gastos: number
+  ahorro: number
+  byCategory: CategoryBreakdown[]
+  yoyIngresos: number | null  // null si no hay histórico suficiente (§5.7)
+  yoyGastos: number | null
+}
+
+export interface AnalyticsResponse {
+  gran: Granularity
+  periods: PeriodData[]
+}
