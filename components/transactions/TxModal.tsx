@@ -178,68 +178,74 @@ export function TxModal({ tx, onClose, onRecategorize, onDelete }: TxModalProps)
         </div>
 
         {/* Eliminar */}
-        {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: '1.5px solid rgba(239,68,68,0.3)',
-              borderRadius: 16,
-              padding: '13px',
-              color: '#ef4444',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
-          >
-            <Trash2 size={15} />
-            Eliminar movimiento
-          </button>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p className="text-xs text-muted-foreground text-center mb-1">
-              ¿Seguro que quieres eliminar este movimiento? Esta acción no se puede deshacer.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                style={{
-                  flex: 1,
-                  background: 'var(--muted)',
-                  border: 'none',
-                  borderRadius: 14,
-                  padding: '13px',
-                  color: 'var(--foreground)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => onDelete(tx.id)}
-                style={{
-                  flex: 1,
-                  background: '#ef4444',
-                  border: 'none',
-                  borderRadius: 14,
-                  padding: '13px',
-                  color: 'white',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Sí, eliminar
-              </button>
+        {tx.source === 'manual' ? (
+          !confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: '1.5px solid rgba(239,68,68,0.3)',
+                borderRadius: 16,
+                padding: '13px',
+                color: '#ef4444',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Trash2 size={15} />
+              Eliminar movimiento
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p className="text-xs text-muted-foreground text-center mb-1">
+                ¿Seguro que quieres eliminar este movimiento? Esta acción no se puede deshacer.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--muted)',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '13px',
+                    color: 'var(--foreground)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => onDelete(tx.id)}
+                  style={{
+                    flex: 1,
+                    background: '#ef4444',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '13px',
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Sí, eliminar
+                </button>
+              </div>
             </div>
-          </div>
+          )
+        ) : (
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted-foreground)', padding: '8px 0' }}>
+            Las transacciones importadas no se pueden eliminar
+          </p>
         )}
       </div>
     </div>,

@@ -61,6 +61,19 @@ export async function DELETE(
   }
 
   const { id } = await params
+
+  const { data: tx } = await supabase
+    .from('transactions')
+    .select('source')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!tx) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (tx.source !== 'manual') {
+    return NextResponse.json({ error: 'Cannot delete imported transactions' }, { status: 403 })
+  }
+
   const { error } = await supabase
     .from('transactions')
     .delete()
