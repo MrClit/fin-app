@@ -500,21 +500,30 @@ En lugar de barras fantasma adicionales (que añaden ruido visual), se usa una *
 
 ### 5.3 Categorización automática
 
-Al importar transacciones de Enable Banking, se aplican reglas en `lib/categories.ts` (`AUTO_RULES`) basadas en la descripción. Devuelven un `CategoryId` (en inglés). Si no hay coincidencia, la transacción queda sin categoría (`null`) y se muestra como `other` en la UI.
+Al importar transacciones de Enable Banking se aplica una cadena de reglas en dos capas:
+
+1. **Reglas de usuario** (`categorization_rules` en DB) — evaluadas por orden de `priority DESC`; la primera que coincide gana.
+2. **Reglas estáticas** (`AUTO_RULES` en `lib/categories.ts`) — fallback si ninguna regla de usuario coincide.
+
+Cada regla tiene un campo `field` que indica qué parte de la transacción evalúa: `description` (remittance_information), `merchant` (creditor/debtor name de EnableBanking) o `iban` (para reglas de usuario con IBANs conocidos).
 
 ```typescript
-// Ejemplos representativos — ver lib/categories.ts para la lista completa
-const AUTO_RULES = [
-  { pattern: /mercadona|carrefour|lidl|aldi|eroski/i,               category: 'groceries'     },
-  { pattern: /repsol|cepsa|bp\b|galp|campsa/i,                      category: 'fuel'          },
-  { pattern: /netflix|spotify|apple\.com\/bill|youtube premium/i,   category: 'subscriptions' },
-  { pattern: /nomina|salario|payroll/i,                              category: 'income'        },
-  { pattern: /degiro|myinvestor|indexa capital/i,                    category: 'investment'    },
-  // ...
-]
+// Función principal usada en el sync route
+categorizeWithRules(dbRules, description, merchant?) → CategoryId | null
+
+// Fallback estático — ver lib/categories.ts para las ~35 reglas completas
+categorize(description, merchant?) → CategoryId | null
+// Cubre: supermercados, restaurantes, delivery, transporte, gasolina, parking,
+// vehículo, hipoteca, préstamos, suministros, telefonía, hogar, ropa,
+// electrónica, compras generales (Amazon, El Corte Inglés), salud, farmacia,
+// belleza, ocio, deporte, suscripciones, viajes, educación, seguros,
+// recibos, impuestos/AEAT, nómina, reembolsos, transferencias propias,
+// retiradas de cajero, Bizum, inversión
 ```
 
-Si el usuario ha establecido `category_manual`, esa tiene prioridad sobre la automática.
+Si ninguna regla coincide → `category = null` (se muestra como "Sin categorizar" en la UI).
+
+Si el usuario ha establecido `category_manual`, esa tiene prioridad sobre la automática (`COALESCE(category_manual, category)`).
 
 ### 5.4 Estrategia de agregación SQL
 
@@ -949,25 +958,28 @@ Al trabajar con este proyecto:
 
 Funcionalidades fuera del MVP pero documentadas para no perderlas. Cada una es independiente y puede implementarse en orden de prioridad según el uso real de la app.
 
-### 14.1 Categorización inteligente
+### 14.1 Categorización inteligente — UI de reglas de usuario
 
-**Reglas persistentes en base de datos.** Cuando el usuario recategoriza un movimiento, la app pregunta:
-> "¿Quieres aplicar 'Restaurante' a todas las transacciones futuras que contengan 'Bizum a Juan'?"
-
-Si acepta, se crea una regla en una nueva tabla:
+**Infraestructura ya implementada (issue #34).** La tabla `categorization_rules` existe en producción y el sync route ya la consulta y aplica con prioridad sobre las reglas estáticas:
 
 ```sql
 categorization_rules (
-  id          UUID PRIMARY KEY,
-  user_id     UUID REFERENCES auth.users(id),
-  pattern     TEXT NOT NULL,           -- texto a buscar en description
-  category    TEXT NOT NULL,
-  priority    INTEGER DEFAULT 0,        -- mayor prioridad sobreescribe a menor
-  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  pattern     TEXT NOT NULL,
+  field       TEXT NOT NULL CHECK (field IN ('description', 'merchant', 'iban')),
+  category_id TEXT NOT NULL REFERENCES categories(id),
+  priority    INTEGER NOT NULL DEFAULT 0,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )
 ```
 
-Las reglas del usuario se aplican antes que las hardcodeadas y se gestionan desde Settings.
+**Pendiente:** la UI que permita crear y gestionar estas reglas. El flujo previsto es:
+> Al recategorizar un movimiento, la app pregunta: "¿Quieres aplicar 'Restaurante' a todas las transacciones futuras que contengan 'Glovo'?"
+> Si acepta → inserta fila en `categorization_rules`.
+
+La gestión completa de reglas (editar, desactivar, ver listado) va en §14.2 Settings.
 
 ### 14.2 Pantalla de Settings
 
