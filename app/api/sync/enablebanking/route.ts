@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
-import { categorize } from '@/lib/categories'
+import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 
 export async function POST() {
   // Auth: verify user via cookie client
@@ -15,17 +15,28 @@ export async function POST() {
   // All DB writes via service client (bypasses RLS)
   const db = createServiceClient()
 
-  const { data: accounts, error: accError } = await db
-    .from('accounts')
-    .select('id, external_id, session_id, last_synced')
-    .eq('user_id', user.id)
-    .eq('source', 'enablebanking')
-    .eq('is_active', true)
+  const [accountsResult, rulesResult] = await Promise.all([
+    db
+      .from('accounts')
+      .select('id, external_id, session_id, last_synced')
+      .eq('user_id', user.id)
+      .eq('source', 'enablebanking')
+      .eq('is_active', true),
+    db
+      .from('categorization_rules')
+      .select('pattern, field, category_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('priority', { ascending: false }),
+  ])
 
-  if (accError) {
-    console.error('[sync/eb] fetch accounts:', accError)
+  if (accountsResult.error) {
+    console.error('[sync/eb] fetch accounts:', accountsResult.error)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
+
+  const accounts = accountsResult.data
+  const dbRules: DbCategorizationRule[] = (rulesResult.data ?? []) as DbCategorizationRule[]
 
   if (!accounts || accounts.length === 0) {
     return NextResponse.json({ synced: 0, accounts: 0 })
@@ -60,6 +71,7 @@ export async function POST() {
           tx.creditor?.name ||
           tx.debtor?.name ||
           'Sin descripción'
+        const merchant = tx.creditor?.name ?? tx.debtor?.name ?? undefined
         const sign = tx.credit_debit_indicator === 'DBIT' ? -1 : 1
         const amount = parseFloat(tx.transaction_amount.amount) * sign
 
@@ -69,7 +81,7 @@ export async function POST() {
           date:                 tx.booking_date,
           amount,
           description,
-          category:             categorize(description),
+          category:             categorizeWithRules(dbRules, description, merchant ?? undefined),
           source:               'enablebanking' as const,
           external_id:          externalId,
           is_computable:        true,
