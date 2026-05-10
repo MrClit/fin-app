@@ -9,7 +9,7 @@ interface Props {
 
 export function PatrimonioChart({ data, annualDelta }: Props) {
   return (
-    <div className="bg-card rounded-[24px] p-6 border border-border">
+    <div className="bg-card rounded-3xl p-6 border border-border">
       <div className="flex justify-between items-center mb-1">
         <span className="text-[15px] font-bold">Patrimonio neto</span>
         {annualDelta !== null ? (
