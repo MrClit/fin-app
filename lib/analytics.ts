@@ -96,12 +96,15 @@ export function yoyDelta(current: number, previous: number): string {
 }
 
 export function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0]
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export const PERIOD_LABELS: Record<Granularity, string> = {
-  week: 'Esta semana',
-  month: 'Este mes',
-  quarter: 'Este trimestre',
-  year: 'Este año',
+  week:    'Semana',
+  month:   'Mes',
+  quarter: 'Trimestre',
+  year:    'Año',
 }

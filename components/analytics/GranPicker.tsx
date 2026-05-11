@@ -4,36 +4,6 @@ import { createPortal } from 'react-dom'
 import type { Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 
-const MONTHS_LONG = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-const QUARTER_MONTHS: [string, string, string][] = [
-  ['ene', 'feb', 'mar'],
-  ['abr', 'may', 'jun'],
-  ['jul', 'ago', 'sep'],
-  ['oct', 'nov', 'dic'],
-]
-
-function getSubtitle(gran: Granularity, now: Date): string {
-  const y = now.getFullYear()
-  const m = now.getMonth()
-  const d = now.getDate()
-
-  if (gran === 'week') {
-    const dayOfWeek = (now.getDay() + 6) % 7 // Monday = 0
-    const monday = new Date(now)
-    monday.setDate(d - dayOfWeek)
-    const weekOfMonth = Math.ceil(monday.getDate() / 7)
-    return `Sem ${weekOfMonth} de ${MONTHS_LONG[monday.getMonth()]}`
-  }
-  if (gran === 'month') return `${MONTHS_LONG[m]} ${y}`
-  if (gran === 'quarter') {
-    const q = Math.floor(m / 3)
-    const [a, b, c] = QUARTER_MONTHS[q]
-    return `T${q + 1} · ${a}-${c} ${y}`
-  }
-  return String(y)
-}
-
 const OPTIONS: { id: Granularity; label: string }[] = [
   { id: 'week', label: 'Semana' },
   { id: 'month', label: 'Mes' },
@@ -43,7 +13,6 @@ const OPTIONS: { id: Granularity; label: string }[] = [
 
 export default function GranPicker() {
   const { gran, setGran, setShowPicker } = useAnalytics()
-  const now = new Date()
 
   function select(g: Granularity) {
     setGran(g)
@@ -77,12 +46,9 @@ export default function GranPicker() {
                   borderLeft: active ? '3px solid #6366f1' : '3px solid transparent',
                 }}
               >
-                <div className="text-left">
-                  <p className="text-sm font-bold" style={{ color: active ? '#6366f1' : 'var(--foreground)' }}>
-                    {o.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{getSubtitle(o.id, now)}</p>
-                </div>
+                <p className="text-sm font-bold" style={{ color: active ? '#6366f1' : 'var(--foreground)' }}>
+                  {o.label}
+                </p>
                 {active && (
                   <div
                     className="flex items-center justify-center shrink-0"
