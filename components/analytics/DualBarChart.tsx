@@ -270,9 +270,6 @@ export default function DualBarChart({
         >
           ‹ Anteriores
         </button>
-        <span className="text-[11px]" style={{ color: 'color-mix(in srgb, var(--muted-foreground) 40%, transparent)' }}>
-          {startIdx + 1}–{endIdx} / {total}
-        </span>
         <button
           onClick={() => canGoFwd && shift('fwd')}
           className="text-[13px] font-semibold transition-colors"
