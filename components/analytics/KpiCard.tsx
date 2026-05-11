@@ -30,7 +30,7 @@ export default function KpiCard({
     ? (yoyPositive ? '#22c55e' : '#ef4444')
     : (yoyPositive ? '#ef4444' : '#22c55e')
 
-  const fontSize = value >= 10000 ? 28 : 44
+  const fontSize = value >= 10000 ? 20 : 28
 
   return (
     <div

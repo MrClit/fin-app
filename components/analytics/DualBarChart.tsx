@@ -45,7 +45,8 @@ function BarShape({
   return (
     <g
       onClick={onBarClick}
-      style={{ cursor: 'pointer', opacity: isSelected ? 1 : 0.45, transition: 'opacity 0.2s' }}
+      tabIndex={-1}
+      style={{ cursor: 'pointer', outline: 'none', opacity: isSelected ? 1 : 0.45, transition: 'opacity 0.2s' }}
     >
       {/* Transparent hit area covering the full column height */}
       <rect x={x} y={hitY} width={width} height={hitH} fill="transparent" />
@@ -83,20 +84,30 @@ interface TickProps {
   y?: number
   payload?: { value: string; index: number }
   clampedSel: number
+  onTickClick?: () => void
 }
 
-function CustomTick({ x = 0, y = 0, payload, clampedSel }: TickProps) {
+function CustomTick({ x = 0, y = 0, payload, clampedSel, onTickClick }: TickProps) {
   if (!payload) return null
   const isSel = payload.index === clampedSel
   return (
-    <text
-      x={x} y={y + 10} textAnchor="middle" dominantBaseline="middle"
-      fontSize={isSel ? 10 : 9} fontWeight={isSel ? 700 : 400}
-      fill={isSel ? 'var(--foreground)' : 'var(--muted-foreground)'}
-      opacity={isSel ? 0.9 : 0.35}
+    <g
+      onClick={onTickClick}
+      tabIndex={-1}
+      style={{ cursor: 'pointer', outline: 'none' }}
     >
-      {payload.value}
-    </text>
+      {/* Transparent hit area */}
+      <rect x={x - 16} y={y} width={32} height={20} fill="transparent" />
+      <text
+        x={x} y={y + 10} textAnchor="middle" dominantBaseline="middle"
+        fontSize={isSel ? 10 : 9} fontWeight={isSel ? 700 : 400}
+        fill={isSel ? 'var(--foreground)' : 'var(--muted-foreground)'}
+        opacity={isSel ? 0.9 : 0.35}
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {payload.value}
+      </text>
+    </g>
   )
 }
 
@@ -191,6 +202,8 @@ export default function DualBarChart({
           barGap={4}
           barCategoryGap="10%"
           margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
+          tabIndex={-1}
+          style={{ outline: 'none' }}
         >
           <YAxis domain={[0, maxVal]} hide />
           <Bar
@@ -229,9 +242,17 @@ export default function DualBarChart({
             dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={(props: object) => (
-              <CustomTick {...(props as TickProps)} clampedSel={clampedSel} />
-            )}
+            tick={(props: object) => {
+              const p = props as TickProps
+              const localIdx = p.payload?.index
+              return (
+                <CustomTick
+                  {...p}
+                  clampedSel={clampedSel}
+                  onTickClick={() => typeof localIdx === 'number' && onSelect(startIdx + localIdx)}
+                />
+              )
+            }}
             height={22}
           />
         </ComposedChart>
