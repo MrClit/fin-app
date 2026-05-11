@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { AnalyticsResponse } from '@/types'
-import type { Granularity } from '@/types'
+import type { AnalyticsResponse, Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import GranPicker from './GranPicker'
@@ -37,32 +36,41 @@ function CardSkeleton({ height = 120 }: { height?: number }) {
   )
 }
 
+interface PageState {
+  data: AnalyticsResponse | null
+  selectedBarIdx: number | null
+  showYoY: boolean
+}
+
 export default function AnalyticsClient() {
   const { gran, showPicker, setShowPicker } = useAnalytics()
-  const [data, setData] = useState<AnalyticsResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [selectedBarIdx, setSelectedBarIdx] = useState<number | null>(null)
-  const [showYoY, setShowYoY] = useState(false)
+  const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
+    data: null, selectedBarIdx: null, showYoY: false,
+  })
+
+  // Derived: loading when data hasn't arrived yet or belongs to a different gran
+  const loading = !data || data.gran !== gran
+
+  const setSelectedBarIdx = (idx: number) =>
+    setPageState(s => ({ ...s, selectedBarIdx: idx }))
+  const toggleShowYoY = () =>
+    setPageState(s => ({ ...s, showYoY: !s.showYoY }))
 
   useEffect(() => {
-    setLoading(true)
-    setData(null)
-    setSelectedBarIdx(null)
-    setShowYoY(false)
+    let cancelled = false
     fetch(`/api/analytics?gran=${gran}&offset=0`)
       .then(r => r.json())
       .then((d: AnalyticsResponse) => {
-        setData(d)
-        setLoading(false)
+        if (!cancelled) setPageState({ data: d, selectedBarIdx: null, showYoY: false })
       })
+    return () => { cancelled = true }
   }, [gran])
 
   // Derived active bar
-  const activeIdx  = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
-  const activeBar  = data?.periods[activeIdx]
-  const prevBar    = activeIdx > 0 ? data?.periods[activeIdx - 1] : undefined
-  const isCurrentBar = !data || activeIdx === data.periods.length - 1
-  const deltaRef   = DELTA_REF[gran]
+  const activeIdx = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
+  const activeBar = data?.periods[activeIdx]
+  const prevBar   = activeIdx > 0 ? data?.periods[activeIdx - 1] : undefined
+  const deltaRef  = DELTA_REF[gran]
 
   const deltaVsAnteriorIngresos = (prevBar && prevBar.ingresos > 0)
     ? ((activeBar!.ingresos - prevBar.ingresos) / prevBar.ingresos) * 100 : null
@@ -117,8 +125,6 @@ export default function AnalyticsClient() {
               deltaVsAnterior={deltaVsAnteriorIngresos}
               deltaVsAnio={deltaVsAnioIngresos}
               deltaRef={deltaRef}
-              activeLabel={activeBar.label}
-              isCurrentBar={isCurrentBar}
             />
             <KpiCard
               type="gastos"
@@ -126,8 +132,6 @@ export default function AnalyticsClient() {
               deltaVsAnterior={deltaVsAnteriorGastos}
               deltaVsAnio={deltaVsAnioGastos}
               deltaRef={deltaRef}
-              activeLabel={activeBar.label}
-              isCurrentBar={isCurrentBar}
             />
           </div>
         )}
@@ -140,7 +144,7 @@ export default function AnalyticsClient() {
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[15px] font-bold text-foreground">Evolución de gastos</span>
               <button
-                onClick={() => setShowYoY(v => !v)}
+                onClick={toggleShowYoY}
                 className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
                 style={{
                   background: showYoY

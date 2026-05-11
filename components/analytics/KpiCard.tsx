@@ -8,8 +8,6 @@ interface KpiCardProps {
   deltaVsAnterior: number | null
   deltaVsAnio: number | null
   deltaRef: string
-  activeLabel: string
-  isCurrentBar: boolean
 }
 
 function formatDelta(delta: number | null): string {
@@ -18,7 +16,7 @@ function formatDelta(delta: number | null): string {
 }
 
 export default function KpiCard({
-  type, value, deltaVsAnterior, deltaVsAnio, deltaRef, activeLabel, isCurrentBar,
+  type, value, deltaVsAnterior, deltaVsAnio, deltaRef,
 }: KpiCardProps) {
   const isIngresos = type === 'ingresos'
   const mainColor  = isIngresos ? '#22c55e' : '#ef4444'
@@ -38,16 +36,8 @@ export default function KpiCard({
       style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}
     >
       {/* Header row */}
-      <div className="mb-1.5 flex items-center justify-between">
+      <div className="mb-1.5">
         <span className="text-xs text-muted-foreground">{label}</span>
-        {!isCurrentBar && (
-          <span
-            className="text-[10px] font-bold text-white"
-            style={{ background: '#6366f1', borderRadius: 8, padding: '2px 6px' }}
-          >
-            {activeLabel}
-          </span>
-        )}
       </div>
 
       {/* Main value */}
