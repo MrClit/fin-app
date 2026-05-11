@@ -8,6 +8,7 @@ import GranPicker from './GranPicker'
 import SavingsCard from './SavingsCard'
 import KpiCard from './KpiCard'
 import DualBarChart from './DualBarChart'
+import CategoryBreakdownSection from './CategoryBreakdownSection'
 
 const DELTA_REF: Record<Granularity, string> = {
   week:    'vs sem. anterior',
@@ -192,6 +193,13 @@ export default function AnalyticsClient() {
           <CardSkeleton />
         ) : (
           <SavingsCard ingresos={activeBar.ingresos} ahorro={activeBar.ahorro} gran={gran} />
+        )}
+
+        {/* Category breakdown */}
+        {loading || !activeBar ? (
+          <CardSkeleton height={420} />
+        ) : (
+          <CategoryBreakdownSection byCategory={activeBar.byCategory} />
         )}
       </div>
 
