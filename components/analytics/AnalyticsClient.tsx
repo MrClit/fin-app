@@ -188,18 +188,18 @@ export default function AnalyticsClient() {
           </div>
         )}
 
-        {/* Savings card */}
-        {loading || !activeBar ? (
-          <CardSkeleton />
-        ) : (
-          <SavingsCard ingresos={activeBar.ingresos} ahorro={activeBar.ahorro} gran={gran} />
-        )}
-
         {/* Category breakdown */}
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (
           <CategoryBreakdownSection byCategory={activeBar.byCategory} />
+        )}
+
+        {/* Savings card */}
+        {loading || !activeBar ? (
+          <CardSkeleton />
+        ) : (
+          <SavingsCard ingresos={activeBar.ingresos} ahorro={activeBar.ahorro} gran={gran} />
         )}
       </div>
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2, Calendar, CreditCard, Tag } from 'lucide-react'
-import { CATEGORY_META } from '@/lib/theme'
+import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
@@ -72,8 +72,8 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
 export function TxModal({ tx, onClose, onRecategorize, onDelete }: TxModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
-  const meta = CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other
+  const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
+  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : SIN_CATEGORIA
   const Icon = meta.Icon
 
   const dateStr = (() => {

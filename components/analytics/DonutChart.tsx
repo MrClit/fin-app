@@ -5,7 +5,8 @@ import type { CategoryId } from '@/types'
 import { fmt } from '@/lib/formatting'
 
 export interface DonutItem {
-  categoryId: CategoryId
+  key: string           // identificador único para selección (categoryId, '__sin_categoria__' o '__resto__')
+  categoryId: CategoryId | null
   label: string
   color: string
   Icon: LucideIcon
@@ -72,7 +73,7 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
           const isDimmed = selectedIdx !== null && !isSelected
           return (
             <circle
-              key={item.categoryId}
+              key={item.key}
               cx={CX} cy={CY} r={R}
               fill="none"
               stroke={item.color}
@@ -106,7 +107,7 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
         const { Icon } = item
         return (
           <div
-            key={item.categoryId}
+            key={item.key}
             onClick={() => onSelect(selectedIdx === i ? null : i)}
             style={{
               position: 'absolute',

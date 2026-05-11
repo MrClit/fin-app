@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Edit3 } from 'lucide-react'
-import { CATEGORY_META } from '@/lib/theme'
+import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
@@ -17,8 +17,8 @@ interface TxRowProps {
 const ACTION_WIDTH = 120
 
 export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowProps) {
-  const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
-  const meta = CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other
+  const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
+  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : SIN_CATEGORIA
   const Icon = meta.Icon
 
   const isOpen = swipedId === tx.id

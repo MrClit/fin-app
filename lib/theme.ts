@@ -1,6 +1,6 @@
 import {
   ShoppingCart, UtensilsCrossed, Car, Home, Gamepad2, ShoppingBag,
-  HeartPulse, TrendingUp, MoreHorizontal, Fuel, ParkingCircle, Wrench,
+  HeartPulse, TrendingUp, MoreHorizontal, CircleHelp, Fuel, ParkingCircle, Wrench,
   Building2, Users, Zap, Flame, Droplets, Wifi, Shirt, Laptop,
   Stethoscope, Pill, Dumbbell, Repeat2, Plane, BookOpen, Shield,
   Sparkles, Gift, Heart, Users2, Receipt, CreditCard, Banknote,
@@ -152,6 +152,12 @@ export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
   transfer:       { label: 'Transferencia interna', color: '#78716c', type: 'non_computable',  Icon: ArrowLeftRight  },
   loan_payment:   { label: 'Amortización',          color: '#b45309', type: 'non_computable',  Icon: Wallet          },
 }
+
+export const SIN_CATEGORIA = {
+  label: 'Sin categoría',
+  color: '#94a3b8',
+  Icon: CircleHelp,
+} as const satisfies { label: string; color: string; Icon: LucideIcon }
 
 export const GRADIENTS = {
   netWorth: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
