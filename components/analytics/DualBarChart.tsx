@@ -13,6 +13,7 @@ interface BarShapeProps {
   y?: number
   width?: number
   height?: number
+  background?: { height?: number; y?: number }
   // injected via chartData entry
   isSelected?: boolean
   yoyRatio?: number | null
@@ -22,32 +23,45 @@ interface BarShapeProps {
   glow: string
   gradId: string
   showYoY: boolean
+  onBarClick?: () => void
 }
 
 function BarShape({
   x = 0, y = 0, width = 0, height = 0,
+  background,
   isSelected = false, yoyRatio = null,
-  barColor, topColor, glow, gradId, showYoY,
+  barColor, topColor, glow, gradId, showYoY, onBarClick,
 }: BarShapeProps) {
-  if (!height || height <= 0 || !width || width <= 0) return null
+  if (!width || width <= 0) return null
 
-  const lineY = yoyRatio != null
+  const lineY = yoyRatio != null && height > 0
     ? Math.max(y, y + height * (1 - Math.min(yoyRatio, 2)))
     : null
 
+  // Full-column hit area (including empty space above short bars)
+  const hitY = background?.y ?? y
+  const hitH = (background?.height ?? 0) || height
+
   return (
-    <g opacity={isSelected ? 1 : 0.45} style={{ transition: 'opacity 0.2s' }}>
+    <g
+      onClick={onBarClick}
+      style={{ cursor: 'pointer', opacity: isSelected ? 1 : 0.45, transition: 'opacity 0.2s' }}
+    >
+      {/* Transparent hit area covering the full column height */}
+      <rect x={x} y={hitY} width={width} height={hitH} fill="transparent" />
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={topColor} />
           <stop offset="100%" stopColor={barColor} />
         </linearGradient>
       </defs>
-      <rect
-        x={x} y={y} width={width} height={height} rx={4} ry={4}
-        fill={isSelected ? `url(#${gradId})` : barColor}
-        style={{ filter: isSelected ? `drop-shadow(0 4px 14px ${glow})` : 'none' }}
-      />
+      {height > 0 && (
+        <rect
+          x={x} y={y} width={width} height={height} rx={4} ry={4}
+          fill={isSelected ? `url(#${gradId})` : barColor}
+          style={{ filter: isSelected ? `drop-shadow(0 4px 14px ${glow})` : 'none' }}
+        />
+      )}
       {showYoY && lineY != null && (
         <g>
           <line
@@ -144,14 +158,6 @@ export default function DualBarChart({
     yoyGasRatio: (d.yoyGastos   != null && d.gastos   > 0) ? d.yoyGastos   / d.gastos   : null,
   }))
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleChartClick = (state: any) => {
-    const idx = state?.activeTooltipIndex
-    if (typeof idx === 'number') {
-      onSelect(startIdx + idx)
-    }
-  }
-
   return (
     <div>
       {/* Legends */}
@@ -185,32 +191,38 @@ export default function DualBarChart({
           barGap={4}
           barCategoryGap="10%"
           margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
-          onClick={handleChartClick}
-          style={{ cursor: 'pointer' }}
         >
           <YAxis domain={[0, maxVal]} hide />
           <Bar
             dataKey="ingresos"
-            shape={(props: object) => (
-              <BarShape
-                {...(props as BarShapeProps)}
-                barColor="#22c55e" topColor="#4ade80" glow="#22c55e44"
-                gradId="grad-ing-sel" showYoY={showYoY}
-                yoyRatio={(props as { yoyIngRatio?: number | null }).yoyIngRatio ?? null}
-              />
-            )}
+            shape={(props: object) => {
+              const p = props as BarShapeProps & { index?: number }
+              return (
+                <BarShape
+                  {...p}
+                  barColor="#22c55e" topColor="#4ade80" glow="#22c55e44"
+                  gradId="grad-ing-sel" showYoY={showYoY}
+                  yoyRatio={(p as { yoyIngRatio?: number | null }).yoyIngRatio ?? null}
+                  onBarClick={() => typeof p.index === 'number' && onSelect(startIdx + p.index)}
+                />
+              )
+            }}
             isAnimationActive={false}
           />
           <Bar
             dataKey="gastos"
-            shape={(props: object) => (
-              <BarShape
-                {...(props as BarShapeProps)}
-                barColor="#6366f1" topColor="#818cf8" glow="#6366f144"
-                gradId="grad-gas-sel" showYoY={showYoY}
-                yoyRatio={(props as { yoyGasRatio?: number | null }).yoyGasRatio ?? null}
-              />
-            )}
+            shape={(props: object) => {
+              const p = props as BarShapeProps & { index?: number }
+              return (
+                <BarShape
+                  {...p}
+                  barColor="#6366f1" topColor="#818cf8" glow="#6366f144"
+                  gradId="grad-gas-sel" showYoY={showYoY}
+                  yoyRatio={(p as { yoyGasRatio?: number | null }).yoyGasRatio ?? null}
+                  onBarClick={() => typeof p.index === 'number' && onSelect(startIdx + p.index)}
+                />
+              )
+            }}
             isAnimationActive={false}
           />
           <XAxis
