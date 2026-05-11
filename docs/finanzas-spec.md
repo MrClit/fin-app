@@ -95,23 +95,24 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 
 **Selector de período** (bottom sheet — sticky en el header)
 - Opciones: **Semana / Mes / Trimestre / Año**
+- El botón del header muestra la granularidad activa sin prefijo: "Mes", "Semana", "Trimestre", "Año"
 - Siempre muestra el período actual, sin selección manual de fechas concretas
 - El header que contiene el título "Análisis" y el selector **es sticky** — permanece visible al hacer scroll
+- Debajo del título "Análisis" se muestra el rango de fechas del período / barra activa en formato `1 may. - 31 may. 2026`; se actualiza al seleccionar una barra distinta
 - El estado de período es **compartido** entre Análisis y la pantalla de Detalle de categoría: cambiar en una actualiza la otra
 - El mismo selector aparece en la pantalla de Detalle de categoría (arriba a la derecha del header)
 
 **KPIs — Ingresos y Gastos**
-- Importe del período / barra seleccionada
-- Badge con % vs período anterior
-- Badge con % vs mismo período año anterior
-- Badge con el label de la barra cuando no es el período actual
-- Color inteligente: para Gastos, + es malo (rojo), − es bueno (verde)
+- Importe del período / barra seleccionada (tipografía 28px weight 800; 20px si el importe ≥ 10.000 €)
+- Badge con % vs período anterior: color neutro siempre
+- Badge con % vs mismo período año anterior: color inteligente — para Gastos, + es malo (rojo), − es bueno (verde); invertido para Ingresos
+- Mostrar `—` cuando no hay datos YoY suficientes (§5.7)
 
-**Gráfica de barras dobles** (ingresos verde / gastos morado)
-- Ventana de 6 períodos con navegación ← Anteriores / Siguientes →
+**Gráfica de barras dobles** (ingresos verde `#22c55e` / gastos morado `#6366f1`)
+- Ventana deslizante de 6 períodos con navegación ‹ Anteriores / Siguientes › (flechas desaparecen cuando no hay más períodos en esa dirección)
 - Barra seleccionada: opacidad plena + gradiente + sombra glow
 - Barras no seleccionadas: 45% de opacidad
-- Al seleccionar una barra: actualiza KPIs, categorías y ahorro
+- Al seleccionar una barra (tap en barra o en su etiqueta de fecha): actualiza KPIs, categorías y ahorro
 - Toggle "vs año ant.": muestra una **línea horizontal** dentro de cada barra indicando el nivel del año anterior
   - Línea verde con ticks verticales en los extremos para ingresos
   - Línea morada con ticks verticales en los extremos para gastos
@@ -610,8 +611,7 @@ Idealmente el usuario debería poder confirmar/rechazar la conciliación en la U
 Enable Banking provee por defecto el histórico que permite el banco bajo PSD2 (habitualmente 90 días). La comparativa "vs año anterior" simplemente no tiene datos durante el primer año.
 
 **Comportamiento esperado:**
-- Si no hay transacciones del período del año anterior → mostrar `—` en lugar del %
-- Si hay menos del 80% de los días con datos → mostrar el % con badge "datos parciales"
+- Si no hay transacciones del período del año anterior → mostrar `—` en lugar del % (tanto en badges de KpiCard como en las líneas YoY de la gráfica)
 - En la primera conexión, solicitar el máximo histórico disponible (algunos bancos permiten hasta 24 meses según sus condiciones PSD2)
 
 ---
