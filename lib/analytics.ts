@@ -103,8 +103,8 @@ export function toISODate(d: Date): string {
 }
 
 export const PERIOD_LABELS: Record<Granularity, string> = {
-  week: 'Esta semana',
-  month: 'Este mes',
-  quarter: 'Este trimestre',
-  year: 'Este año',
+  week:    'Semana',
+  month:   'Mes',
+  quarter: 'Trimestre',
+  year:    'Año',
 }
