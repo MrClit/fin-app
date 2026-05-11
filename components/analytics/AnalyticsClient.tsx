@@ -2,10 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import type { AnalyticsResponse } from '@/types'
+import type { Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import GranPicker from './GranPicker'
 import SavingsCard from './SavingsCard'
+import KpiCard from './KpiCard'
+import DualBarChart from './DualBarChart'
+
+const DELTA_REF: Record<Granularity, string> = {
+  week:    'vs sem. anterior',
+  month:   'vs mes anterior',
+  quarter: 'vs trimestre ant.',
+  year:    'vs año anterior',
+}
 
 function CalendarIcon() {
   return (
@@ -18,11 +28,11 @@ function CalendarIcon() {
   )
 }
 
-function SavingsCardSkeleton() {
+function CardSkeleton({ height = 120 }: { height?: number }) {
   return (
     <div
       className="animate-pulse"
-      style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20, height: 120 }}
+      style={{ background: 'var(--secondary)', borderRadius: 20, height }}
     />
   )
 }
@@ -31,10 +41,14 @@ export default function AnalyticsClient() {
   const { gran, showPicker, setShowPicker } = useAnalytics()
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedBarIdx, setSelectedBarIdx] = useState<number | null>(null)
+  const [showYoY, setShowYoY] = useState(false)
 
   useEffect(() => {
     setLoading(true)
     setData(null)
+    setSelectedBarIdx(null)
+    setShowYoY(false)
     fetch(`/api/analytics?gran=${gran}&offset=0`)
       .then(r => r.json())
       .then((d: AnalyticsResponse) => {
@@ -43,7 +57,22 @@ export default function AnalyticsClient() {
       })
   }, [gran])
 
-  const current = data?.periods[data.periods.length - 1]
+  // Derived active bar
+  const activeIdx  = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
+  const activeBar  = data?.periods[activeIdx]
+  const prevBar    = activeIdx > 0 ? data?.periods[activeIdx - 1] : undefined
+  const isCurrentBar = !data || activeIdx === data.periods.length - 1
+  const deltaRef   = DELTA_REF[gran]
+
+  const deltaVsAnteriorIngresos = (prevBar && prevBar.ingresos > 0)
+    ? ((activeBar!.ingresos - prevBar.ingresos) / prevBar.ingresos) * 100 : null
+  const deltaVsAnteriorGastos = (prevBar && prevBar.gastos > 0)
+    ? ((activeBar!.gastos - prevBar.gastos) / prevBar.gastos) * 100 : null
+
+  const deltaVsAnioIngresos = (activeBar?.yoyIngresos != null && activeBar.yoyIngresos > 0)
+    ? ((activeBar.ingresos - activeBar.yoyIngresos) / activeBar.yoyIngresos) * 100 : null
+  const deltaVsAnioGastos = (activeBar?.yoyGastos != null && activeBar.yoyGastos > 0)
+    ? ((activeBar.gastos - activeBar.yoyGastos) / activeBar.yoyGastos) * 100 : null
 
   return (
     <div>
@@ -59,7 +88,7 @@ export default function AnalyticsClient() {
         <span className="text-xl font-bold text-foreground">Análisis</span>
         <button
           onClick={() => setShowPicker(true)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 cursor-pointer"
+          className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5"
           style={{
             background: 'color-mix(in srgb, #6366f1 12%, transparent)',
             border: '1px solid color-mix(in srgb, #6366f1 27%, transparent)',
@@ -73,11 +102,74 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Content */}
-      <div className="px-5 py-3 flex flex-col gap-4">
-        {loading || !current ? (
-          <SavingsCardSkeleton />
+      <div className="flex flex-col gap-4 px-5 py-3">
+        {/* KPI row */}
+        {loading || !activeBar ? (
+          <div className="flex gap-2.5">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         ) : (
-          <SavingsCard ingresos={current.ingresos} ahorro={current.ahorro} gran={gran} />
+          <div className="flex gap-2.5">
+            <KpiCard
+              type="ingresos"
+              value={activeBar.ingresos}
+              deltaVsAnterior={deltaVsAnteriorIngresos}
+              deltaVsAnio={deltaVsAnioIngresos}
+              deltaRef={deltaRef}
+              activeLabel={activeBar.label}
+              isCurrentBar={isCurrentBar}
+            />
+            <KpiCard
+              type="gastos"
+              value={activeBar.gastos}
+              deltaVsAnterior={deltaVsAnteriorGastos}
+              deltaVsAnio={deltaVsAnioGastos}
+              deltaRef={deltaRef}
+              activeLabel={activeBar.label}
+              isCurrentBar={isCurrentBar}
+            />
+          </div>
+        )}
+
+        {/* Chart card */}
+        {loading || !data ? (
+          <CardSkeleton height={220} />
+        ) : (
+          <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[15px] font-bold text-foreground">Evolución de gastos</span>
+              <button
+                onClick={() => setShowYoY(v => !v)}
+                className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
+                style={{
+                  background: showYoY
+                    ? 'color-mix(in srgb, #6366f1 12%, transparent)'
+                    : 'var(--muted)',
+                  border: showYoY
+                    ? '1px solid color-mix(in srgb, #6366f1 44%, transparent)'
+                    : '1px solid var(--border)',
+                  color: showYoY ? '#6366f1' : 'var(--muted-foreground)',
+                  cursor: 'pointer',
+                }}
+              >
+                vs año ant.
+              </button>
+            </div>
+            <DualBarChart
+              allData={data.periods}
+              selectedBarIdx={selectedBarIdx}
+              onSelect={setSelectedBarIdx}
+              showYoY={showYoY}
+            />
+          </div>
+        )}
+
+        {/* Savings card */}
+        {loading || !activeBar ? (
+          <CardSkeleton />
+        ) : (
+          <SavingsCard ingresos={activeBar.ingresos} ahorro={activeBar.ahorro} gran={gran} />
         )}
       </div>
 
