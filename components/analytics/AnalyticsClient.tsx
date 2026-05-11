@@ -16,6 +16,17 @@ const DELTA_REF: Record<Granularity, string> = {
   year:    'vs año anterior',
 }
 
+const MONTH_SHORT = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.']
+
+function formatDateRange(start: string, end: string): string {
+  const s = new Date(start + 'T00:00:00')
+  const e = new Date(end   + 'T00:00:00')
+  const sd = s.getDate(), sm = MONTH_SHORT[s.getMonth()], sy = s.getFullYear()
+  const ed = e.getDate(), em = MONTH_SHORT[e.getMonth()], ey = e.getFullYear()
+  if (sy !== ey) return `${sd} ${sm} ${sy} - ${ed} ${em} ${ey}`
+  return `${sd} ${sm} - ${ed} ${em} ${sy}`
+}
+
 function CalendarIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,27 +97,34 @@ export default function AnalyticsClient() {
     <div>
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-5 pb-3.5"
+        className="sticky top-0 z-50 border-b border-border px-5 pb-3"
         style={{
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
           paddingTop: 52,
         }}
       >
-        <span className="text-xl font-bold text-foreground">Análisis</span>
-        <button
-          onClick={() => setShowPicker(true)}
-          className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5"
-          style={{
-            background: 'color-mix(in srgb, #6366f1 12%, transparent)',
-            border: '1px solid color-mix(in srgb, #6366f1 27%, transparent)',
-            color: '#6366f1',
-          }}
-        >
-          <CalendarIcon />
-          <span className="text-xs font-bold">{PERIOD_LABELS[gran]}</span>
-          <span className="text-[10px] opacity-70">▾</span>
-        </button>
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-bold text-foreground">Análisis</span>
+          <button
+            onClick={() => setShowPicker(true)}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{
+              background: 'color-mix(in srgb, #6366f1 12%, transparent)',
+              border: '1px solid color-mix(in srgb, #6366f1 27%, transparent)',
+              color: '#6366f1',
+            }}
+          >
+            <CalendarIcon />
+            <span className="text-xs font-bold">{PERIOD_LABELS[gran]}</span>
+            <span className="text-[10px] opacity-70">▾</span>
+          </button>
+        </div>
+        {activeBar && (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {formatDateRange(activeBar.start, activeBar.end)}
+          </p>
+        )}
       </div>
 
       {/* Content */}
