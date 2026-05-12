@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  if (pathname.startsWith('/analisis/categoria/')) return null
 
   return (
     <nav

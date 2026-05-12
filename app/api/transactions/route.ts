@@ -49,6 +49,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const type = searchParams.get('type') ?? 'todos'
   const accountsParam = searchParams.get('accounts')
+  const category = searchParams.get('category')
+  const dateFrom = searchParams.get('dateFrom')
+  const dateTo   = searchParams.get('dateTo')
   const limit = Math.min(Number(searchParams.get('limit') ?? '200'), 500)
 
   const cutoff = new Date()
@@ -60,11 +63,14 @@ export async function GET(request: NextRequest) {
     .select('*, account:accounts(id, name, color)')
     .eq('user_id', user.id)
     .eq('is_internal_transfer', false)
-    .gte('date', cutoffStr)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit)
+
+  if (dateFrom) query = query.gte('date', dateFrom)
+  else          query = query.gte('date', cutoffStr)
+  if (dateTo)   query = query.lte('date', dateTo)
 
   if (type === 'ingresos') {
     query = query.gt('amount', 0).eq('is_computable', true)
@@ -77,6 +83,12 @@ export async function GET(request: NextRequest) {
   if (accountsParam) {
     const ids = accountsParam.split(',').filter(Boolean)
     if (ids.length > 0) query = query.in('account_id', ids)
+  }
+
+  if (category) {
+    query = query.or(
+      `category_manual.eq.${category},and(category_manual.is.null,category.eq.${category})`
+    )
   }
 
   const { data, error } = await query

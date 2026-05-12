@@ -127,3 +127,16 @@ export interface AnalyticsResponse {
   gran: Granularity
   periods: PeriodData[]
 }
+
+export interface CategoryPeriodData {
+  label: string
+  start: string
+  end: string
+  amount: number
+}
+
+export interface CategoryAnalyticsResponse {
+  gran: Granularity
+  categoryId: CategoryId
+  periods: CategoryPeriodData[]
+}
