@@ -22,7 +22,7 @@ export default async function HomePage() {
   const { balance, weeklyDelta, dailyBalances, accounts, patrimonioData, annualDelta } = await getDashboardData()
 
   return (
-    <div className="px-4 pt-12 pb-6 flex flex-col gap-4">
+    <div className="flex flex-col gap-4 px-4 pt-3 pb-6">
       <DashboardBalanceCard
         balance={balance}
         weeklyDelta={weeklyDelta}

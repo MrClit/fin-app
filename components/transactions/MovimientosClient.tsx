@@ -136,7 +136,7 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
   const sortedDates = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a))
 
   return (
-    <div className="px-5 pt-14 pb-6 flex flex-col gap-4">
+    <div className="px-5 pt-3 pb-6 flex flex-col gap-4">
       <h1 className="text-xl font-bold text-foreground">Movimientos</h1>
 
       {/* Search */}

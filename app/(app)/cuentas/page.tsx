@@ -23,7 +23,7 @@ export default async function CuentasPage({
   const params = await searchParams
 
   return (
-    <div className="px-5 pt-14 pb-6 flex flex-col gap-4">
+    <div className="px-5 pt-3 pb-6 flex flex-col gap-4">
       <h1 className="text-xl font-bold text-foreground mb-2">Cuentas</h1>
 
       {params.connected === 'true' && (
