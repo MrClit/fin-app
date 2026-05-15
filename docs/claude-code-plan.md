@@ -211,7 +211,8 @@ valores para light y dark mode."
 
 ## 7. Fases de desarrollo completas
 
-Referencia rápida del plan de implementación (ver §11 del spec para el detalle):
+Referencia rápida del plan de implementación (ver §11 del spec para el detalle).  
+**Nota:** la planificación se ajusta sobre la marcha; las issues de GitHub son la fuente de verdad.
 
 | Fase | Contenido | Semana |
 |------|-----------|--------|
@@ -219,8 +220,9 @@ Referencia rápida del plan de implementación (ver §11 del spec para el detall
 | 2 | Enable Banking, sync transacciones, Cuentas, Movimientos básico | 2 |
 | 3 | Dashboard completo, modales detalle/nuevo, swipe, patrimonio | 3 |
 | 4 | Análisis completo: barras, donut, KPIs, drilldown categoría | 4 |
-| 5 | Edenred scraper, GitHub Actions, Onboarding real, PWA | 5 |
+| 5 | Edenred scraper, GitHub Actions, Onboarding real | 5 |
 | 6 | Estados carga/error, renovación PSD2, tests unitarios | 6 |
+| 7 | PWA: manifest, service worker, iconos, offline | 7 |
 
 ---
 
