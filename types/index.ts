@@ -97,7 +97,6 @@ export interface TransactionWithAccount extends Transaction {
 
 export interface UserConfig {
   user_id: string
-  has_onboarded: boolean
   primary_currency: string
   month_start_day: number
   created_at: string
