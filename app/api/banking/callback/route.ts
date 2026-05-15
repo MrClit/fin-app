@@ -65,9 +65,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  await supabase
-    .from('user_config')
-    .upsert({ user_id: user.id, has_onboarded: true }, { onConflict: 'user_id' })
-
   return NextResponse.redirect(`${appUrl}/cuentas?connected=true`)
 }
