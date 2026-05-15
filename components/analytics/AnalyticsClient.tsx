@@ -98,11 +98,10 @@ export default function AnalyticsClient() {
     <div>
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-50 border-b border-border px-5 pb-3"
+        className="sticky top-12 z-30 border-b border-border px-5 pt-3 pb-3"
         style={{
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
-          paddingTop: 52,
         }}
       >
         <div className="flex items-center justify-between">

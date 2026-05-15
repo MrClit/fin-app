@@ -1,9 +1,15 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { Bell } from 'lucide-react'
-import { UserMenuTrigger } from './UserMenuTrigger'
+import { UserMenuTrigger } from './dashboard/UserMenuTrigger'
 
 type Props = { email: string }
 
-export function DashboardHeader({ email }: Props) {
+export function AppHeader({ email }: Props) {
+  const pathname = usePathname()
+  if (pathname.startsWith('/analisis/categoria/')) return null
+
   return (
     <header className="safe-top sticky top-0 z-40 bg-background/85 backdrop-blur-xl">
       <div className="flex h-12 items-center justify-between px-4">

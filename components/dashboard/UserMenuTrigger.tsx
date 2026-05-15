@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Building2, LogOut, User, UserCircle2 } from 'lucide-react'
+import { LogOut, User, UserCircle2 } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -17,13 +16,7 @@ type Props = { email: string }
 
 export function UserMenuTrigger({ email }: Props) {
   const [open, setOpen] = useState(false)
-  const router = useRouter()
   const initial = email.trim().charAt(0).toUpperCase()
-
-  function go(path: string) {
-    setOpen(false)
-    router.push(path)
-  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -56,24 +49,6 @@ export function UserMenuTrigger({ email }: Props) {
         </SheetHeader>
 
         <div className="flex flex-col gap-1 px-2 pb-2">
-          <button
-            type="button"
-            onClick={() => go('/onboarding')}
-            className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            <User className="size-4.5 text-muted-foreground" strokeWidth={2} />
-            Ver onboarding
-          </button>
-
-          <button
-            type="button"
-            onClick={() => go('/onboarding')}
-            className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            <Building2 className="size-4.5 text-muted-foreground" strokeWidth={2} />
-            Conectar otro banco
-          </button>
-
           <form action={signOut}>
             <button
               type="submit"
