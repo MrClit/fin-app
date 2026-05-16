@@ -25,8 +25,6 @@ export async function POST(request: NextRequest) {
       date,
       category_manual: category_manual ?? null,
       source: 'manual',
-      is_computable: true,
-      is_internal_transfer: false,
     })
     .select('*, account:accounts(id, name, color)')
     .single()
@@ -47,7 +45,6 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = request.nextUrl
-  const type = searchParams.get('type') ?? 'todos'
   const accountsParam = searchParams.get('accounts')
   const category = searchParams.get('category')
   const dateFrom = searchParams.get('dateFrom')
@@ -62,7 +59,6 @@ export async function GET(request: NextRequest) {
     .from('transactions')
     .select('*, account:accounts(id, name, color)')
     .eq('user_id', user.id)
-    .eq('is_internal_transfer', false)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
@@ -71,14 +67,6 @@ export async function GET(request: NextRequest) {
   if (dateFrom) query = query.gte('date', dateFrom)
   else          query = query.gte('date', cutoffStr)
   if (dateTo)   query = query.lte('date', dateTo)
-
-  if (type === 'ingresos') {
-    query = query.gt('amount', 0).eq('is_computable', true)
-  } else if (type === 'gastos') {
-    query = query.lt('amount', 0).eq('is_computable', true)
-  } else if (type === 'no-computable') {
-    query = query.eq('is_computable', false)
-  }
 
   if (accountsParam) {
     const ids = accountsParam.split(',').filter(Boolean)

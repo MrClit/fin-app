@@ -36,8 +36,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     .from('transactions')
     .select('date, amount')
     .eq('user_id', user.id)
-    .eq('is_computable', true)
-    .eq('is_internal_transfer', false)
     .gte('date', thirtyDaysAgo.toISOString())
 
   if (txError) throw new Error('Failed to fetch transactions')
@@ -74,8 +72,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     .from('transactions')
     .select('date, amount')
     .eq('user_id', user.id)
-    .eq('is_computable', true)
-    .eq('is_internal_transfer', false)
     .gte('date', twelveMonthsAgo.toISOString().split('T')[0])
 
   const txByMonth: Record<string, number> = {}

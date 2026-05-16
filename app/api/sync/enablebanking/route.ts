@@ -84,8 +84,6 @@ export async function POST() {
           category:             categorizeWithRules(dbRules, description, merchant ?? undefined),
           source:               'enablebanking' as const,
           external_id:          externalId,
-          is_computable:        true,
-          is_internal_transfer: false,
         }
       })
 
@@ -110,9 +108,6 @@ export async function POST() {
       .update({ ...(balance !== null && { balance }), last_synced: new Date().toISOString() })
       .eq('id', account.id)
   }
-
-  const { error: transferError } = await db.rpc('mark_internal_transfers', { p_user_id: user.id })
-  if (transferError) console.error('[sync/eb] mark_internal_transfers:', transferError)
 
   const { error: refreshError } = await db.rpc('refresh_monthly_summary')
   if (refreshError) console.error('[sync/eb] refresh_monthly_summary:', refreshError)

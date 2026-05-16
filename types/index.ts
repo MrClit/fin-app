@@ -78,8 +78,6 @@ export interface Transaction {
   category_manual: string | null
   source: DataSource
   external_id: string | null
-  is_computable: boolean
-  is_internal_transfer: boolean
   notes: string | null
   created_at: string
 }

@@ -16,7 +16,6 @@ export default async function MovimientosPage() {
     supabase
       .from('transactions')
       .select('*, account:accounts(id, name, color)')
-      .eq('is_internal_transfer', false)
       .gte('date', cutoffStr)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
