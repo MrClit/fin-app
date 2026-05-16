@@ -55,7 +55,7 @@ interface PageState {
 }
 
 export default function AnalyticsClient() {
-  const { gran, showPicker, setShowPicker } = useAnalytics()
+  const { gran, setShowPicker } = useAnalytics()
   const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
     data: null, selectedBarIdx: null, showYoY: false,
   })
@@ -202,7 +202,7 @@ export default function AnalyticsClient() {
         )}
       </div>
 
-      {showPicker && <GranPicker />}
+      <GranPicker />
     </div>
   )
 }

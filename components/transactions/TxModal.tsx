@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Trash2, Calendar, CreditCard, Tag } from 'lucide-react'
+import { Trash2, Calendar, CreditCard } from 'lucide-react'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface TxModalProps {
   tx: TransactionWithAccount
-  onClose: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onRecategorize: (tx: TransactionWithAccount) => void
   onDelete: (txId: string) => void
 }
@@ -69,7 +70,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
   )
 }
 
-export function TxModal({ tx, onClose, onRecategorize, onDelete }: TxModalProps) {
+export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: TxModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
@@ -90,18 +91,15 @@ export function TxModal({ tx, onClose, onRecategorize, onDelete }: TxModalProps)
   const amountStr = (tx.amount > 0 ? '+' : '-') + absAmount + ' €'
   const amountColor = tx.amount > 0 ? '#22c55e' : 'var(--foreground)'
 
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', zIndex: 350 }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full mx-auto bg-popover flex flex-col"
-        style={{ maxWidth: 420, borderRadius: '28px 28px 0 0', padding: '20px 20px 40px' }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
       >
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+        <SheetTitle className="sr-only">{tx.description}</SheetTitle>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
 
         {/* Importe prominente */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -247,8 +245,7 @@ export function TxModal({ tx, onClose, onRecategorize, onDelete }: TxModalProps)
             Las transacciones importadas no se pueden eliminar
           </p>
         )}
-      </div>
-    </div>,
-    document.body
+      </SheetContent>
+    </Sheet>
   )
 }
