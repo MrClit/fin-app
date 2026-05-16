@@ -7,7 +7,9 @@
     "tunnel": "ngrok http --domain=decidable-rendering-propeller.ngrok-free.dev 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scrape:edenred": "node scripts/scrape-edenred.mjs",
+    "scrape:edenred:login": "node scripts/login-edenred.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -32,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

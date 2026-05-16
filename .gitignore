@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# edenred scraper — sesión Playwright con cookies válidas, nunca commitear
+scripts/storage-state.json
