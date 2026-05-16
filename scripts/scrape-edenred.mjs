@@ -22,21 +22,22 @@ const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
 
 // URLs y selectores: tunear tras inspeccionar edenred.es con DevTools o
 // `pnpm exec playwright codegen https://www.myedenred.es`.
-const EDENRED_ACCOUNT_URL = 'https://empleados.edenred.es/login'
+const EDENRED_ACCOUNT_URL = 'https://empleados.edenred.es'
 
+// Selectores capturados sobre empleados.edenred.es con el design system
+// "ore-*". Si Edenred refactoriza el front, revisar con:
+//   pnpm exec playwright codegen --load-storage=scripts/storage-state.json https://empleados.edenred.es
 const SELECTORS = {
-  // Si el navegador termina en cualquiera de estos, la sesión no es válida.
-  loginIndicators: ['input[type="password"]', 'text=/iniciar sesi[oó]n/i'],
+  // El form de login sólo aparece si la sesión no es válida.
+  loginIndicators: ['input[type="password"]'],
   twoFactorIndicators: ['input[name="otp"]', 'text=/c[oó]digo de verificaci[oó]n/i'],
-  // Saldo: contenedor con el saldo de la tarjeta restaurante.
-  balance: '[data-testid="card-balance"], .card-balance, .balance-amount',
-  // Filas de transacciones (cada elemento = 1 movimiento).
-  transactionRow: '[data-testid="transaction-row"], .transaction-item, li.movement',
-  // Dentro de cada fila:
-  txDate: '[data-testid="tx-date"], .tx-date, time',
-  txAmount: '[data-testid="tx-amount"], .tx-amount, .amount',
-  txDescription: '[data-testid="tx-description"], .tx-description, .merchant',
-  txId: '[data-id], [data-tx-id]', // opcional: si Edenred expone un id estable
+  // Saldo: span con clase de heading que contiene el símbolo €.
+  balance: 'span.ore-heading-title-sm:has-text("€")',
+  // Filas de transacciones (scopeadas a tbody para excluir la cabecera,
+  // que también tiene tr.ore-table-row). Columnas (por posición):
+  //   td[0]=fecha "DD/MM/YYYY", td[1]=hora "HH:MM:SS",
+  //   td[2]=descripción, td[3]=importe "X,YY €"
+  transactionRow: 'tbody tr.ore-table-row',
 }
 
 function die(code, msg) {
@@ -107,29 +108,31 @@ async function extractTransactions(page) {
   const rows = await page.locator(SELECTORS.transactionRow).all()
   if (rows.length === 0) die(4, 'No se encontró ninguna fila de transacciones')
 
-  const counters = new Map() // fallback: contar tx por fecha para generar external_id estable
   const txs = []
   for (const row of rows) {
-    const rawDate = (await row.locator(SELECTORS.txDate).first().textContent()) ?? ''
-    const rawAmount = (await row.locator(SELECTORS.txAmount).first().textContent()) ?? ''
-    const rawDesc = (await row.locator(SELECTORS.txDescription).first().textContent()) ?? ''
+    const cells = row.locator('td')
+    const rawDate = (await cells.nth(0).textContent()) ?? ''
+    const rawTime = (await cells.nth(1).textContent()) ?? ''
+    const rawDesc = (await cells.nth(2).textContent()) ?? ''
+    const rawAmount = (await cells.nth(3).textContent()) ?? ''
 
     const transaction_date = parseDate(rawDate)
-    const amount = parseAmount(rawAmount)
+    const time = rawTime.trim()
     const description = rawDesc.trim().replace(/\s+/g, ' ')
 
-    // Preferir un id estable expuesto por Edenred; fallback determinista.
-    const idAttr = await row.locator(SELECTORS.txId).first().getAttribute('data-id').catch(() => null)
-    let external_id
-    if (idAttr) {
-      external_id = `edenred-${idAttr}`
-    } else {
-      const idx = counters.get(transaction_date) ?? 0
-      counters.set(transaction_date, idx + 1)
-      external_id = `edenred-${transaction_date}-${idx}`
-    }
+    // Edenred muestra los importes sin signo. Distinguimos por la
+    // descripción literal: "RECARGA" es un ingreso (top-up de empresa),
+    // todo lo demás es consumo en restaurante.
+    const isRecarga = description.toUpperCase() === 'RECARGA'
+    const amount = isRecarga ? parseAmount(rawAmount) : -parseAmount(rawAmount)
+    const category = isRecarga ? 'income' : 'restaurant'
 
-    txs.push({ external_id, amount, description, transaction_date })
+    // external_id estable: fecha + hora (resolución de segundos). Si dos
+    // movimientos colisionasen en el mismo segundo, el upsert los trataría
+    // como uno solo — aceptable.
+    const external_id = `edenred-${transaction_date}-${time}`
+
+    txs.push({ external_id, amount, description, transaction_date, category })
   }
   return txs
 }
