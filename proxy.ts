@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  // Webhooks públicos con auth Bearer: saltar el chequeo de sesión.
+  if (request.nextUrl.pathname.startsWith('/api/edenred')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
