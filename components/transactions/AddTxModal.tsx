@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { FileText, Calendar, CreditCard, Tag } from 'lucide-react'
+import { FileText, Calendar, CreditCard } from 'lucide-react'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META } from '@/lib/theme'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface AddTxModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   manualAccountId: string
-  onClose: () => void
   onSave: (tx: TransactionWithAccount) => void
 }
 
@@ -70,7 +71,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
 const EXPENSE_COLOR = '#ef4444'
 const INCOME_COLOR = '#22c55e'
 
-export function AddTxModal({ manualAccountId, onClose, onSave }: AddTxModalProps) {
+export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddTxModalProps) {
   const [type, setType] = useState<'gasto' | 'ingreso'>('gasto')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
@@ -109,25 +110,23 @@ export function AddTxModal({ manualAccountId, onClose, onSave }: AddTxModalProps
       if (!res.ok) throw new Error(await res.text())
       const { data: tx } = await res.json()
       onSave(tx)
-      onClose()
+      onOpenChange(false)
     } catch (err) {
       console.error('[AddTxModal] Error guardando:', err)
+    } finally {
       setSaving(false)
     }
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', zIndex: 200 }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full mx-auto bg-popover flex flex-col"
-        style={{ maxWidth: 420, borderRadius: '28px 28px 0 0', padding: '20px 20px 40px' }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
       >
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+        <SheetTitle className="sr-only">Nuevo movimiento</SheetTitle>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
 
         {/* Toggle + importe */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -321,8 +320,7 @@ export function AddTxModal({ manualAccountId, onClose, onSave }: AddTxModalProps
         >
           {saving ? 'Guardando…' : 'Guardar movimiento'}
         </button>
-      </div>
-    </div>,
-    document.body
+      </SheetContent>
+    </Sheet>
   )
 }

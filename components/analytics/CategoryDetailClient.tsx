@@ -43,7 +43,7 @@ interface Props {
 
 export default function CategoryDetailClient({ categoryId }: Props) {
   const router = useRouter()
-  const { gran, showPicker, setShowPicker } = useAnalytics()
+  const { gran, setShowPicker } = useAnalytics()
   const meta = CATEGORY_META[categoryId]
   const { Icon, label, color } = meta
 
@@ -286,7 +286,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       {selectedTx && (
         <TxModal
           tx={selectedTx}
-          onClose={() => setSelectedTxId(null)}
+          open
+          onOpenChange={o => { if (!o) setSelectedTxId(null) }}
           onRecategorize={tx => { setCatPickerTx(tx); setSelectedTxId(null) }}
           onDelete={handleDelete}
         />
@@ -295,12 +296,13 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       {catPickerTx && (
         <CategoryPicker
           tx={catPickerTx}
-          onClose={() => setCatPickerTx(null)}
+          open
+          onOpenChange={o => { if (!o) setCatPickerTx(null) }}
           onSelect={handleSelect}
         />
       )}
 
-      {showPicker && <GranPicker />}
+      <GranPicker />
     </div>
   )
 }

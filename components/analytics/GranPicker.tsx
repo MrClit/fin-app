@@ -1,6 +1,6 @@
 'use client'
 
-import { createPortal } from 'react-dom'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import type { Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 
@@ -12,25 +12,22 @@ const OPTIONS: { id: Granularity; label: string }[] = [
 ]
 
 export default function GranPicker() {
-  const { gran, setGran, setShowPicker } = useAnalytics()
+  const { gran, setGran, showPicker, setShowPicker } = useAnalytics()
 
   function select(g: Granularity) {
     setGran(g)
     setShowPicker(false)
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', zIndex: 300 }}
-      onClick={() => setShowPicker(false)}
-    >
-      <div
-        className="w-full mx-auto bg-popover flex flex-col"
-        style={{ maxWidth: 420, borderRadius: '28px 28px 0 0', padding: '20px 20px 40px' }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <Sheet open={showPicker} onOpenChange={setShowPicker}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
       >
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+        <SheetTitle className="sr-only">Ver por período</SheetTitle>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
         <p className="text-base font-bold text-foreground text-center mb-4">Ver por período</p>
         <div className="flex flex-col gap-2">
           {OPTIONS.map(o => {
@@ -63,8 +60,7 @@ export default function GranPicker() {
             )
           })}
         </div>
-      </div>
-    </div>,
-    document.body
+      </SheetContent>
+    </Sheet>
   )
 }

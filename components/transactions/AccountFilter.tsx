@@ -1,17 +1,18 @@
 'use client'
 
-import { createPortal } from 'react-dom'
 import { Box } from 'lucide-react'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import type { Account } from '@/types'
 
 interface AccountFilterProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
-  onClose: () => void
 }
 
-export function AccountFilter({ accounts, selectedIds, onSelectionChange, onClose }: AccountFilterProps) {
+export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSelectionChange }: AccountFilterProps) {
   const allSelected = selectedIds.length === 0
 
   function toggleAccount(id: string) {
@@ -23,23 +24,15 @@ export function AccountFilter({ accounts, selectedIds, onSelectionChange, onClos
     }
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', zIndex: 300 }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full mx-auto bg-popover flex flex-col"
-        style={{
-          maxWidth: 420,
-          borderRadius: '28px 28px 0 0',
-          padding: '20px 20px 40px',
-        }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
       >
-        {/* Drag handle */}
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+        <SheetTitle className="sr-only">Filtrar por cuenta</SheetTitle>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
 
         <p className="text-base font-bold text-foreground mb-0.5">Filtrar por cuenta</p>
         <p className="text-xs text-muted-foreground mb-4">Selecciona una o varias cuentas</p>
@@ -52,7 +45,7 @@ export function AccountFilter({ accounts, selectedIds, onSelectionChange, onClos
               background: allSelected ? 'rgba(99,102,241,0.08)' : 'var(--muted)',
               borderLeft: allSelected ? '3px solid #6366f1' : '3px solid transparent',
             }}
-            onClick={() => { onSelectionChange([]); onClose() }}
+            onClick={() => { onSelectionChange([]); onOpenChange(false) }}
           >
             <div
               className="flex items-center justify-center rounded-[10px] shrink-0"
@@ -120,8 +113,7 @@ export function AccountFilter({ accounts, selectedIds, onSelectionChange, onClos
             )
           })}
         </div>
-      </div>
-    </div>,
-    document.body
+      </SheetContent>
+    </Sheet>
   )
 }

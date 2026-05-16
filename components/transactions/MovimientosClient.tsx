@@ -253,42 +253,42 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
       )}
 
       {/* Account filter bottom sheet */}
-      {showAccountFilter && (
-        <AccountFilter
-          accounts={accounts}
-          selectedIds={selectedAccountIds}
-          onSelectionChange={setSelectedAccountIds}
-          onClose={() => setShowAccountFilter(false)}
-        />
-      )}
+      <AccountFilter
+        open={showAccountFilter}
+        onOpenChange={setShowAccountFilter}
+        accounts={accounts}
+        selectedIds={selectedAccountIds}
+        onSelectionChange={setSelectedAccountIds}
+      />
 
       {/* Transaction detail bottom sheet */}
       {selectedTx && (
         <TxModal
           tx={selectedTx}
-          onClose={() => setSelectedTxId(null)}
+          open
+          onOpenChange={o => { if (!o) setSelectedTxId(null) }}
           onRecategorize={handleRecategorize}
           onDelete={handleDelete}
         />
       )}
 
-      {/* Category picker bottom sheet (zIndex 400, overlays TxModal) */}
+      {/* Category picker bottom sheet (se apila sobre TxModal) */}
       {catPickerTx && (
         <CategoryPicker
           tx={catPickerTx}
-          onClose={() => setCatPickerTx(null)}
+          open
+          onOpenChange={o => { if (!o) setCatPickerTx(null) }}
           onSelect={handleSelect}
         />
       )}
 
       {/* Add transaction bottom sheet */}
-      {showAddModal && (
-        <AddTxModal
-          manualAccountId={manualAccountId}
-          onClose={() => setShowAddModal(false)}
-          onSave={tx => setTransactions(prev => [tx, ...prev])}
-        />
-      )}
+      <AddTxModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        manualAccountId={manualAccountId}
+        onSave={tx => setTransactions(prev => [tx, ...prev])}
+      />
 
       {/* FAB */}
       <button

@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META } from '@/lib/theme'
 import type { CategoryId, CategoryType, TransactionWithAccount } from '@/types'
 
 interface CategoryPickerProps {
   tx: TransactionWithAccount
-  onClose: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSelect: (txId: string, category: CategoryId) => void
 }
 
@@ -25,24 +26,22 @@ function initialTab(tx: TransactionWithAccount): CategoryType {
   return tx.amount < 0 ? 'expense' : 'income'
 }
 
-export function CategoryPicker({ tx, onClose, onSelect }: CategoryPickerProps) {
+export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPickerProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
   const [activeType, setActiveType] = useState<CategoryType>(() => initialTab(tx))
 
   const visibleCategories = ENTRIES.filter(([, meta]) => meta.type === activeType)
 
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-end"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', zIndex: 400 }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full mx-auto bg-popover flex flex-col"
-        style={{ maxWidth: 420, borderRadius: '28px 28px 0 0', padding: '20px 20px 40px', maxHeight: '82dvh' }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto flex w-full max-w-105 flex-col rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
+        style={{ maxHeight: '82dvh' }}
       >
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+        <SheetTitle className="sr-only">Cambiar categoría</SheetTitle>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
         <p className="text-base font-bold text-foreground mb-1">Cambiar categoría</p>
         <p className="text-xs text-muted-foreground mb-4 truncate">{tx.description}</p>
 
@@ -83,7 +82,7 @@ export function CategoryPicker({ tx, onClose, onSelect }: CategoryPickerProps) {
               return (
                 <button
                   key={id}
-                  onClick={() => { onSelect(tx.id, id); onClose() }}
+                  onClick={() => { onSelect(tx.id, id); onOpenChange(false) }}
                   style={{
                     padding: '12px 4px',
                     borderRadius: 14,
@@ -112,8 +111,7 @@ export function CategoryPicker({ tx, onClose, onSelect }: CategoryPickerProps) {
             })}
           </div>
         </div>
-      </div>
-    </div>,
-    document.body
+      </SheetContent>
+    </Sheet>
   )
 }
