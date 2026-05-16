@@ -7,6 +7,7 @@ type EdenredTx = {
   amount: number
   description: string
   transaction_date: string
+  category?: string
 }
 
 type EdenredPayload = {
@@ -21,14 +22,16 @@ function isValidPayload(data: unknown): data is EdenredPayload {
   if (typeof p.balance !== 'number') return false
   if (typeof p.last_synced_at !== 'string') return false
   if (!Array.isArray(p.transactions)) return false
-  return p.transactions.every(tx =>
-    tx
-    && typeof tx === 'object'
-    && typeof (tx as EdenredTx).external_id === 'string'
-    && typeof (tx as EdenredTx).amount === 'number'
-    && typeof (tx as EdenredTx).description === 'string'
-    && typeof (tx as EdenredTx).transaction_date === 'string'
-  )
+  return p.transactions.every(tx => {
+    if (!tx || typeof tx !== 'object') return false
+    const t = tx as EdenredTx
+    if (typeof t.external_id !== 'string') return false
+    if (typeof t.amount !== 'number') return false
+    if (typeof t.description !== 'string') return false
+    if (typeof t.transaction_date !== 'string') return false
+    if (t.category !== undefined && typeof t.category !== 'string') return false
+    return true
+  })
 }
 
 function safeBearerMatch(header: string | null, secret: string): boolean {
@@ -132,7 +135,7 @@ export async function POST(req: Request) {
       date: tx.transaction_date,
       amount: tx.amount,
       description: tx.description,
-      category: 'restaurant',
+      category: tx.category ?? 'restaurant',
       source: 'scraper' as const,
       external_id: tx.external_id,
       is_computable: false,
