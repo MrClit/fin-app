@@ -22,7 +22,7 @@ const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
 
 // URLs y selectores: tunear tras inspeccionar edenred.es con DevTools o
 // `pnpm exec playwright codegen https://www.myedenred.es`.
-const EDENRED_ACCOUNT_URL = 'https://www.myedenred.es/'
+const EDENRED_ACCOUNT_URL = 'https://empleados.edenred.es/login'
 
 const SELECTORS = {
   // Si el navegador termina en cualquiera de estos, la sesión no es válida.

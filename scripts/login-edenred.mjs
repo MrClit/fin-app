@@ -6,9 +6,11 @@
 //
 // Requiere en .env.local: EDENRED_USER, EDENRED_PASS.
 //
-// El script lanza Chromium en modo headed, rellena las credenciales, pausa
-// para que el usuario complete el 2FA a mano, y al volver guarda el
-// storage-state. Luego imprime el comando para actualizar el secret de GitHub.
+// El script lanza Chromium en modo headed e intenta rellenar las
+// credenciales automáticamente. El auto-fill es best-effort: si los
+// selectores no encajan o ya estás logueado en la máquina (sin form),
+// no peta — termina el login a mano. Cuando estés dentro, pulsa ENTER
+// para capturar la sesión.
 
 import { chromium } from 'playwright'
 import { existsSync, mkdirSync } from 'node:fs'
@@ -16,14 +18,19 @@ import readline from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
 const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
-const EDENRED_LOGIN_URL = 'https://www.myedenred.es/'
+const EDENRED_LOGIN_URL = 'https://empleados.edenred.es/login'
 
-// Selectores del formulario de login: tunear tras inspeccionar.
-const SELECTORS = {
-  username: 'input[name="username"], input[type="email"]',
-  password: 'input[name="password"], input[type="password"]',
-  submit: 'button[type="submit"], button:has-text("Entrar")',
-}
+// Locators del formulario de login (capturados con `playwright codegen`
+// sobre empleados.edenred.es/login).
+const locators = page => ({
+  username: page.getByRole('textbox', { name: 'Usuario (campo requerido)' }),
+  password: page.getByRole('textbox', { name: 'Contraseña (campo requerido)' }),
+  submit: page.getByTestId('login'),
+})
+
+// Timeout corto: si el form no aparece pronto, asumimos que no hay que
+// auto-rellenar (ya logueado, redirección a home, o selectores cambiados).
+const AUTOFILL_TIMEOUT_MS = 5000
 
 function requireEnv(name) {
   const v = process.env[name]
@@ -32,6 +39,26 @@ function requireEnv(name) {
     process.exit(1)
   }
   return v
+}
+
+async function tryAutofill(page, user, pass) {
+  const { username, password, submit } = locators(page)
+  try {
+    await username.waitFor({ timeout: AUTOFILL_TIMEOUT_MS })
+  } catch {
+    console.log('[login-edenred] no se vio el form de login (¿ya logueado?). Sigue a mano.')
+    return false
+  }
+  try {
+    await username.fill(user)
+    await password.fill(pass)
+    await submit.click()
+    console.log('[login-edenred] credenciales auto-rellenadas, completa 2FA si lo pide.')
+    return true
+  } catch (err) {
+    console.log(`[login-edenred] auto-fill falló (${err.message}). Termina el login a mano.`)
+    return false
+  }
 }
 
 async function main() {
@@ -48,9 +75,7 @@ async function main() {
     console.log('[login-edenred] abriendo Edenred…')
     await page.goto(EDENRED_LOGIN_URL, { waitUntil: 'domcontentloaded' })
 
-    await page.locator(SELECTORS.username).first().fill(user)
-    await page.locator(SELECTORS.password).first().fill(pass)
-    await page.locator(SELECTORS.submit).first().click()
+    await tryAutofill(page, user, pass)
 
     const rl = readline.createInterface({ input, output })
     await rl.question(
