@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "scrape:edenred": "node scripts/scrape-edenred.mjs",
-    "scrape:edenred:login": "node scripts/login-edenred.mjs"
+    "scrape:edenred": "node --env-file-if-exists=.env.local scripts/scrape-edenred.mjs",
+    "scrape:edenred:login": "node --env-file=.env.local scripts/login-edenred.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
