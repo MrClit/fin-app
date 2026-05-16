@@ -39,7 +39,7 @@ export const fmt = (n: number, decimals = 0): string => {
 ## Base de datos
 - Todas las tablas tienen `user_id` con RLS activada
 - `is_liability` en `accounts` para distinguir activos de pasivos
-- `is_internal_transfer` en `transactions` para evitar duplicados tarjeta/cuenta
+- La clasificación de una transacción (`income` / `expense` / `non_computable`) viene determinada por `categories.type` de su categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo, sólo para presentación visual.
 - Vista materializada `transactions_monthly_summary` para agregaciones
 
 ## Lo que NO hacer

@@ -106,7 +106,7 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
       const catType = CATEGORY_META[catId]?.type
       if (typeFilter === 'ingresos')       return catType === 'income'
       if (typeFilter === 'gastos')         return catType === 'expense'
-      if (typeFilter === 'no-computable')  return catType === 'non_computable' || !tx.is_computable
+      if (typeFilter === 'no-computable')  return catType === 'non_computable'
       return true
     })
   }

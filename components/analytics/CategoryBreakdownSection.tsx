@@ -4,14 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MoreHorizontal } from 'lucide-react'
 import type { CategoryBreakdown } from '@/types'
-import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
+import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import DonutChart, { type DonutItem } from './DonutChart'
 
 const MIN_PCT = 5
 const RESTO_KEY = '__resto__'
 const RESTO_COLOR = '#94a3b8'
-const SIN_CAT_KEY = '__sin_categoria__'
 
 interface CategoryBreakdownSectionProps {
   byCategory: CategoryBreakdown[]
@@ -30,7 +29,7 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
   const rawItems = byCategory
     .filter(bc => {
       if (bc.amount === 0) return false
-      if (bc.category === null) return (typeFilter === 'expense') === (bc.amount < 0)
+      if (bc.category === null) return false
       return CATEGORY_META[bc.category]?.type === typeFilter
     })
     .map(bc => ({ ...bc, amount: Math.abs(bc.amount) }))
@@ -47,21 +46,12 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
   const rest = withPct.filter(bc => bc.pct < MIN_PCT)
 
   const toItem = (bc: (typeof withPct)[0]): DonutItem => {
-    if (bc.category === null) {
-      return {
-        key: SIN_CAT_KEY,
-        categoryId: null,
-        label: SIN_CATEGORIA.label,
-        color: SIN_CATEGORIA.color,
-        Icon: SIN_CATEGORIA.Icon,
-        amount: bc.amount,
-        pct: bc.pct,
-      }
-    }
-    const meta = CATEGORY_META[bc.category]
+    // bc.category never null here (filtered out above)
+    const catId = bc.category as NonNullable<typeof bc.category>
+    const meta = CATEGORY_META[catId]
     return {
-      key: bc.category,
-      categoryId: bc.category,
+      key: catId,
+      categoryId: catId,
       label: meta.label,
       color: meta.color,
       Icon: meta.Icon,

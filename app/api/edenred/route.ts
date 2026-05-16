@@ -138,8 +138,6 @@ export async function POST(req: Request) {
       category: tx.category ?? 'restaurant',
       source: 'scraper' as const,
       external_id: tx.external_id,
-      is_computable: false,
-      is_internal_transfer: false,
     }))
 
     const { error: upsertErr } = await db

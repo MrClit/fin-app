@@ -67,7 +67,7 @@ export const fmt = (n: number, decimals = 0): string => {
 ## Base de datos
 - Todas las tablas tienen `user_id` con RLS activada
 - `is_liability` en `accounts` para distinguir activos de pasivos
-- `is_internal_transfer` en `transactions` para evitar duplicados tarjeta/cuenta
+- La clasificación ingreso/gasto/no-computable viene de `categories.type`, no del signo del `amount`
 - Vista materializada `transactions_monthly_summary` para agregaciones
 
 ## Lo que NO hacer
@@ -152,7 +152,7 @@ Una issue está **Ready** cuando:
 #6  [chore] Utilidades compartidas: fmt(), theme tokens, tipos TypeScript
     Ref: §13 nota 6. Crear lib/formatting.ts, lib/theme.ts y types/index.ts.
     El tipo Account debe incluir is_liability. El tipo Transaction debe incluir
-    is_internal_transfer y category_manual.
+    category_manual.
 ```
 
 ### Issues de la Fase 2 — Conexión bancaria

@@ -60,7 +60,8 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 **Filtros de tipo**
 - Pills horizontales: Todos / Ingresos / Gastos / No Computable
 - El filtro usa `CATEGORY_META[effectiveCategory].type` — no el signo del importe
-- "No Computable" incluye: transacciones con `is_computable = false` (Edenred) **y** transacciones cuya categoría efectiva tiene `type = 'non_computable'` (inversión, ahorro, transferencias...)
+- "No Computable" incluye las transacciones cuya categoría efectiva tiene `type = 'non_computable'` (inversión, ahorro, transferencias, amortizaciones)
+- Las transacciones sin categoría sólo aparecen en "Todos" hasta que el usuario las categorice
 
 **Lista agrupada por día**
 - Encabezado de día: "Hoy", "Ayer" o fecha formateada + neto del día
@@ -183,14 +184,12 @@ transactions (
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   account_id      UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   date            DATE NOT NULL,
-  amount          DECIMAL(12,2) NOT NULL,  -- negativo = gasto, positivo = ingreso
+  amount          DECIMAL(12,2) NOT NULL,  -- el signo no clasifica tipo; sólo dirección del dinero
   description     TEXT NOT NULL,
-  category        TEXT,                    -- categoría asignada automáticamente
+  category        TEXT,                    -- categoría asignada automáticamente (FK lógica a categories.id)
   category_manual TEXT,                    -- categoría editada por el usuario (override)
   source          TEXT NOT NULL,           -- 'enablebanking' | 'scraper' | 'manual'
-  external_id     TEXT,                    -- ID de transacción en Enable Banking para evitar duplicados
-  is_computable   BOOLEAN DEFAULT true,    -- false = No Computable (Edenred)
-  is_internal_transfer BOOLEAN DEFAULT false, -- traspaso entre cuentas propias
+  external_id     TEXT,                    -- ID de transacción externo para evitar duplicados
   notes           TEXT,
   created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, external_id)             -- evita duplicados solo dentro del mismo user
@@ -245,12 +244,11 @@ El `CategoryPicker` agrupa las categorías por tipo con un selector de 3 tabs (G
 
 ### 3.3 Lógica de "No Computable"
 
-Dos mecanismos que coexisten:
+La única vía para que una transacción quede fuera de los totales de Análisis es **categorizarla con una categoría cuyo `type = 'non_computable'`** (`investment`, `savings`, `transfer`, `loan_payment`). Esas transacciones se excluyen de los KPIs y donuts de Ingresos/Gastos, y aparecen en la pill "No Computable" de Movimientos.
 
-1. **`is_computable = false`** en la transacción — asignado automáticamente a las transacciones de Edenred (scraper). No modificable por el usuario.
-2. **`category.type = 'non_computable'`** — cuando el usuario categoriza una transacción como `investment`, `savings`, `transfer` o `loan_payment`.
+Las transacciones sin categoría tampoco computan en los totales de Análisis ni aparecen en sus donuts; sólo se ven en la pill "Todos" de Movimientos hasta que el usuario las categorice.
 
-Ambos casos se excluyen de los totales de Gastos e Ingresos en Análisis, y ambos aparecen en la pill "No Computable" de Movimientos.
+El signo del `amount` no determina nunca el tipo (income / expense / non_computable); sólo se usa para presentación visual del importe.
 
 ---
 
@@ -424,7 +422,8 @@ GitHub Actions (cron: 0 7 * * * Europe/Madrid)
         ├── Login en edenred.es con credenciales (GitHub Secrets)
         ├── Extrae saldo actual y últimos movimientos
         └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
-              └── Next.js guarda en transactions con source='scraper', is_computable=false
+              └── Next.js guarda en transactions con source='scraper'
+                  (RECARGA → category='income', consumos → category='restaurant')
                   y actualiza balance en accounts
 ```
 
@@ -535,19 +534,25 @@ Las agregaciones por período (KPIs, donut, barras) son consultas frecuentes y p
 ```sql
 CREATE MATERIALIZED VIEW transactions_monthly_summary AS
 SELECT
-  user_id,
-  account_id,
-  DATE_TRUNC('month', date)::date AS month,
-  COALESCE(category_manual, category) AS effective_category,
-  SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS ingresos,
-  SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS gastos,
+  t.user_id,
+  t.account_id,
+  DATE_TRUNC('month', t.date)::date AS month,
+  COALESCE(t.category_manual, t.category) AS effective_category,
+  SUM(CASE WHEN c.type = 'income'  THEN t.amount ELSE 0 END) AS ingresos,
+  SUM(CASE WHEN c.type = 'expense' THEN t.amount ELSE 0 END) AS gastos,
   COUNT(*) AS tx_count
-FROM transactions
-WHERE is_computable = true AND is_internal_transfer = false
-GROUP BY user_id, account_id, DATE_TRUNC('month', date), effective_category;
+FROM transactions t
+JOIN categories c ON c.id = COALESCE(t.category_manual, t.category)
+WHERE c.type IN ('income', 'expense')
+GROUP BY t.user_id, t.account_id, DATE_TRUNC('month', t.date), effective_category;
 
 CREATE INDEX idx_monthly_user_month ON transactions_monthly_summary(user_id, month DESC);
 ```
+
+Notas:
+- `INNER JOIN categories` excluye transacciones sin categoría.
+- Las categorías `non_computable` quedan fuera de la vista (no aportan a `ingresos`/`gastos`).
+- Los importes se clasifican por `c.type`, **no por el signo del `amount`**: una devolución de nómina (`type='income'`, amount<0) suma al total de ingresos como negativa (resta correctamente).
 
 Esta vista se refresca tras cada sincronización con:
 ```sql
@@ -567,7 +572,11 @@ CREATE OR REPLACE FUNCTION get_period_data(
   ahorro DECIMAL,
   by_category JSONB
 ) AS $$
-  -- Implementación: agrega desde transactions filtrando por user_id, fecha y is_computable
+  -- Implementación: LEFT JOIN con categories sobre COALESCE(category_manual, category).
+  -- ingresos = SUM(amount) FILTER (WHERE c.type = 'income')
+  -- gastos   = ABS(SUM(amount) FILTER (WHERE c.type = 'expense'))
+  -- by_category sólo incluye categorías con type IN ('income','expense').
+  -- Las transacciones sin categoría o con type='non_computable' se excluyen de totales y breakdown.
 $$ LANGUAGE plpgsql STABLE;
 ```
 
@@ -589,22 +598,9 @@ El **Balance total** del Dashboard muestra el patrimonio neto, no la suma bruta 
 
 ### 5.6 Conciliación entre tarjeta y cuenta corriente
 
-Problema: cuando Enable Banking sincroniza tanto la cuenta como la tarjeta, una compra de 50€ con la tarjeta aparece dos veces:
-- En la tarjeta: el día de la compra (50€)
-- En la cuenta corriente: el día del cargo mensual de la tarjeta (cargo agregado)
+Actualmente Enable Banking sólo devuelve transacciones de cuentas bancarias (no tarjetas de crédito), por lo que no hay doble conteo.
 
-**Solución:** detectar el cargo agregado de la tarjeta y marcarlo como `is_internal_transfer = true` para que no compute en gastos:
-
-```typescript
-const RECONCILIATION_RULES = [
-  // Patrón típico: "LIQUIDACION TARJETA", "CARGO TARJETA VISA"
-  { pattern: /liquidacion\s+tarjeta|cargo\s+tarjeta/i, mark: 'internal_transfer' },
-  // Bizum o transferencia entre cuentas propias del mismo titular
-  { pattern: /traspaso\s+entre\s+cuentas/i, mark: 'internal_transfer' },
-]
-```
-
-Idealmente el usuario debería poder confirmar/rechazar la conciliación en la UI (futura mejora).
+Si en el futuro entra en juego una tarjeta cuyo cargo mensual aparece liquidado en la cuenta bancaria, la transacción de liquidación se categorizará como `loan_payment` o `transfer` (ambas con `type='non_computable'`). Esto la excluye de los totales de Análisis sin necesidad de un flag dedicado.
 
 ### 5.7 Comparativa YoY con histórico insuficiente
 
@@ -944,7 +940,7 @@ Al trabajar con este proyecto:
 
 9. **Patrimonio neto vs balance bruto.** Las cuentas con `is_liability = true` (tarjetas de crédito) deben restarse del patrimonio neto, no sumarse. La pantalla de Cuentas las muestra agrupadas separando "Activos" de "Deudas".
 
-10. **Conciliación.** Antes de mostrar gastos en Análisis, filtrar `is_internal_transfer = true`. Las reglas de conciliación se aplican al sincronizar, no al renderizar.
+10. **Clasificación por categoría, no por signo.** La fuente única de verdad para si una transacción es ingreso/gasto/no-computable es `categories.type` de la categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo: una devolución de nómina (amount<0, `type='income'`) sigue siendo ingreso. Las transacciones sin categoría quedan fuera de los totales de Análisis hasta que el usuario las categorice.
 
 11. **`overflow: clip` obligatorio.** El contenedor raíz de la app debe usar `overflow: clip`, no `overflow: hidden`. Ver §6.5 para la explicación completa. Sin esto, los headers sticky no funcionan.
 
