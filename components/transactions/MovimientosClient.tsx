@@ -102,7 +102,8 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
 
   if (typeFilter !== 'todos') {
     filtered = filtered.filter(tx => {
-      const catId = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
+      const catId = (tx.category_manual ?? tx.category) as CategoryId | null
+      if (catId === null) return false
       const catType = CATEGORY_META[catId]?.type
       if (typeFilter === 'ingresos')       return catType === 'income'
       if (typeFilter === 'gastos')         return catType === 'expense'
