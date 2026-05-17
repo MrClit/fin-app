@@ -4,45 +4,69 @@ App web personal de gestión y análisis de finanzas. Stack: Next.js 16 (App Rou
 
 ## Cron de Edenred
 
-El workflow [.github/workflows/edenred-scraper.yml](.github/workflows/edenred-scraper.yml) ejecuta el scraper de Edenred una vez al día (06:00 UTC = 07:00 Madrid en invierno / 08:00 en verano) y también puede dispararse a mano desde la pestaña **Actions → Edenred scraper → Run workflow**.
+El scraper de Edenred (`scripts/scrape-edenred.mjs`) se ejecuta **cada día a las 07:00 hora local** mediante un agente de `launchd` en el Mac del usuario.
 
-> **Aviso sobre el `schedule`**: GitHub Actions solo dispara `schedule` desde el fichero del workflow tal como esté en la rama default del repo (`main`). Mientras el workflow viva en otra rama (p.ej. `develop`), el cron **no se ejecutará automáticamente**; solo funcionará `workflow_dispatch` seleccionando esa rama. El cron empezará a las 06:00 UTC en cuanto se haga el merge a `main`.
+> **¿Por qué local y no en GitHub Actions?** Edenred valida la IP de origen de la sesión: una sesión creada desde una IP residencial española queda invalidada al usarla desde el datacenter de GitHub. Probado y descartado. Ejecutar el cron desde el Mac evita el problema, a costa de que el Mac tiene que estar encendido a la hora del scrape (si no, se salta ese día).
 
-### Secrets requeridos
+### Requisitos previos
 
-Configurar en `Settings → Secrets and variables → Actions → New repository secret`.
+- `.env.local` con los secrets que necesita el scraper:
+  | Variable | Valor |
+  |---|---|
+  | `EDENRED_WEBHOOK_SECRET` | mismo valor que en Vercel (generado con `openssl rand -hex 32`) |
+  | `APP_URL` | URL del deploy donde vive el webhook (`https://<...>.vercel.app`, sin barra final) |
+  | `EDENRED_USER` | email de edenred.es (solo para `scrape:edenred:login`) |
+  | `EDENRED_PASS` | contraseña de edenred.es (solo para `scrape:edenred:login`) |
+- Sesión válida en `scripts/storage-state.json` — la generas con `pnpm scrape:edenred:login`.
+- `pnpm` instalado y en el `PATH`.
 
-| Secret | Para qué se usa | Cómo obtenerlo |
-|---|---|---|
-| `EDENRED_STORAGE_STATE` | cron diario | base64 de `scripts/storage-state.json` tras `pnpm scrape:edenred:login`. Comando: `base64 -i scripts/storage-state.json` |
-| `EDENRED_WEBHOOK_SECRET` | cron diario + endpoint Vercel | mismo valor que `.env.local` (generado con `openssl rand -hex 32`). **Debe estar también en Vercel** para que el endpoint `/api/edenred` valide la auth |
-| `APP_URL` | cron diario | URL de producción de Vercel (`https://<...>.vercel.app`), sin barra final |
-| `EDENRED_USER` | regenerar sesión local | email de edenred.es. **No se inyecta en el cron**; solo se usa en `pnpm scrape:edenred:login` |
-| `EDENRED_PASS` | regenerar sesión local | contraseña de edenred.es. **No se inyecta en el cron**; solo se usa en `pnpm scrape:edenred:login` |
+### Instalar el cron
 
-### Verificar que funciona
+Desde la raíz del proyecto:
 
-1. Configurados los 3 secrets de runtime (`EDENRED_STORAGE_STATE`, `EDENRED_WEBHOOK_SECRET`, `APP_URL`), ir a **Actions → Edenred scraper → Run workflow** y seleccionar la rama.
-2. Esperar a que el run termine en verde (≤ 2 min).
-3. Abrir `/cuentas` en la app: la card de Edenred debe mostrar balance actualizado e indicador verde "hace menos de 1 hora".
-4. Abrir `/movimientos` y filtrar por la cuenta Edenred: las transacciones aparecen con `category='restaurant'`, salvo las cuya descripción sea `RECARGA` (entran como `category='income'` con amount positivo).
-5. Relanzar el workflow: las transacciones no se duplican (upsert por `external_id` en el webhook).
+```bash
+./scripts/install-edenred-launchd.sh
+```
+
+El script:
+
+1. Genera `~/Library/LaunchAgents/com.fin-app.edenred-scraper.plist` apuntando al directorio actual del proyecto y al `pnpm` que tenga tu shell en el `PATH`.
+2. Lo registra con `launchctl load` para que se ejecute cada día a las 07:00 hora local.
+3. Crea `~/Library/Logs/fin-app/` para los logs (`edenred-scraper.out.log` y `edenred-scraper.err.log`).
+
+### Verificar y operar
+
+```bash
+launchctl list | grep edenred-scraper      # confirma que está cargado
+launchctl start com.fin-app.edenred-scraper # dispararlo a mano (sin esperar a las 07:00)
+tail -f ~/Library/Logs/fin-app/edenred-scraper.out.log
+tail -f ~/Library/Logs/fin-app/edenred-scraper.err.log
+```
+
+Tras una ejecución exitosa:
+- En `/cuentas`, la card Edenred muestra balance actualizado e indicador verde "hace menos de 1 hora".
+- En `/movimientos`, las transacciones aparecen con `category='restaurant'`, salvo aquellas cuya descripción sea `RECARGA` (top-up de la empresa), que entran con `category='income'` y `amount` positivo.
 
 ### Regenerar la sesión cuando caduca
 
-El scraper sale con **exit code 2** si Edenred pide login o 2FA. En ese caso hay que regenerar `storage-state.json` localmente:
+El scraper sale con **exit code 2** si Edenred pide login o 2FA. En ese caso:
 
 ```bash
-pnpm scrape:edenred:login                 # abre Chromium, completas 2FA, ENTER al final
-base64 -i scripts/storage-state.json | gh secret set EDENRED_STORAGE_STATE
+pnpm scrape:edenred:login   # abre Chromium, completas 2FA, ENTER al final
 ```
 
-`scripts/storage-state.json` está en `.gitignore` y nunca se commitea.
+`scripts/storage-state.json` se actualiza y el siguiente run del cron volverá a funcionar. No hay que reinstalar el agente.
+
+### Desinstalar
+
+```bash
+./scripts/install-edenred-launchd.sh --uninstall
+```
 
 ## Comandos
 
 - `pnpm dev` — desarrollo local
 - `pnpm build` — compilar para producción
 - `pnpm test` — tests Vitest
-- `pnpm scrape:edenred` — ejecutar el scraper (requiere storage-state válido)
-- `pnpm scrape:edenred:login` — regenerar storage-state con login manual
+- `pnpm scrape:edenred` — ejecutar el scraper (requiere `storage-state.json` válido)
+- `pnpm scrape:edenred:login` — regenerar `storage-state.json` con login manual
