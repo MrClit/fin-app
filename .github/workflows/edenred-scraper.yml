@@ -1,0 +1,33 @@
+name: Edenred scraper
+
+on:
+  schedule:
+    # 06:00 UTC = 07:00 Madrid (CET) / 08:00 Madrid (CEST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install chromium --with-deps
+
+      - run: pnpm scrape:edenred
+        env:
+          EDENRED_STORAGE_STATE: ${{ secrets.EDENRED_STORAGE_STATE }}
+          EDENRED_WEBHOOK_SECRET: ${{ secrets.EDENRED_WEBHOOK_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
