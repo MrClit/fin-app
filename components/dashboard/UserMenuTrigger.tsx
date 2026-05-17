@@ -11,6 +11,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { signOut } from '@/app/actions/auth'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 type Props = { email: string }
 
@@ -49,6 +50,7 @@ export function UserMenuTrigger({ email }: Props) {
         </SheetHeader>
 
         <div className="flex flex-col gap-1 px-2 pb-2">
+          <ThemeToggle />
           <form action={signOut}>
             <button
               type="submit"
