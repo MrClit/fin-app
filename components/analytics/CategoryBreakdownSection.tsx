@@ -137,8 +137,11 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
                 <div
                   key={item.key}
                   onClick={() => {
-                    handleSelect(effectiveIdx === i ? null : i)
-                    if (isNavigable) router.push(`/analisis/categoria/${item.categoryId}`)
+                    if (isNavigable) {
+                      router.push(`/analisis/categoria/${item.categoryId}`)
+                    } else {
+                      handleSelect(effectiveIdx === i ? null : i)
+                    }
                   }}
                   style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >

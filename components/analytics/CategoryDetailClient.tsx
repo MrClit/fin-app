@@ -237,7 +237,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
 
           {/* Bar chart */}
           {loadingPeriods ? (
-            <div className="h-[110px] animate-pulse rounded-lg" style={{ background: 'var(--muted)' }} />
+            <div className="h-27.5 animate-pulse rounded-lg" style={{ background: 'var(--muted)' }} />
           ) : periods.length > 0 ? (
             <CategoryBarChart
               periods={periods}
