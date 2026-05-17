@@ -58,10 +58,17 @@ export default function CategoryDetailClient({ categoryId }: Props) {
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
+  // Mark loading during render when inputs change (React 19: setState in effect body is disallowed)
+  const periodsKey = `${gran}|${categoryId}`
+  const [lastPeriodsKey, setLastPeriodsKey] = useState(periodsKey)
+  if (periodsKey !== lastPeriodsKey) {
+    setLastPeriodsKey(periodsKey)
+    setLoadingPeriods(true)
+  }
+
   // Fetch 6-period chart data when gran changes
   useEffect(() => {
     let cancelled = false
-    setLoadingPeriods(true)
     fetch(`/api/analytics/categoria?id=${categoryId}&gran=${gran}`)
       .then(r => r.json())
       .then(d => {
@@ -74,13 +81,22 @@ export default function CategoryDetailClient({ categoryId }: Props) {
     return () => { cancelled = true }
   }, [gran, categoryId])
 
+  const selectedPeriodForKey = periods[selectedBarIdx]
+  const txsKey = selectedPeriodForKey
+    ? `${categoryId}|${selectedPeriodForKey.start}|${selectedPeriodForKey.end}`
+    : null
+  const [lastTxsKey, setLastTxsKey] = useState<string | null>(txsKey)
+  if (txsKey && txsKey !== lastTxsKey) {
+    setLastTxsKey(txsKey)
+    setLoadingTxs(true)
+  }
+
   // Fetch transactions when selected bar or periods change
   useEffect(() => {
     if (periods.length === 0) return
     const period = periods[selectedBarIdx]
     if (!period) return
     let cancelled = false
-    setLoadingTxs(true)
     fetch(
       `/api/transactions?category=${categoryId}&dateFrom=${period.start}&dateTo=${period.end}&limit=500`
     )
