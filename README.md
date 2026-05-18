@@ -63,6 +63,38 @@ pnpm scrape:edenred:login   # abre Chromium, completas 2FA, ENTER al final
 ./scripts/install-edenred-launchd.sh --uninstall
 ```
 
+## Cron de Enable Banking
+
+El sync de Enable Banking se ejecuta **cada día a las 06:00 Europe/Madrid** mediante GitHub Actions ([.github/workflows/enablebanking-sync.yml](.github/workflows/enablebanking-sync.yml)).
+
+> **¿Por qué GitHub Actions y no launchd local como Edenred?** Enable Banking es una API PSD2 oficial: los tokens OAuth viven en `accounts.session_id` y la llamada saliente desde el servidor a `api.enablebanking.com` no depende de la IP de origen (a diferencia de Edenred). GitHub Actions corre 24/7 sin depender de que el Mac esté encendido, lo cual importa porque el consentimiento PSD2 caduca a 90 días.
+
+### Secrets requeridos
+
+| GitHub Secret | Valor |
+|---|---|
+| `ENABLEBANKING_WEBHOOK_SECRET` | mismo valor que en Vercel (generado con `openssl rand -hex 32`) |
+| `APP_URL` | URL del deploy donde vive el endpoint (`https://<...>.vercel.app`, sin barra final). Reutilizable con el de Edenred. |
+
+Además, el endpoint vive en Vercel y necesita `ENABLEBANKING_WEBHOOK_SECRET` configurado como env var en Vercel (mismo valor que en GitHub).
+
+### Disparar manualmente
+
+Desde la pestaña Actions del repo → "Enable Banking sync" → "Run workflow". O por CLI:
+
+```bash
+gh workflow run enablebanking-sync.yml
+```
+
+### Verificar y operar
+
+Los logs de cada run están en la pestaña Actions del repo. Una ejecución correcta devuelve `{ synced, accounts, failed }`:
+- `synced`: nº de transacciones upserteadas.
+- `accounts`: nº total de cuentas EB activas procesadas.
+- `failed`: cuentas con error parcial (consentimiento caducado, token expirado, etc.). El run sigue siendo HTTP 200 — los errores parciales no abortan el cron, pero quedan logueados.
+
+El run falla con código HTTP no-2xx solo si el endpoint devuelve 5xx (DB inalcanzable, secret mal configurado).
+
 ## Comandos
 
 - `pnpm dev` — desarrollo local

@@ -2,8 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
   // Webhooks públicos con auth Bearer: saltar el chequeo de sesión.
-  if (request.nextUrl.pathname.startsWith('/api/edenred')) {
+  if (
+    pathname.startsWith('/api/edenred') ||
+    pathname === '/api/sync/enablebanking/cron'
+  ) {
     return NextResponse.next({ request })
   }
 
@@ -28,8 +33,6 @@ export async function proxy(request: NextRequest) {
 
   // Refreshes the session and gets the current user
   const { data: { user } } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
 
   if (!user && pathname !== '/login' && !pathname.startsWith('/auth/')) {
     return NextResponse.redirect(new URL('/login', request.url))
