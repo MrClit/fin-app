@@ -1,8 +1,6 @@
 name: Enable Banking sync
 
 on:
-  push:
-    branches: [feature/enablebanking-cron-bearer]   # TEMPORAL: validar el workflow antes del merge
   schedule:
     - cron: '0 5 * * *'   # 06:00 Europe/Madrid (UTC+1) — antes de la franja de Edenred 07:00 local
   workflow_dispatch:
@@ -14,7 +12,7 @@ jobs:
       - name: Trigger sync
         env:
           SECRET: ${{ secrets.ENABLEBANKING_WEBHOOK_SECRET }}
-          APP_URL: https://fin-4zjqrcggt-mrclits-projects.vercel.app   # TEMPORAL: preview URL en vez de secrets.APP_URL
+          APP_URL: ${{ secrets.APP_URL }}
         run: |
           curl --fail-with-body -sS -X POST \
             -H "Authorization: Bearer $SECRET" \
