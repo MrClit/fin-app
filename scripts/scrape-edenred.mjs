@@ -14,11 +14,34 @@
 //   4 — error de scraping (no se encontraron selectores en el DOM)
 
 import { chromium } from 'playwright'
-import { mkdtempSync, writeFileSync, existsSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdtempSync, writeFileSync, existsSync, readdirSync, unlinkSync, closeSync, openSync } from 'node:fs'
+import { tmpdir, homedir } from 'node:os'
 import { join } from 'node:path'
 
 const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
+
+// Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
+// para tolerar que el Mac estuviera dormido: el plist define varios slots a
+// lo largo del día y el primero que pille la máquina despierta ejecuta; los
+// siguientes salen no-op porque encuentran el marker.
+const CRON_MODE = process.env.EDENRED_CRON === '1'
+const CRON_LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
+const CRON_MARKER_PREFIX = 'edenred-last-success.'
+function cronMarkerPath() {
+  const today = new Date().toISOString().slice(0, 10)
+  return join(CRON_LOG_DIR, `${CRON_MARKER_PREFIX}${today}`)
+}
+function cronMarkerExists() {
+  return existsSync(cronMarkerPath())
+}
+function writeCronMarker() {
+  closeSync(openSync(cronMarkerPath(), 'a'))
+  for (const name of readdirSync(CRON_LOG_DIR)) {
+    if (name.startsWith(CRON_MARKER_PREFIX) && join(CRON_LOG_DIR, name) !== cronMarkerPath()) {
+      try { unlinkSync(join(CRON_LOG_DIR, name)) } catch {}
+    }
+  }
+}
 
 // URLs y selectores: tunear tras inspeccionar edenred.es con DevTools o
 // `pnpm exec playwright codegen https://www.myedenred.es`.
@@ -165,6 +188,11 @@ async function postToWebhook({ balance, transactions }) {
 }
 
 async function main() {
+  if (CRON_MODE && cronMarkerExists()) {
+    console.log(`[scrape-edenred] skip: ya hubo ejecución correcta hoy`)
+    return
+  }
+
   const storageStatePath = resolveStorageStatePath()
 
   const browser = await chromium.launch({ headless: true })
@@ -188,6 +216,7 @@ async function main() {
 
     const result = await postToWebhook({ balance, transactions })
     console.log(`[scrape-edenred] OK: ${JSON.stringify(result)}`)
+    if (CRON_MODE) writeCronMarker()
   } finally {
     await browser.close()
   }

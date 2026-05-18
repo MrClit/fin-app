@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Instala (o desinstala) el agente launchd que ejecuta el scraper de Edenred
-# cada día a las 07:00 hora local.
+# una vez al día. Define varios slots horarios para tolerar que el Mac esté
+# dormido en algunos: el primero que pille la máquina despierta ejecuta el
+# scraper; los siguientes salen no-op gracias al guard EDENRED_CRON=1 del
+# script, que usa un marker diario en ~/Library/Logs/fin-app.
 #
 # Uso:
 #   ./scripts/install-edenred-launchd.sh             # instalar
@@ -47,12 +50,14 @@ cat > "$PLIST" <<EOF
   <key>WorkingDirectory</key>
   <string>$PROJECT_DIR</string>
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key>
-    <integer>7</integer>
-    <key>Minute</key>
-    <integer>0</integer>
-  </dict>
+  <array>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
   <key>RunAtLoad</key>
   <false/>
   <key>StandardOutPath</key>
@@ -63,6 +68,8 @@ cat > "$PLIST" <<EOF
   <dict>
     <key>PATH</key>
     <string>$(dirname "$PNPM_BIN"):/usr/local/bin:/usr/bin:/bin</string>
+    <key>EDENRED_CRON</key>
+    <string>1</string>
   </dict>
 </dict>
 </plist>
