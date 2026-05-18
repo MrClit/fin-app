@@ -262,7 +262,7 @@ El signo del `amount` no determina nunca el tipo (income / expense / non_computa
 | Base de datos | **Supabase** (PostgreSQL) | Auth incluida, tiempo real, SDK TypeScript |
 | Agregación bancaria | **Enable Banking** | PSD2, tier gratuito para developers, buena cobertura España |
 | Scraping Edenred | **Playwright + Node.js** | Headless Chromium para la web de Edenred |
-| Automatización | **GitHub Actions** | Cron job gratuito para el scraper diario |
+| Automatización | **GitHub Actions** (Enable Banking) + **launchd local** (Edenred) | EB es API PSD2 → cron en GitHub. Edenred bindea la sesión por IP residencial → cron local en el Mac del usuario. |
 | Deploy | **Vercel** | Free tier, integración Next.js nativa |
 | Estilos | **Tailwind CSS v4** | Consistencia con el sistema de diseño del prototipo |
 
@@ -386,9 +386,12 @@ finanzas-app/
 │   ├── useTransactions.ts          → SWR/React Query para transacciones
 │   ├── useAccounts.ts              → SWR para cuentas y saldos
 │   └── useAnalytics.ts             → Datos agregados para la pantalla de análisis
-└── .github/
-    └── workflows/
-        └── edenred-scraper.yml     → Cron job diario 07:00 (Europe/Madrid)
+├── .github/
+│   └── workflows/
+│       └── enablebanking-sync.yml → Cron diario 06:00 (Europe/Madrid) → POST /api/sync/enablebanking/cron
+└── scripts/
+    ├── scrape-edenred.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
+    └── install-edenred-launchd.sh → Instala el agente launchd en ~/Library/LaunchAgents
 ```
 
 ### 4.4 Flujo de sincronización bancaria (Enable Banking)
@@ -399,27 +402,38 @@ finanzas-app/
 3. Enable Banking redirige al usuario al banco (OAuth/PSD2 del banco)
 4. Usuario autoriza en su banco y vuelve a la app
 5. Enable Banking callback → Next.js guarda el session_id en Supabase
-6. Cron semanal (o manual) llama a GET /accounts/{id}/transactions
-7. Se normalizan y guardan en tabla transactions (external_id evita duplicados)
+6. Cron diario (o manual) llama a POST /api/sync/enablebanking/cron
+7. El endpoint itera todas las cuentas EB activas y normaliza/guarda transacciones (external_id evita duplicados)
 8. Se actualiza el saldo en tabla accounts
 ```
+
+El cron se dispara desde GitHub Actions (`.github/workflows/enablebanking-sync.yml`, cron `0 5 * * *` UTC = 06:00 Europe/Madrid) haciendo un `curl -H "Authorization: Bearer $ENABLEBANKING_WEBHOOK_SECRET"` contra el endpoint. El endpoint **cookie** (`POST /api/sync/enablebanking`) se mantiene para el botón "Sincronizar ahora" desde la UI. Los errores parciales por cuenta (consentimiento caducado, token expirado) loguean pero no abortan el cron.
 
 **Variables de entorno necesarias:**
 ```
 ENABLEBANKING_APP_ID=
 ENABLEBANKING_SECRET_KEY=
+ENABLEBANKING_WEBHOOK_SECRET=   # autentica al cron contra /api/sync/enablebanking/cron
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-EDENRED_WEBHOOK_SECRET=      # para autenticar llamadas del scraper
+EDENRED_WEBHOOK_SECRET=         # autentica al scraper de Edenred contra /api/edenred
 ```
 
-### 4.5 Flujo Edenred (scraping vía GitHub Actions)
+**GitHub Secrets necesarios para el workflow EB:**
+```
+ENABLEBANKING_WEBHOOK_SECRET=   # mismo valor que en Vercel
+APP_URL=                        # URL de producción en Vercel
+```
+
+### 4.5 Flujo Edenred (scraping vía launchd local)
+
+> **Por qué no GitHub Actions:** Edenred valida la IP de origen de la sesión. Una sesión generada desde una IP residencial española queda invalidada al usarla desde el datacenter de GitHub. Probado y descartado. El cron pasa a ejecutarse en el Mac del usuario, donde la IP coincide con la que generó la sesión.
 
 ```
-GitHub Actions (cron: 0 7 * * * Europe/Madrid)
-  └── Node.js script con Playwright
-        ├── Login en edenred.es con credenciales (GitHub Secrets)
+launchd (StartCalendarInterval: 07:00 hora local)
+  └── pnpm scrape:edenred (Playwright headless, sesión en scripts/storage-state.json)
+        ├── Carga storage-state.json y entra en edenred.es
         ├── Extrae saldo actual y últimos movimientos
         └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
               └── Next.js guarda en transactions con source='scraper'
@@ -427,39 +441,17 @@ GitHub Actions (cron: 0 7 * * * Europe/Madrid)
                   y actualiza balance en accounts
 ```
 
-**GitHub Secrets necesarios para el workflow:**
+El agente se instala con `./scripts/install-edenred-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
+
+**Variables en `.env.local` del Mac:**
 ```
 EDENRED_USER=
 EDENRED_PASS=
-APP_URL=                     # URL de producción en Vercel
+APP_URL=                        # URL de producción en Vercel
 EDENRED_WEBHOOK_SECRET=
 ```
 
-**Archivo `.github/workflows/edenred-scraper.yml`:**
-```yaml
-name: Edenred Scraper
-on:
-  schedule:
-    - cron: '0 6 * * *'   # 07:00 Europe/Madrid (UTC+1)
-  workflow_dispatch:         # Permite ejecución manual
-
-jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx playwright install chromium --with-deps
-      - run: node scripts/scrape-edenred.js
-        env:
-          EDENRED_USER: ${{ secrets.EDENRED_USER }}
-          EDENRED_PASS: ${{ secrets.EDENRED_PASS }}
-          APP_URL: ${{ secrets.APP_URL }}
-          EDENRED_WEBHOOK_SECRET: ${{ secrets.EDENRED_WEBHOOK_SECRET }}
-```
+**Instalación del agente launchd:** detalles operativos en el README (sección "Cron de Edenred").
 
 ---
 
