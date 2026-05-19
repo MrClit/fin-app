@@ -1,16 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Moon, Sun } from 'lucide-react'
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
-
-  const isDark = mounted && resolvedTheme === 'dark'
+  // next-themes devuelve `resolvedTheme === undefined` durante SSR / pre-hidratación.
+  // Lo usamos como flag de "mounted" sin necesidad de useEffect+useState.
+  const mounted = resolvedTheme !== undefined
+  const isDark = resolvedTheme === 'dark'
 
   return (
     <div className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-medium text-foreground">

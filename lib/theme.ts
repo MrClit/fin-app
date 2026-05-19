@@ -1,6 +1,6 @@
 import {
-  ShoppingCart, UtensilsCrossed, Car, Home, Gamepad2, ShoppingBag,
-  HeartPulse, TrendingUp, MoreHorizontal, CircleHelp, Fuel, ParkingCircle, Wrench,
+  ShoppingCart, UtensilsCrossed, Home, Gamepad2, ShoppingBag,
+  TrendingUp, MoreHorizontal, CircleHelp, Fuel, ParkingCircle, Wrench,
   Building2, Users, Zap, Flame, Droplets, Wifi, Shirt, Laptop,
   Stethoscope, Pill, Dumbbell, Repeat2, Plane, BookOpen, Shield,
   Sparkles, Gift, Heart, Users2, Receipt, CreditCard, Banknote,

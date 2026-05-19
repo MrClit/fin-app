@@ -14,6 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Node scripts ejecutados fuera del bundle de Next.
     "scripts/**",
+    // Prototipo visual de referencia (no producción) — ver CLAUDE.md.
+    "docs/**",
+    // Templates de skills de Claude Code (no se compilan con la app).
+    ".agents/**",
   ]),
 ]);
 
