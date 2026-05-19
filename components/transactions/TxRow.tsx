@@ -134,17 +134,7 @@ export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowPro
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{tx.description}</p>
-              {tx.category_manual && (
-                <span
-                  className="rounded-full text-[9px] font-bold px-1.5 py-0.5 leading-none shrink-0"
-                  style={{ background: '#6366f1', color: 'white' }}
-                >
-                  EDITADA
-                </span>
-              )}
-            </div>
+            <p className="text-sm font-semibold text-foreground truncate">{tx.description}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: meta.color }} />
               <span className="text-[11px] text-muted-foreground truncate">{meta.label}</span>
