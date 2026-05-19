@@ -34,10 +34,8 @@ const degToRad = (d: number) => (d * Math.PI) / 180
 export default function DonutChart({ items, selectedIdx, accentColor, onSelect }: DonutChartProps) {
   const total = items.reduce((s, i) => s + i.amount, 0)
 
-  let cumPct = 0
   const segments = items.map((item, i) => {
-    const startPct = cumPct
-    cumPct += item.pct
+    const startPct = items.slice(0, i).reduce((s, it) => s + it.pct, 0)
     const midDeg = -90 + (startPct + item.pct / 2) * 3.6
     const offset = CIRC - (startPct / 100) * CIRC
     const dash = (item.pct / 100) * CIRC
