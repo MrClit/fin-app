@@ -115,7 +115,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           }}>
             <Icon size={26} style={{ color: meta.color }} strokeWidth={2} />
           </div>
-          <div className="text-sm font-bold text-foreground mb-1 truncate px-4">{tx.description}</div>
+          <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{tx.description}</div>
           <div style={{
             fontSize: 44,
             fontWeight: 800,
@@ -161,17 +161,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
               </div>
             }
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="text-sm font-semibold text-foreground">{meta.label}</span>
-              {tx.category_manual && (
-                <span
-                  className="rounded-full text-[9px] font-bold px-1.5 py-0.5 leading-none shrink-0"
-                  style={{ background: '#6366f1', color: 'white' }}
-                >
-                  EDITADA
-                </span>
-              )}
-            </div>
+            <span className="text-sm font-semibold text-foreground">{meta.label}</span>
           </FieldRow>
         </div>
 
