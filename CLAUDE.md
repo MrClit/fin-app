@@ -86,6 +86,7 @@ gh project field-list 2 --owner MrClit --format json  # → field-id y option-id
 | Al aceptar el plan e iniciar implementación | Si el plan difiere significativamente de la descripción original de la issue, actualizarla con `mcp__github__update_issue` antes de empezar |
 | Al aceptar el plan e iniciar implementación | Mover a **In progress** |
 | Al aceptar el plan e iniciar implementación | Crear rama `feature/<issue-slug>` o `fix/<issue-slug>` desde `develop` y trabajar en ella |
+| Antes de abrir PR | Ejecutar **siempre** `pnpm test`, `pnpm lint` y `pnpm build`. Si alguno falla, arreglarlo antes de pushear. No usar `--no-verify` ni saltarse hooks. |
 | Al terminar implementación y validaciones | Hacer push de la rama y abrir PR hacia `develop` con `mcp__github__create_pull_request` |
 | Al terminar implementación y validaciones | Mover a **Review** |
 | Al cerrar la issue | Mover a **Done** + comentar resumen con `mcp__github__add_issue_comment` |
