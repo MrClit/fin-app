@@ -9,7 +9,7 @@ import type { CategoryId, CategoryType, TransactionWithAccount } from '@/types'
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
 
 interface CategoryPickerProps {
-  tx: TransactionWithAccount
+  tx: TransactionWithAccount | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (txId: string, category: CategoryId) => void
@@ -30,9 +30,22 @@ function initialTab(tx: TransactionWithAccount): CategoryType {
 }
 
 export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPickerProps) {
-  const effectiveCategory = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
-  const [activeType, setActiveType] = useState<CategoryType>(() => initialTab(tx))
+  const [cachedTx, setCachedTx] = useState<TransactionWithAccount | null>(tx)
+  const [activeType, setActiveType] = useState<CategoryType>(() =>
+    tx ? initialTab(tx) : 'expense'
+  )
   const [query, setQuery] = useState('')
+
+  if (tx && tx !== cachedTx) {
+    setCachedTx(tx)
+    setActiveType(initialTab(tx))
+    setQuery('')
+  }
+
+  const renderTx = tx ?? cachedTx
+  if (!renderTx) return null
+
+  const effectiveCategory = (renderTx.category_manual ?? renderTx.category ?? 'other') as CategoryId
 
   const visibleCategories = ENTRIES.filter(([, meta]) => meta.type === activeType)
   const q = norm(query.trim())
@@ -46,12 +59,12 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         side="bottom"
         showCloseButton={false}
         className="mx-auto flex w-full max-w-105 flex-col rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
-        style={{ maxHeight: '82dvh' }}
+        style={{ height: '82dvh' }}
       >
         <SheetTitle className="sr-only">Cambiar categoría</SheetTitle>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
         <p className="text-base font-bold text-foreground mb-1">Cambiar categoría</p>
-        <p className="text-xs leading-relaxed text-muted-foreground mb-4 wrap-break-word">{tx.description}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground mb-4 wrap-break-word">{renderTx.description}</p>
 
         {/* Selector de tipo */}
         <div
@@ -113,7 +126,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
               return (
                 <button
                   key={id}
-                  onClick={() => { onSelect(tx.id, id); onOpenChange(false) }}
+                  onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
                   style={{
                     padding: '12px 4px',
                     borderRadius: 14,

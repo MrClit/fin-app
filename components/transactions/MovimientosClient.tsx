@@ -77,24 +77,20 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
         onSelectionChange={filters.setSelectedAccountIds}
       />
 
-      {selectedTx && (
-        <TxModal
-          tx={selectedTx}
-          open
-          onOpenChange={o => { if (!o) setSelectedTxId(null) }}
-          onRecategorize={handleRecategorize}
-          onDelete={handleDelete}
-        />
-      )}
+      <TxModal
+        tx={selectedTx}
+        open={!!selectedTx}
+        onOpenChange={o => { if (!o) setSelectedTxId(null) }}
+        onRecategorize={handleRecategorize}
+        onDelete={handleDelete}
+      />
 
-      {catPickerTx && (
-        <CategoryPicker
-          tx={catPickerTx}
-          open
-          onOpenChange={o => { if (!o) setCatPickerTx(null) }}
-          onSelect={recategorize}
-        />
-      )}
+      <CategoryPicker
+        tx={catPickerTx}
+        open={!!catPickerTx}
+        onOpenChange={o => { if (!o) setCatPickerTx(null) }}
+        onSelect={recategorize}
+      />
 
       <AddTxModal
         open={showAddModal}

@@ -8,7 +8,7 @@ import { fmt } from '@/lib/formatting'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface TxModalProps {
-  tx: TransactionWithAccount
+  tx: TransactionWithAccount | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onRecategorize: (tx: TransactionWithAccount) => void
@@ -71,14 +71,21 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
 }
 
 export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: TxModalProps) {
+  const [cachedTx, setCachedTx] = useState<TransactionWithAccount | null>(tx)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  if (tx && tx !== cachedTx) {
+    setCachedTx(tx)
+    setConfirmDelete(false)
+  }
+  const renderTx = tx ?? cachedTx
+  if (!renderTx) return null
 
-  const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
+  const effectiveCategory = (renderTx.category_manual ?? renderTx.category) as CategoryId | null
   const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : SIN_CATEGORIA
   const Icon = meta.Icon
 
   const dateStr = (() => {
-    const [y, m, d] = tx.date.split('-').map(Number)
+    const [y, m, d] = renderTx.date.split('-').map(Number)
     return new Date(y, m - 1, d).toLocaleDateString('es-ES', {
       weekday: 'long',
       day: 'numeric',
@@ -87,9 +94,9 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
     })
   })()
 
-  const absAmount = fmt(Math.abs(tx.amount), 2)
-  const amountStr = (tx.amount > 0 ? '+' : '-') + absAmount + ' €'
-  const amountColor = tx.amount > 0 ? '#22c55e' : 'var(--foreground)'
+  const absAmount = fmt(Math.abs(renderTx.amount), 2)
+  const amountStr = (renderTx.amount > 0 ? '+' : '-') + absAmount + ' €'
+  const amountColor = renderTx.amount > 0 ? '#22c55e' : 'var(--foreground)'
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -98,7 +105,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
         showCloseButton={false}
         className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
       >
-        <SheetTitle className="sr-only">{tx.description}</SheetTitle>
+        <SheetTitle className="sr-only">{renderTx.description}</SheetTitle>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
 
         {/* Importe prominente */}
@@ -115,7 +122,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           }}>
             <Icon size={26} style={{ color: meta.color }} strokeWidth={2} />
           </div>
-          <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{tx.description}</div>
+          <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{renderTx.description}</div>
           <div style={{
             fontSize: 44,
             fontWeight: 800,
@@ -140,13 +147,13 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
             label="Cuenta"
             icon={<CreditCard size={16} className="text-muted-foreground" />}
           >
-            <span className="text-sm font-semibold text-foreground">{tx.account?.name ?? '—'}</span>
+            <span className="text-sm font-semibold text-foreground">{renderTx.account?.name ?? '—'}</span>
           </FieldRow>
 
           <FieldRow
             label="Categoría"
             chevron
-            onClick={() => onRecategorize(tx)}
+            onClick={() => onRecategorize(renderTx)}
             icon={
               <div style={{
                 width: 34,
@@ -166,7 +173,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
         </div>
 
         {/* Eliminar */}
-        {tx.source === 'manual' ? (
+        {renderTx.source === 'manual' ? (
           !confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
@@ -212,7 +219,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
                   Cancelar
                 </button>
                 <button
-                  onClick={() => onDelete(tx.id)}
+                  onClick={() => onDelete(renderTx.id)}
                   style={{
                     flex: 1,
                     background: '#ef4444',
