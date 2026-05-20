@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { UserMenuTrigger } from './dashboard/UserMenuTrigger'
+import { StatusBanner } from './sync/StatusBanner'
 
 type Props = { email: string }
 
@@ -23,6 +24,7 @@ export function AppHeader({ email }: Props) {
           <Bell className="size-4.5" strokeWidth={2} />
         </button>
       </div>
+      <StatusBanner />
     </header>
   )
 }

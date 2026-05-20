@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 
 export async function POST() {
   // Auth: verify user via cookie client
@@ -40,6 +41,21 @@ export async function POST() {
 
   if (!accounts || accounts.length === 0) {
     return NextResponse.json({ synced: 0, accounts: 0 })
+  }
+
+  // Rate limit: EB permite 4 syncs/día. Se exige un cooldown de 6h desde la
+  // última sincronización (manual o cron — ambas escriben last_synced).
+  const lastSyncedMs = accounts
+    .map(a => (a.last_synced ? new Date(a.last_synced as string).getTime() : 0))
+    .filter(t => t > 0)
+  if (lastSyncedMs.length > 0) {
+    const availableAt = Math.max(...lastSyncedMs) + SYNC_COOLDOWN_MS
+    if (availableAt > Date.now()) {
+      return NextResponse.json(
+        { error: 'cooldown', availableAt: new Date(availableAt).toISOString() },
+        { status: 429 }
+      )
+    }
   }
 
   let totalSynced = 0
