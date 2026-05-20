@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { FileText, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 import { CATEGORY_META } from '@/lib/theme'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
@@ -79,6 +80,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
   const [category, setCategory] = useState<CategoryId>('other')
   const [showCatGrid, setShowCatGrid] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { showToast } = useSyncStatus()
 
   const accentColor = type === 'gasto' ? EXPENSE_COLOR : INCOME_COLOR
   const parsedAmount = parseFloat(amount)
@@ -113,6 +115,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
       onOpenChange(false)
     } catch (err) {
       console.error('[AddTxModal] Error guardando:', err)
+      showToast('No se pudo guardar el movimiento', handleSave)
     } finally {
       setSaving(false)
     }

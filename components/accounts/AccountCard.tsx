@@ -1,5 +1,6 @@
 import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
+import { SyncButton } from './SyncButton'
 import type { Account } from '@/types'
 
 function getSyncStatus(iso: string | null): { label: string; color: string; Icon: typeof Check } {
@@ -79,9 +80,14 @@ export function AccountCard({ account }: { account: Account }) {
         </div>
       </div>
 
-      <div className="mt-3.5 pt-3.5 border-t border-border text-[11px] text-muted-foreground flex items-center gap-1.5">
-        <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
-        <span style={{ color: syncColor }}>{syncLabel}</span>
+      <div className="mt-3.5 pt-3.5 border-t border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
+          <span style={{ color: syncColor }}>{syncLabel}</span>
+        </div>
+        {account.source === 'enablebanking' && (
+          <SyncButton lastSynced={account.last_synced} />
+        )}
       </div>
     </div>
   )
