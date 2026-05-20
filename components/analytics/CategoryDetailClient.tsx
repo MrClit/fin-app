@@ -12,6 +12,7 @@ import { TxModal } from '@/components/transactions/TxModal'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
 import GranPicker from './GranPicker'
 import CategoryBarChart from './CategoryBarChart'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -220,7 +221,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           {/* KPI */}
           <div className="mb-4">
             {loadingPeriods ? (
-              <div className="h-9 w-32 animate-pulse rounded-lg" style={{ background: 'var(--muted)' }} />
+              <Skeleton className="h-9 w-32 rounded-lg" />
             ) : (
               <>
                 <span style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: -1 }}>
@@ -237,7 +238,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
 
           {/* Bar chart */}
           {loadingPeriods ? (
-            <div className="h-27.5 animate-pulse rounded-lg" style={{ background: 'var(--muted)' }} />
+            <Skeleton className="h-27.5 rounded-lg" />
           ) : periods.length > 0 ? (
             <CategoryBarChart
               periods={periods}
@@ -256,7 +257,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         {loadingTxs ? (
           <div className="flex flex-col gap-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-14 animate-pulse rounded-2xl" style={{ background: 'var(--secondary)' }} />
+              <Skeleton key={i} className="h-14 rounded-2xl" />
             ))}
           </div>
         ) : sortedDates.length === 0 ? (
