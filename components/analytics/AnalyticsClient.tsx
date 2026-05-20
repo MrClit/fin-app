@@ -9,6 +9,7 @@ import SavingsCard from './SavingsCard'
 import KpiCard from './KpiCard'
 import DualBarChart from './DualBarChart'
 import CategoryBreakdownSection from './CategoryBreakdownSection'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const DELTA_REF: Record<Granularity, string> = {
   week:    'vs sem. anterior',
@@ -40,12 +41,7 @@ function CalendarIcon() {
 }
 
 function CardSkeleton({ height = 120 }: { height?: number }) {
-  return (
-    <div
-      className="animate-pulse"
-      style={{ background: 'var(--secondary)', borderRadius: 20, height }}
-    />
-  )
+  return <Skeleton className="rounded-[20px]" style={{ height }} />
 }
 
 interface PageState {

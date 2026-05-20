@@ -1,9 +1,19 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MovimientosClient } from '@/components/transactions/MovimientosClient'
+import { MovimientosSkeleton } from '@/components/transactions/MovimientosSkeleton'
 import type { TransactionWithAccount } from '@/types'
 
-export default async function MovimientosPage() {
+export default function MovimientosPage() {
+  return (
+    <Suspense fallback={<MovimientosSkeleton />}>
+      <MovimientosContent />
+    </Suspense>
+  )
+}
+
+async function MovimientosContent() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

@@ -1,9 +1,19 @@
+import { Suspense } from 'react'
 import { getDashboardData } from '@/lib/dashboard'
 import { DashboardBalanceCard } from '@/components/dashboard/DashboardBalanceCard'
 import { DashboardAccountGrid } from '@/components/dashboard/DashboardAccountGrid'
 import { PatrimonioChart } from '@/components/dashboard/PatrimonioChart'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
-export default async function HomePage() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+async function DashboardContent() {
   const { balance, weeklyDelta, dailyBalances, accounts, patrimonioData, annualDelta } = await getDashboardData()
 
   return (

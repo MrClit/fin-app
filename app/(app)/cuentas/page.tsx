@@ -1,11 +1,25 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { Check, Landmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
+import { CuentasSkeleton } from '@/components/accounts/CuentasSkeleton'
 import type { Account } from '@/types'
 
-export default async function CuentasPage({
+export default function CuentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connected?: string; error?: string }>
+}) {
+  return (
+    <Suspense fallback={<CuentasSkeleton />}>
+      <CuentasContent searchParams={searchParams} />
+    </Suspense>
+  )
+}
+
+async function CuentasContent({
   searchParams,
 }: {
   searchParams: Promise<{ connected?: string; error?: string }>
