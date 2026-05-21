@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { initiateAuth } from '@/lib/enablebanking'
+import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
   }
 
   const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/banking/callback`
+  const state = encodeBankingState({ aspspName, aspspCountry })
 
   try {
-    const auth = await initiateAuth(redirectUrl, { name: aspspName, country: aspspCountry })
+    const auth = await initiateAuth(redirectUrl, { name: aspspName, country: aspspCountry }, state)
     return NextResponse.json({ url: auth.url })
   } catch (err) {
     console.error('[EB connect]', err)

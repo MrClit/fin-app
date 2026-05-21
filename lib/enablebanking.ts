@@ -40,13 +40,39 @@ export interface EBaspsp {
   country: string
 }
 
+/**
+ * Payload que viaja en el parámetro `state` del flujo OAuth de Enable Banking.
+ * EB lo devuelve intacto en el redirect al callback. Si `accountId` está
+ * presente, el callback está en modo renovación (issue #79).
+ */
+export interface BankingState {
+  aspspName: string
+  aspspCountry: string
+  accountId?: string
+}
+
+/** Serializa el `state` a base64url para incrustarlo en el flujo OAuth. */
+export function encodeBankingState(state: BankingState): string {
+  return Buffer.from(JSON.stringify(state)).toString('base64url')
+}
+
+/** Deserializa el `state` recibido en el callback. Devuelve `null` si es inválido. */
+export function decodeBankingState(raw: string | null): BankingState | null {
+  if (!raw) return null
+  try {
+    return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as BankingState
+  } catch {
+    return null
+  }
+}
+
 export async function initiateAuth(
   redirectUrl: string,
-  aspsp: EBaspsp
+  aspsp: EBaspsp,
+  state: string
 ): Promise<EBAuthResponse> {
   const jwt = await signJWT()
   const validUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-  const state = crypto.randomUUID()
 
   const res = await fetch(`${BASE_URL}/auth`, {
     method: 'POST',
