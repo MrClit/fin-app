@@ -22,7 +22,10 @@ export async function POST() {
       .select('id, external_id, session_id, last_synced')
       .eq('user_id', user.id)
       .eq('source', 'enablebanking')
-      .eq('is_active', true),
+      .eq('is_active', true)
+      // Caducidad PSD2: no se sincronizan conexiones caducadas (issue #78).
+      // `.gt` también descarta las filas con consent_expires_at NULL.
+      .gt('consent_expires_at', new Date().toISOString()),
     db
       .from('categorization_rules')
       .select('pattern, field, category_id')

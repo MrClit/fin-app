@@ -1,5 +1,6 @@
 import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
+import { getConsentStatus, type ConsentInfo } from '@/lib/accounts'
 import { SyncButton } from './SyncButton'
 import type { Account } from '@/types'
 
@@ -34,14 +35,45 @@ function SourceBadge({ source }: { source: Account['source'] }) {
   )
 }
 
+/**
+ * Badge de caducidad PSD2 (spec §9.2). Solo se muestra en `warning` (7-14 días)
+ * y `expired`; en `critical` el aviso lo da el banner global, no la card.
+ */
+function ConsentBadge({ consent }: { consent: ConsentInfo }) {
+  if (consent.status === 'warning') {
+    return (
+      <span
+        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        style={{ background: '#f59e0b22', color: '#f59e0b' }}
+      >
+        Caduca en {consent.daysLeft} {consent.daysLeft === 1 ? 'día' : 'días'}
+      </span>
+    )
+  }
+  if (consent.status === 'expired') {
+    return (
+      <span
+        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        style={{ background: '#ef444422', color: '#ef4444' }}
+      >
+        Conexión caducada
+      </span>
+    )
+  }
+  return null
+}
+
 export function AccountCard({ account }: { account: Account }) {
   const color = account.color ?? '#6366f1'
   const isNegative = (account.balance ?? 0) < 0
   const { label: syncLabel, color: syncColor, Icon: SyncIcon } = getSyncStatus(account.last_synced)
+  const consent =
+    account.source === 'enablebanking' ? getConsentStatus(account.consent_expires_at) : null
+  const isExpired = consent?.status === 'expired'
 
   return (
     <div className="bg-card rounded-[20px] p-5 border border-border">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div
             className="size-11 rounded-[14px] flex items-center justify-center"
@@ -59,7 +91,10 @@ export function AccountCard({ account }: { account: Account }) {
           </div>
         </div>
 
-        <SourceBadge source={account.source} />
+        <div className="flex flex-col items-end gap-1.5">
+          <SourceBadge source={account.source} />
+          {consent && <ConsentBadge consent={consent} />}
+        </div>
       </div>
 
       <div className="flex items-end justify-between">
@@ -67,7 +102,13 @@ export function AccountCard({ account }: { account: Account }) {
           <div className="text-xs text-muted-foreground mb-1">Saldo actual</div>
           <div
             className="text-[26px] font-extrabold tracking-tight leading-none"
-            style={{ color: isNegative ? '#ef4444' : undefined }}
+            style={{
+              color: isExpired
+                ? 'var(--muted-foreground)'
+                : isNegative
+                  ? '#ef4444'
+                  : undefined,
+            }}
           >
             {account.balance !== null ? `${fmt(account.balance, 2)} €` : '—'}
           </div>
@@ -85,7 +126,7 @@ export function AccountCard({ account }: { account: Account }) {
           <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
           <span style={{ color: syncColor }}>{syncLabel}</span>
         </div>
-        {account.source === 'enablebanking' && (
+        {account.source === 'enablebanking' && !isExpired && (
           <SyncButton lastSynced={account.last_synced} />
         )}
       </div>

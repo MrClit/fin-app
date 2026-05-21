@@ -4,10 +4,11 @@ import { usePathname } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { UserMenuTrigger } from './dashboard/UserMenuTrigger'
 import { StatusBanner } from './sync/StatusBanner'
+import type { ConsentBannerData } from '@/lib/accounts'
 
-type Props = { email: string }
+type Props = { email: string; consentBanner: ConsentBannerData | null }
 
-export function AppHeader({ email }: Props) {
+export function AppHeader({ email, consentBanner }: Props) {
   const pathname = usePathname()
   if (pathname.startsWith('/analisis/categoria/')) return null
 
@@ -24,7 +25,7 @@ export function AppHeader({ email }: Props) {
           <Bell className="size-4.5" strokeWidth={2} />
         </button>
       </div>
-      <StatusBanner />
+      <StatusBanner consent={consentBanner} />
     </header>
   )
 }
