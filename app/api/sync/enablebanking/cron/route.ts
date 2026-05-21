@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
   const { data: accounts, error: accountsError } = await db
     .from('accounts')
-    .select('id, user_id, external_id, session_id, last_synced')
+    .select('id, user_id, external_id, session_id, last_synced, consent_expires_at')
     .eq('source', 'enablebanking')
     .eq('is_active', true)
 
@@ -38,10 +38,25 @@ export async function POST(req: Request) {
   }
 
   if (!accounts || accounts.length === 0) {
-    return NextResponse.json({ synced: 0, accounts: 0, failed: [] })
+    return NextResponse.json({ synced: 0, accounts: 0, skipped: [], failed: [] })
   }
 
-  const userIds = Array.from(new Set(accounts.map(a => a.user_id as string)))
+  // Caducidad PSD2: se saltan las conexiones caducadas (o sin fecha) y se
+  // refleja el motivo en la respuesta del cron (issue #78).
+  const nowMs = Date.now()
+  const skipped: { account_id: string; reason: string }[] = []
+  const syncable = accounts.filter(account => {
+    const expiry = account.consent_expires_at
+      ? new Date(account.consent_expires_at as string).getTime()
+      : 0
+    if (!expiry || expiry <= nowMs) {
+      skipped.push({ account_id: account.id as string, reason: 'consent_expired' })
+      return false
+    }
+    return true
+  })
+
+  const userIds = Array.from(new Set(syncable.map(a => a.user_id as string)))
   const { data: rulesData, error: rulesError } = await db
     .from('categorization_rules')
     .select('user_id, pattern, field, category_id')
@@ -70,7 +85,7 @@ export async function POST(req: Request) {
   let totalSynced = 0
   const failed: { account_id: string; error: string }[] = []
 
-  for (const account of accounts) {
+  for (const account of syncable) {
     if (!account.external_id || !account.session_id) continue
 
     const userId = account.user_id as string
@@ -145,7 +160,8 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     synced: totalSynced,
-    accounts: accounts.length,
+    accounts: syncable.length,
+    skipped,
     failed,
   })
 }
