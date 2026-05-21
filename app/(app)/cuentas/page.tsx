@@ -4,13 +4,16 @@ import { Check, Landmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
+import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
 import { CuentasSkeleton } from '@/components/accounts/CuentasSkeleton'
 import type { Account } from '@/types'
+
+type CuentasSearchParams = { connected?: string; error?: string; renewed?: string }
 
 export default function CuentasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string; error?: string }>
+  searchParams: Promise<CuentasSearchParams>
 }) {
   return (
     <Suspense fallback={<CuentasSkeleton />}>
@@ -22,7 +25,7 @@ export default function CuentasPage({
 async function CuentasContent({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string; error?: string }>
+  searchParams: Promise<CuentasSearchParams>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -52,6 +55,23 @@ async function CuentasContent({
           <Check className="size-4 shrink-0" />
           Banco conectado correctamente
         </div>
+      )}
+
+      {params.renewed && (
+        <>
+          <div
+            className="rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+            style={{
+              background: '#22c55e15',
+              border: '1px solid #22c55e30',
+              color: '#22c55e',
+            }}
+          >
+            <Check className="size-4 shrink-0" />
+            Conexión renovada correctamente
+          </div>
+          <RenewedSyncTrigger accountId={params.renewed} />
+        </>
       )}
 
       {params.error && (

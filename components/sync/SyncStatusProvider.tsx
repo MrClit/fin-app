@@ -24,8 +24,11 @@ interface SyncStatusValue {
   isSyncing: boolean
   /** La última sincronización falló o superó el timeout. */
   syncError: boolean
-  /** Lanza una sincronización manual contra /api/sync/enablebanking. */
-  runSync: () => Promise<void>
+  /**
+   * Lanza una sincronización manual contra /api/sync/enablebanking.
+   * Con `accountId` la sync se limita a esa cuenta (renovación PSD2, issue #79).
+   */
+  runSync: (accountId?: string) => Promise<void>
   /** Muestra el toast genérico de error con un Reintentar opcional. */
   showToast: (message: string, onRetry?: () => void) => void
 }
@@ -63,7 +66,7 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
 
   const dismissToast = useCallback(() => setToast(null), [])
 
-  const runSync = useCallback(async () => {
+  const runSync = useCallback(async (accountId?: string) => {
     if (syncingRef.current) return
     syncingRef.current = true
     setIsSyncing(true)
@@ -76,6 +79,10 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
       const res = await fetch('/api/sync/enablebanking', {
         method: 'POST',
         signal: controller.signal,
+        ...(accountId && {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accountId }),
+        }),
       })
       // 429 = cooldown: no es un fallo de sync; aviso suave sin banner ámbar.
       if (res.status === 429) {

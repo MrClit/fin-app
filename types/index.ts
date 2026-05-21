@@ -62,6 +62,8 @@ export interface Account {
   external_id: string | null
   session_id: string | null
   consent_expires_at: string | null
+  aspsp_name: string | null
+  aspsp_country: string | null
   last_synced: string | null
   is_active: boolean
   created_at: string

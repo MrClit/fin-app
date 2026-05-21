@@ -2,6 +2,7 @@ import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
 import { getConsentStatus, type ConsentInfo } from '@/lib/accounts'
 import { SyncButton } from './SyncButton'
+import { RenewBankButton } from './RenewBankButton'
 import type { Account } from '@/types'
 
 function getSyncStatus(iso: string | null): { label: string; color: string; Icon: typeof Check } {
@@ -70,6 +71,7 @@ export function AccountCard({ account }: { account: Account }) {
   const consent =
     account.source === 'enablebanking' ? getConsentStatus(account.consent_expires_at) : null
   const isExpired = consent?.status === 'expired'
+  const needsRenew = consent?.status === 'critical' || consent?.status === 'expired'
 
   return (
     <div className="bg-card rounded-[20px] p-5 border border-border">
@@ -126,9 +128,12 @@ export function AccountCard({ account }: { account: Account }) {
           <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
           <span style={{ color: syncColor }}>{syncLabel}</span>
         </div>
-        {account.source === 'enablebanking' && !isExpired && (
-          <SyncButton lastSynced={account.last_synced} />
-        )}
+        {account.source === 'enablebanking' &&
+          (needsRenew ? (
+            <RenewBankButton accountId={account.id} expired={isExpired} />
+          ) : (
+            <SyncButton lastSynced={account.last_synced} />
+          ))}
       </div>
     </div>
   )

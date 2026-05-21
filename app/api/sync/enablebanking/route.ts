@@ -5,7 +5,7 @@ import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 
-export async function POST() {
+export async function POST(request: Request) {
   // Auth: verify user via cookie client
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -13,19 +13,32 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Body opcional: `{ accountId }` limita la sync a una sola cuenta (issue #79,
+  // sync inmediata tras renovar). Sin body, se sincronizan todas.
+  let accountId: string | undefined
+  try {
+    const body = await request.json()
+    accountId = typeof body?.accountId === 'string' ? body.accountId : undefined
+  } catch {
+    accountId = undefined
+  }
+
   // All DB writes via service client (bypasses RLS)
   const db = createServiceClient()
 
+  let accountsQuery = db
+    .from('accounts')
+    .select('id, external_id, session_id, last_synced')
+    .eq('user_id', user.id)
+    .eq('source', 'enablebanking')
+    .eq('is_active', true)
+    // Caducidad PSD2: no se sincronizan conexiones caducadas (issue #78).
+    // `.gt` también descarta las filas con consent_expires_at NULL.
+    .gt('consent_expires_at', new Date().toISOString())
+  if (accountId) accountsQuery = accountsQuery.eq('id', accountId)
+
   const [accountsResult, rulesResult] = await Promise.all([
-    db
-      .from('accounts')
-      .select('id, external_id, session_id, last_synced')
-      .eq('user_id', user.id)
-      .eq('source', 'enablebanking')
-      .eq('is_active', true)
-      // Caducidad PSD2: no se sincronizan conexiones caducadas (issue #78).
-      // `.gt` también descarta las filas con consent_expires_at NULL.
-      .gt('consent_expires_at', new Date().toISOString()),
+    accountsQuery,
     db
       .from('categorization_rules')
       .select('pattern, field, category_id')
