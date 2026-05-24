@@ -311,9 +311,39 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
     }
   })
 
-  it.todo(
-    'clasificación por categories.type: devolución de nómina (amount=-1500, type=income) suma a ingresos — bloqueado por #89 (RPC clasifica por signo)'
-  )
+  it('clasificación por categories.type (§13 nota 10): una devolución de nómina (amount=-1500, type=income) suma a ingresos, no a gastos', async () => {
+    // El RPC v2 (post-#63) clasifica por `categories.type`, no por signo del amount.
+    // Para una devolución de nómina (única transacción del período, amount=-1500,
+    // categoría con type='income') devuelve ingresos=-1500 / gastos=0 / ahorro=-1500
+    // y by_category con el amount negativo preservado. Este test es el guardián
+    // del contrato: si el route o alguna capa intermedia reintrodujese lógica
+    // basada en el signo (ingresos = solo amount > 0), aquí saltaría.
+    const { supabase } = buildSupabase({
+      rpc: rpcByPeriod(
+        'month',
+        {
+          ingresos: -1500,
+          gastos: 0,
+          ahorro: -1500,
+          by_category: [{ category: 'salary', amount: -1500 }],
+        },
+        null
+      ),
+    })
+    vi.mocked(createClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createClient>>
+    )
+
+    const res = await GET(req({ gran: 'month' }))
+    const body = await res.json()
+
+    for (const p of body.periods) {
+      expect(p.ingresos).toBe(-1500)
+      expect(p.gastos).toBe(0)
+      expect(p.ahorro).toBe(-1500)
+      expect(p.byCategory).toEqual([{ category: 'salary', amount: -1500 }])
+    }
+  })
 })
 
 describe('GET /api/analytics — defensa frente a datos faltantes', () => {
