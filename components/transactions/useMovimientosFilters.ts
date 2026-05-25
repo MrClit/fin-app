@@ -13,10 +13,13 @@ export const TYPE_PILLS: { key: TypeFilter; label: string }[] = [
   { key: 'no-computable', label: 'No Computable' },
 ]
 
-export function useMovimientosFilters(transactions: TransactionWithAccount[]) {
+export function useMovimientosFilters(
+  transactions: TransactionWithAccount[],
+  initialAccountIds: string[] = []
+) {
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialAccountIds)
 
   const filtered = useMemo(() => {
     let result = transactions

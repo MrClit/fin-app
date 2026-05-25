@@ -5,15 +5,24 @@ import { MovimientosClient } from '@/components/transactions/MovimientosClient'
 import { MovimientosSkeleton } from '@/components/transactions/MovimientosSkeleton'
 import type { TransactionWithAccount } from '@/types'
 
-export default function MovimientosPage() {
+export default function MovimientosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cuenta?: string }>
+}) {
   return (
     <Suspense fallback={<MovimientosSkeleton />}>
-      <MovimientosContent />
+      <MovimientosContent searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function MovimientosContent() {
+async function MovimientosContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ cuenta?: string }>
+}) {
+  const { cuenta } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -56,11 +65,16 @@ async function MovimientosContent() {
     manualAccountId = created?.id
   }
 
+  const accountsList = accounts ?? []
+  const initialAccountIds =
+    cuenta && accountsList.some(a => a.id === cuenta) ? [cuenta] : []
+
   return (
     <MovimientosClient
       initialTransactions={(transactions ?? []) as TransactionWithAccount[]}
-      accounts={accounts ?? []}
+      accounts={accountsList}
       manualAccountId={manualAccountId ?? ''}
+      initialAccountIds={initialAccountIds}
     />
   )
 }
