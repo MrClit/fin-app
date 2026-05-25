@@ -10,6 +10,15 @@ export interface DashboardData {
   annualDelta: number | null
 }
 
+// Patrimonio neto = activos − |Σ pasivos|. Ver spec §5.5.
+export function calculateNetWorth(
+  accounts: Pick<Account, 'is_liability' | 'balance'>[]
+): number {
+  const assets = accounts.filter(a => !a.is_liability).reduce((s, a) => s + (a.balance ?? 0), 0)
+  const liabs  = accounts.filter(a =>  a.is_liability).reduce((s, a) => s + (a.balance ?? 0), 0)
+  return assets - Math.abs(liabs)
+}
+
 export async function getDashboardData(): Promise<DashboardData> {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -24,9 +33,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   if (accError || !accounts) throw new Error('Failed to fetch accounts')
 
-  const assets = accounts.filter(a => !a.is_liability).reduce((s, a) => s + (a.balance ?? 0), 0)
-  const liabs  = accounts.filter(a =>  a.is_liability).reduce((s, a) => s + (a.balance ?? 0), 0)
-  const balance = assets - Math.abs(liabs)
+  const balance = calculateNetWorth(accounts)
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
