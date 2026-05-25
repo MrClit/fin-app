@@ -39,7 +39,7 @@ export function SyncButton({ lastSynced }: { lastSynced: string | null }) {
       style={{ background: '#6366f115', color: '#6366f1' }}
     >
       <RefreshCw className={`size-3 ${isSyncing ? 'animate-spin' : ''}`} />
-      {label}
+      <span suppressHydrationWarning>{label}</span>
     </button>
   )
 }
