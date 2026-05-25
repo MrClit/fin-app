@@ -5,6 +5,7 @@ import { Trash2, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
+import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface TxModalProps {
@@ -27,44 +28,22 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
   return (
     <div
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '13px 16px',
-        borderRadius: 16,
-        background: 'var(--muted)',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      className={cn(
+        'flex items-center gap-3 rounded-2xl bg-muted px-4 py-[13px]',
+        onClick && 'cursor-pointer'
+      )}
     >
-      <div style={{
-        width: 34,
-        height: 34,
-        borderRadius: 10,
-        background: 'var(--muted-foreground/10)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        opacity: 0.6,
-      }}>
+      <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-[10px] bg-muted-foreground/10 opacity-60">
         {icon}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 10,
-          color: 'var(--muted-foreground)',
-          fontWeight: 600,
-          marginBottom: 2,
-          textTransform: 'uppercase',
-          letterSpacing: 0.4,
-        }}>
+      <div className="flex-1 min-w-0">
+        <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] text-muted-foreground">
           {label}
         </div>
         {children}
       </div>
       {chevron && (
-        <span style={{ fontSize: 16, color: 'var(--muted-foreground)', flexShrink: 0, lineHeight: 1 }}>›</span>
+        <span className="shrink-0 text-base leading-none text-muted-foreground">›</span>
       )}
     </div>
   )
@@ -96,7 +75,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
 
   const absAmount = fmt(Math.abs(renderTx.amount), 2)
   const amountStr = (renderTx.amount > 0 ? '+' : '-') + absAmount + ' €'
-  const amountColor = renderTx.amount > 0 ? '#22c55e' : 'var(--foreground)'
+  const isPositive = renderTx.amount > 0
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -109,33 +88,26 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
 
         {/* Importe prominente */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{
-            width: 60,
-            height: 60,
-            borderRadius: 18,
-            background: meta.color + '20',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 12px',
-          }}>
+        <div className="mb-6 text-center">
+          <div
+            className="mx-auto mb-3 flex h-15 w-15 items-center justify-center rounded-[18px]"
+            style={{ background: meta.color + '20' }}
+          >
             <Icon size={26} style={{ color: meta.color }} strokeWidth={2} />
           </div>
           <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{renderTx.description}</div>
-          <div style={{
-            fontSize: 44,
-            fontWeight: 800,
-            letterSpacing: -2,
-            color: amountColor,
-            lineHeight: 1,
-          }}>
+          <div
+            className={cn(
+              'text-[44px] font-extrabold leading-none tracking-[-2px]',
+              isPositive ? 'text-[#22c55e]' : 'text-foreground'
+            )}
+          >
             {amountStr}
           </div>
         </div>
 
         {/* Campos */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        <div className="mb-5 flex flex-col gap-2">
           <FieldRow
             label="Fecha"
             icon={<Calendar size={16} className="text-muted-foreground" />}
@@ -155,15 +127,10 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
             chevron
             onClick={() => onRecategorize(renderTx)}
             icon={
-              <div style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                background: meta.color + '22',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              <div
+                className="flex h-8.5 w-8.5 items-center justify-center rounded-[10px]"
+                style={{ background: meta.color + '22' }}
+              >
                 <Icon size={16} style={{ color: meta.color }} strokeWidth={2} />
               </div>
             }
@@ -177,60 +144,26 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           !confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: '1.5px solid rgba(239,68,68,0.3)',
-                borderRadius: 16,
-                padding: '13px',
-                color: '#ef4444',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-destructive/30 bg-transparent py-[13px] text-sm font-semibold text-destructive"
             >
               <Trash2 size={15} />
               Eliminar movimiento
             </button>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground text-center mb-1">
                 ¿Seguro que quieres eliminar este movimiento? Esta acción no se puede deshacer.
               </p>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="flex gap-2.5">
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  style={{
-                    flex: 1,
-                    background: 'var(--muted)',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '13px',
-                    color: 'var(--foreground)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className="flex-1 rounded-[14px] border-0 bg-muted py-[13px] text-sm font-semibold text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => onDelete(renderTx.id)}
-                  style={{
-                    flex: 1,
-                    background: '#ef4444',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '13px',
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  className="flex-1 rounded-[14px] border-0 bg-destructive py-[13px] text-sm font-bold text-white"
                 >
                   Sí, eliminar
                 </button>
@@ -238,7 +171,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
             </div>
           )
         ) : (
-          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted-foreground)', padding: '8px 0' }}>
+          <p className="text-center text-xs text-muted-foreground py-2">
             Las transacciones importadas no se pueden eliminar
           </p>
         )}
