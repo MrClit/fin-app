@@ -10,8 +10,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "scrape:edenred": "node --env-file-if-exists=.env.local scripts/scrape-edenred.mjs",
-    "scrape:edenred:login": "node --env-file=.env.local scripts/login-edenred.mjs",
+    "scrape:edenred": "node --env-file-if-exists=.env.local scripts/edenred-scrape.mjs",
+    "scrape:edenred:login": "node --env-file=.env.local scripts/edenred-login.mjs",
     "cron:edenred:status": "node scripts/edenred-status.mjs"
   },
   "dependencies": {

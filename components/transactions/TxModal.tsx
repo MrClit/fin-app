@@ -29,7 +29,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
     <div
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 rounded-2xl bg-muted px-4 py-[13px]',
+        'flex items-center gap-3 rounded-2xl bg-muted px-4 py-3.25',
         onClick && 'cursor-pointer'
       )}
     >
@@ -144,7 +144,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           !confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-destructive/30 bg-transparent py-[13px] text-sm font-semibold text-destructive"
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-destructive/30 bg-transparent py-3.25 text-sm font-semibold text-destructive"
             >
               <Trash2 size={15} />
               Eliminar movimiento
@@ -157,13 +157,13 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
               <div className="flex gap-2.5">
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="flex-1 rounded-[14px] border-0 bg-muted py-[13px] text-sm font-semibold text-foreground"
+                  className="flex-1 rounded-[14px] border-0 bg-muted py-3.25 text-sm font-semibold text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => onDelete(renderTx.id)}
-                  className="flex-1 rounded-[14px] border-0 bg-destructive py-[13px] text-sm font-bold text-white"
+                  className="flex-1 rounded-[14px] border-0 bg-destructive py-3.25 text-sm font-bold text-white"
                 >
                   Sí, eliminar
                 </button>

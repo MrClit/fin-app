@@ -4,7 +4,7 @@ App web personal de gestión y análisis de finanzas. Stack: Next.js 16 (App Rou
 
 ## Cron de Edenred
 
-El scraper de Edenred (`scripts/scrape-edenred.mjs`) se ejecuta **cada día a las 07:00 hora local** mediante un agente de `launchd` en el Mac del usuario.
+El scraper de Edenred (`scripts/edenred-scrape.mjs`) se ejecuta **cada día a las 07:00 hora local** mediante un agente de `launchd` en el Mac del usuario.
 
 > **¿Por qué local y no en GitHub Actions?** Edenred valida la IP de origen de la sesión: una sesión creada desde una IP residencial española queda invalidada al usarla desde el datacenter de GitHub. Probado y descartado. Ejecutar el cron desde el Mac evita el problema, a costa de que el Mac tiene que estar encendido a la hora del scrape (si no, se salta ese día).
 

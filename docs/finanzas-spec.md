@@ -390,7 +390,10 @@ finanzas-app/
 │   └── workflows/
 │       └── enablebanking-sync.yml → Cron diario 06:00 (Europe/Madrid) → POST /api/sync/enablebanking/cron
 └── scripts/
-    ├── scrape-edenred.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
+    ├── edenred-scrape.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
+    ├── edenred-login.mjs          → Regeneración manual de scripts/storage-state.json
+    ├── edenred-status.mjs         → Estado del último scrape (marker en ~/Library/Logs/fin-app)
+    ├── lib/edenred-config.mjs     → Paths, URLs y validación de storage-state compartidos
     └── install-edenred-launchd.sh → Instala el agente launchd en ~/Library/LaunchAgents
 ```
 

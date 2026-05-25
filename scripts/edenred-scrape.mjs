@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Edenred scraper — Playwright headless.
 //
-// Uso (local):
+// Uso:
 //   pnpm scrape:edenred
 //
-// Uso (CI): el workflow (#A3) inyecta EDENRED_STORAGE_STATE como base64.
+// Se ejecuta en local (launchd en el Mac). Edenred bindea la sesión por IP
+// residencial, así que correr esto desde GitHub Actions invalida el state.
 //
 // Exit codes:
 //   0 — éxito (webhook 200)
@@ -14,11 +15,11 @@
 //   4 — error de scraping (no se encontraron selectores en el DOM)
 
 import { chromium } from 'playwright'
-import { mkdtempSync, writeFileSync, existsSync, readdirSync, unlinkSync, closeSync, openSync } from 'node:fs'
-import { tmpdir, homedir } from 'node:os'
+import { existsSync, readdirSync, unlinkSync, closeSync, openSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
+import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './lib/edenred-config.mjs'
 
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
 // para tolerar que el Mac estuviera dormido: el plist define varios slots a
@@ -43,10 +44,6 @@ function writeCronMarker() {
   }
 }
 
-// URLs y selectores: tunear tras inspeccionar edenred.es con DevTools o
-// `pnpm exec playwright codegen https://www.myedenred.es`.
-const EDENRED_ACCOUNT_URL = 'https://empleados.edenred.es'
-
 // Selectores capturados sobre empleados.edenred.es con el design system
 // "ore-*". Si Edenred refactoriza el front, revisar con:
 //   pnpm exec playwright codegen --load-storage=scripts/storage-state.json https://empleados.edenred.es
@@ -64,7 +61,7 @@ const SELECTORS = {
 }
 
 function die(code, msg) {
-  console.error(`[scrape-edenred] ${msg}`)
+  console.error(`[edenred-scrape] ${msg}`)
   process.exit(code)
 }
 
@@ -75,13 +72,6 @@ function requireEnv(name) {
 }
 
 function resolveStorageStatePath() {
-  if (process.env.EDENRED_STORAGE_STATE) {
-    const dir = mkdtempSync(join(tmpdir(), 'edenred-'))
-    const path = join(dir, 'storage-state.json')
-    const decoded = Buffer.from(process.env.EDENRED_STORAGE_STATE, 'base64').toString('utf-8')
-    writeFileSync(path, decoded, 'utf-8')
-    return path
-  }
   if (existsSync(LOCAL_STORAGE_PATH)) return LOCAL_STORAGE_PATH
   die(1, `No hay storage-state. Ejecuta: pnpm scrape:edenred:login`)
 }
@@ -189,7 +179,7 @@ async function postToWebhook({ balance, transactions }) {
 
 async function main() {
   if (CRON_MODE && cronMarkerExists()) {
-    console.log(`[scrape-edenred] skip: ya hubo ejecución correcta hoy`)
+    console.log(`[edenred-scrape] skip: ya hubo ejecución correcta hoy`)
     return
   }
 
@@ -212,10 +202,10 @@ async function main() {
     const balance = await extractBalance(page)
     const transactions = await extractTransactions(page)
 
-    console.log(`[scrape-edenred] saldo=${balance} EUR, txs=${transactions.length}`)
+    console.log(`[edenred-scrape] saldo=${balance} EUR, txs=${transactions.length}`)
 
     const result = await postToWebhook({ balance, transactions })
-    console.log(`[scrape-edenred] OK: ${JSON.stringify(result)}`)
+    console.log(`[edenred-scrape] OK: ${JSON.stringify(result)}`)
     if (CRON_MODE) writeCronMarker()
   } finally {
     await browser.close()
@@ -224,6 +214,6 @@ async function main() {
 
 main().catch(err => {
   // process.exit ya disparado por die(); cualquier otro error es inesperado.
-  console.error('[scrape-edenred] error inesperado:', err)
+  console.error('[edenred-scrape] error inesperado:', err)
   process.exit(4)
 })
