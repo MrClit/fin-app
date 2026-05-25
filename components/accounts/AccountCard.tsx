@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
 import { getConsentStatus, type ConsentInfo } from '@/lib/accounts'
@@ -115,12 +116,13 @@ export function AccountCard({ account }: { account: Account }) {
             {account.balance !== null ? `${fmt(account.balance, 2)} €` : '—'}
           </div>
         </div>
-        <div
+        <Link
+          href={`/movimientos?cuenta=${account.id}`}
           className="text-xs font-semibold px-3 py-1.5 rounded-[10px]"
           style={{ background: '#6366f115', color: '#6366f1' }}
         >
           Ver movimientos
-        </div>
+        </Link>
       </div>
 
       <div className="mt-3.5 pt-3.5 border-t border-border flex items-center justify-between gap-2">

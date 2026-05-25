@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
@@ -17,11 +17,22 @@ interface MovimientosClientProps {
   initialTransactions: TransactionWithAccount[]
   accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
   manualAccountId: string
+  initialAccountIds?: string[]
 }
 
-export function MovimientosClient({ initialTransactions, accounts, manualAccountId }: MovimientosClientProps) {
+export function MovimientosClient({ initialTransactions, accounts, manualAccountId, initialAccountIds }: MovimientosClientProps) {
   const { transactions, addTx, deleteTx, recategorize } = useTxMutations(initialTransactions)
-  const filters = useMovimientosFilters(transactions)
+  const filters = useMovimientosFilters(transactions, initialAccountIds)
+
+  // `?cuenta=` solo actúa como deep-link de entrada: lo consumimos en el server
+  // para inicializar el filtro y aquí limpiamos la URL para evitar que mienta
+  // cuando el usuario cambia el filtro desde el selector. `replaceState` no
+  // dispara navegación de Next, solo reescribe la URL del browser.
+  useEffect(() => {
+    if (initialAccountIds && initialAccountIds.length > 0) {
+      window.history.replaceState(null, '', '/movimientos')
+    }
+  }, [initialAccountIds])
 
   const [showAccountFilter, setShowAccountFilter] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
