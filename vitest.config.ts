@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: false,
-    include: ['app/**/*.test.ts', 'lib/**/*.test.ts', 'tests/**/*.test.ts'],
+    include: ['app/**/*.test.ts', 'hooks/**/*.test.ts', 'lib/**/*.test.ts', 'tests/**/*.test.ts'],
     clearMocks: true,
   },
 })

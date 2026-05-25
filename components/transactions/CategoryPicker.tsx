@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 import type { CategoryId, CategoryType, TransactionWithAccount } from '@/types'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -67,27 +68,17 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         <p className="text-xs leading-relaxed text-muted-foreground mb-4 wrap-break-word">{renderTx.description}</p>
 
         {/* Selector de tipo */}
-        <div
-          className="flex mb-4 rounded-xl overflow-clip"
-          style={{ background: 'var(--muted)', padding: 3, gap: 2 }}
-        >
+        <div className="mb-4 flex gap-0.5 overflow-clip rounded-xl bg-muted p-0.75">
           {(Object.keys(TYPE_LABELS) as CategoryType[]).map(type => (
             <button
               key={type}
               onClick={() => { setActiveType(type); setQuery('') }}
-              style={{
-                flex: 1,
-                padding: '7px 4px',
-                borderRadius: 9,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-                transition: 'all 0.15s',
-                background: activeType === type ? 'var(--popover)' : 'transparent',
-                color: activeType === type ? 'var(--foreground)' : 'var(--muted-foreground)',
-                boxShadow: activeType === type ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-              }}
+              className={cn(
+                'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-all',
+                activeType === type
+                  ? 'bg-popover text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
+                  : 'bg-transparent text-muted-foreground'
+              )}
             >
               {TYPE_LABELS[type]}
             </button>
@@ -95,10 +86,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         </div>
 
         {/* Buscador de categorías */}
-        <div
-          className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted mb-3"
-          style={{ border: '1px solid var(--border)' }}
-        >
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted mb-3 border border-border">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -115,45 +103,41 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         </div>
 
         {/* Grid de categorías scrollable */}
-        <div style={{ overflowY: 'auto', flex: 1 }}>
+        <div className="flex-1 overflow-y-auto">
           {filteredCategories.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">Sin resultados</p>
           ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {filteredCategories.map(([id, meta]) => {
-              const Icon = meta.Icon
-              const isCurrent = effectiveCategory === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
-                  style={{
-                    padding: '12px 4px',
-                    borderRadius: 14,
-                    border: isCurrent ? `2px solid ${meta.color}` : '1px solid var(--border)',
-                    background: isCurrent ? meta.color + '18' : 'var(--muted)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
-                >
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 9,
-                    background: meta.color + '22',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon size={16} style={{ color: meta.color }} strokeWidth={2} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-foreground text-center leading-tight">
-                    {meta.label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+            <div className="grid grid-cols-4 gap-2">
+              {filteredCategories.map(([id, meta]) => {
+                const Icon = meta.Icon
+                const isCurrent = effectiveCategory === id
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
+                    className={cn(
+                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-all',
+                      isCurrent ? 'border-2' : 'border border-border bg-muted'
+                    )}
+                    style={
+                      isCurrent
+                        ? { borderColor: meta.color, background: meta.color + '18' }
+                        : undefined
+                    }
+                  >
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-[9px]"
+                      style={{ background: meta.color + '22' }}
+                    >
+                      <Icon size={16} style={{ color: meta.color }} strokeWidth={2} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-foreground text-center leading-tight">
+                      {meta.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           )}
         </div>
       </SheetContent>
