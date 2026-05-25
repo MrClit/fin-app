@@ -22,11 +22,15 @@ export function groupTxByDate(txs: TransactionWithAccount[]): TxDayGroup[] {
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
+const toLocalISODate = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 export function formatDayLabel(dateStr: string): string {
-  const today = new Date().toISOString().slice(0, 10)
-  const yest = new Date()
+  const now = new Date()
+  const today = toLocalISODate(now)
+  const yest = new Date(now)
   yest.setDate(yest.getDate() - 1)
-  const yesterdayStr = yest.toISOString().slice(0, 10)
+  const yesterdayStr = toLocalISODate(yest)
   if (dateStr === today) return 'Hoy'
   if (dateStr === yesterdayStr) return 'Ayer'
   const [y, m, d] = dateStr.split('-').map(Number)
