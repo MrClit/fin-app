@@ -1074,3 +1074,15 @@ Fue implementado y retirado por resultar confuso en UX. La idea: un toggle en Me
 - **Trimestre YTD:** acumulado creciente (Q2 = Ene–Jun, Q3 = Ene–Sep…)
 
 Para reimplementarlo, ver el historial del prototipo. Requiere datos mock separados por granularidad y un toggle claramente explicado al usuario con el rango de fechas exacto visible en todo momento.
+
+### 14.16 Filtros server-side en Movimientos
+
+Con la paginación cursor introducida en #109, los filtros de Movimientos (búsqueda por descripción/categoría, tipo, cuenta) siguen ejecutándose en cliente sobre el subconjunto cargado. El sentinel de infinite scroll auto-pagina cuando la lista filtrada queda corta, así que el comportamiento es funcionalmente correcto, pero:
+
+- Una búsqueda con matches sólo en histórico antiguo provoca N peticiones encadenadas para llegar a verlos.
+- Con dataset grande (10k+ tx en memoria), filtrar en JS empieza a notarse — converge con §14.9.
+
+Cuando moleste, mover los tres filtros a query params del endpoint `/api/transactions` (`?accounts=` ya existe). Cambios necesarios:
+- Endpoint: aplicar filtros en SQL (búsqueda con `ilike` o `websearch_to_tsquery` sobre `description`; tipo vía join con `categories.type`).
+- Cliente: `useMovimientosFilters` deja de filtrar localmente y dispara fetch con reset del cursor al cambiar filtros; añadir debounce al input de búsqueda.
+- Tests: del endpoint con cada combinación.

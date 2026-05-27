@@ -10,18 +10,22 @@ import { MovimientosList } from './MovimientosList'
 import { AddTxFab } from './AddTxFab'
 import { useMovimientosFilters } from './useMovimientosFilters'
 import { useTxMutations } from './useTxMutations'
+import { useTxPagination } from './useTxPagination'
 import { groupTxByDate } from '@/lib/transactions'
+import type { TransactionCursor } from '@/lib/pagination'
 import type { Account, TransactionWithAccount } from '@/types'
 
 interface MovimientosClientProps {
   initialTransactions: TransactionWithAccount[]
+  initialCursor: TransactionCursor | null
   accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
   manualAccountId: string
   initialAccountIds?: string[]
 }
 
-export function MovimientosClient({ initialTransactions, accounts, manualAccountId, initialAccountIds }: MovimientosClientProps) {
-  const { transactions, addTx, deleteTx, recategorize } = useTxMutations(initialTransactions)
+export function MovimientosClient({ initialTransactions, initialCursor, accounts, manualAccountId, initialAccountIds }: MovimientosClientProps) {
+  const { transactions, addTx, appendTxs, deleteTx, recategorize } = useTxMutations(initialTransactions)
+  const pagination = useTxPagination({ initialCursor, appendTxs })
   const filters = useMovimientosFilters(transactions, initialAccountIds)
 
   // `?cuenta=` solo actúa como deep-link de entrada: lo consumimos en el server
@@ -78,6 +82,10 @@ export function MovimientosClient({ initialTransactions, accounts, manualAccount
         onSwipe={setSwipedTxId}
         onRecategorize={handleRecategorize}
         onTap={handleTxTap}
+        onLoadMore={pagination.loadMore}
+        hasMore={pagination.hasMore}
+        loadingMore={pagination.loading}
+        loadMoreError={pagination.error}
       />
 
       <AccountFilter
