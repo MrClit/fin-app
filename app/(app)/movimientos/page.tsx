@@ -3,7 +3,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MovimientosClient } from '@/components/transactions/MovimientosClient'
 import { MovimientosSkeleton } from '@/components/transactions/MovimientosSkeleton'
+import { buildNextCursor } from '@/lib/pagination'
 import type { TransactionWithAccount } from '@/types'
+
+const INITIAL_PAGE_SIZE = 200
 
 export default function MovimientosPage({
   searchParams,
@@ -37,9 +40,8 @@ async function MovimientosContent({
       .select('*, account:accounts(id, name, color)')
       .gte('date', cutoffStr)
       .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
       .order('id', { ascending: false })
-      .limit(200),
+      .limit(INITIAL_PAGE_SIZE),
     supabase
       .from('accounts')
       .select('id, name, color, number')
@@ -69,9 +71,13 @@ async function MovimientosContent({
   const initialAccountIds =
     cuenta && accountsList.some(a => a.id === cuenta) ? [cuenta] : []
 
+  const initialTransactions = (transactions ?? []) as TransactionWithAccount[]
+  const initialCursor = buildNextCursor(initialTransactions, INITIAL_PAGE_SIZE)
+
   return (
     <MovimientosClient
-      initialTransactions={(transactions ?? []) as TransactionWithAccount[]}
+      initialTransactions={initialTransactions}
+      initialCursor={initialCursor}
       accounts={accountsList}
       manualAccountId={manualAccountId ?? ''}
       initialAccountIds={initialAccountIds}

@@ -50,23 +50,33 @@ export async function GET(request: NextRequest) {
   const dateFrom = searchParams.get('dateFrom')
   const dateTo   = searchParams.get('dateTo')
   const limit = Math.min(Number(searchParams.get('limit') ?? '200'), 500)
+  const beforeDate = searchParams.get('before_date')
+  const beforeId   = searchParams.get('before_id')
+  const hasCursor  = !!(beforeDate && beforeId)
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
+  // Pedimos limit + 1 para distinguir "exactamente limit ítems quedan" de "hay más".
   let query = supabase
     .from('transactions')
     .select('*, account:accounts(id, name, color)')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
     .order('id', { ascending: false })
-    .limit(limit)
+    .limit(limit + 1)
 
-  if (dateFrom) query = query.gte('date', dateFrom)
-  else          query = query.gte('date', cutoffStr)
-  if (dateTo)   query = query.lte('date', dateTo)
+  if (dateFrom)        query = query.gte('date', dateFrom)
+  else if (!hasCursor) query = query.gte('date', cutoffStr)
+  if (dateTo)          query = query.lte('date', dateTo)
+
+  if (hasCursor) {
+    // Keyset: (date, id) DESC → traer items "después" del cursor.
+    query = query.or(
+      `date.lt.${beforeDate},and(date.eq.${beforeDate},id.lt.${beforeId})`
+    )
+  }
 
   if (accountsParam) {
     const ids = accountsParam.split(',').filter(Boolean)
@@ -86,5 +96,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
-  return NextResponse.json({ data: data ?? [], meta: { count: data?.length ?? 0 } })
+  const raw = data ?? []
+  const hasMore = raw.length > limit
+  const items = hasMore ? raw.slice(0, limit) : raw
+  const last = items[items.length - 1]
+  const nextCursor = hasMore && last
+    ? { date: last.date as string, id: last.id as string }
+    : null
+
+  return NextResponse.json({
+    data: items,
+    meta: { count: items.length, nextCursor },
+  })
 }
