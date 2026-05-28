@@ -20,6 +20,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Finanzas',
   description: 'App de gestión financiera personal',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Finanzas',
+  },
 }
 
 export default function RootLayout({
