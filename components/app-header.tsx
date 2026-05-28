@@ -13,7 +13,7 @@ export function AppHeader({ email, consentBanner }: Props) {
   if (pathname.startsWith('/analisis/categoria/')) return null
 
   return (
-    <header className="safe-top sticky top-0 z-40 bg-background/85 backdrop-blur-xl">
+    <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-40 bg-background/85 backdrop-blur-xl">
       <div className="flex h-12 items-center justify-between px-4">
         <UserMenuTrigger email={email} />
         <button
