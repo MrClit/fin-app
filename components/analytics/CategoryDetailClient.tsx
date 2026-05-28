@@ -154,7 +154,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         style={{
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
-          paddingTop: 52,
+          paddingTop: 'calc(env(safe-area-inset-top) + 52px)',
         }}
       >
         <div className="flex items-center justify-between">

@@ -158,11 +158,3 @@
 .animate-fade-in {
   animation: fadeIn 0.2s ease forwards;
 }
-
-.safe-top {
-  padding-top: env(safe-area-inset-top);
-}
-
-.safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
-}
