@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "icons:generate": "node scripts/generate-icons.mjs",
     "scrape:edenred": "node --env-file-if-exists=.env.local scripts/edenred-scrape.mjs",
     "scrape:edenred:login": "node --env-file=.env.local scripts/edenred-login.mjs",
     "cron:edenred:status": "node scripts/edenred-status.mjs"
@@ -38,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "playwright": "^1.60.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.6"

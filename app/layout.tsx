@@ -20,6 +20,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Finanzas',
   description: 'App de gestión financiera personal',
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
