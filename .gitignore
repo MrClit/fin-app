@@ -42,3 +42,7 @@ next-env.d.ts
 
 # edenred scraper — sesión Playwright con cookies válidas, nunca commitear
 scripts/storage-state.json
+
+# serwist — service worker generado en build
+public/sw.js
+public/sw.js.map

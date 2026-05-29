@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "tunnel": "ngrok http --domain=decidable-rendering-propeller.ngrok-free.dev 3000",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -32,6 +32,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -39,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "playwright": "^1.60.0",
+    "serwist": "^9.5.11",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",
