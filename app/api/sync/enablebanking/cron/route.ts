@@ -3,6 +3,8 @@ import { timingSafeEqual } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { getConsentStatus } from '@/lib/accounts'
+import { sendPushToUser, selectAccountsToNotify, type NotifiableAccount } from '@/lib/push'
 
 function safeBearerMatch(header: string | null, secret: string): boolean {
   if (!header) return false
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
 
   const { data: accounts, error: accountsError } = await db
     .from('accounts')
-    .select('id, user_id, external_id, session_id, last_synced, consent_expires_at')
+    .select('id, user_id, name, external_id, session_id, last_synced, consent_expires_at, consent_reminder_sent_for')
     .eq('source', 'enablebanking')
     .eq('is_active', true)
 
@@ -158,10 +160,67 @@ export async function POST(req: Request) {
   const { error: refreshError } = await db.rpc('refresh_monthly_summary')
   if (refreshError) console.error('[sync/eb/cron] refresh_monthly_summary:', refreshError)
 
+  // Aviso de caducidad PSD2 (≤7 días, issue #115). Se evalúa sobre todas las
+  // cuentas (las críticas siguen siendo sincronizables) y se manda una sola vez
+  // por ciclo de caducidad gracias a consent_reminder_sent_for.
+  const notified = await notifyExpiringConsents(db, accounts as NotifiableAccount[])
+
   return NextResponse.json({
     synced: totalSynced,
     accounts: syncable.length,
     skipped,
     failed,
+    notified,
   })
+}
+
+type CronDb = ReturnType<typeof createServiceClient>
+
+/**
+ * Envía el aviso de caducidad PSD2 a los usuarios con cuentas en ventana crítica
+ * y marca cada cuenta como notificada. Devuelve el nº de cuentas avisadas.
+ */
+async function notifyExpiringConsents(db: CronDb, accounts: NotifiableAccount[]): Promise<number> {
+  const toNotify = selectAccountsToNotify(accounts)
+  if (toNotify.length === 0) return 0
+
+  // Agrupar por usuario: un push por usuario aunque tenga varias cuentas a punto.
+  const byUser = new Map<string, NotifiableAccount[]>()
+  for (const account of toNotify) {
+    const list = byUser.get(account.user_id)
+    if (list) list.push(account)
+    else byUser.set(account.user_id, [account])
+  }
+
+  for (const [userId, userAccounts] of byUser) {
+    const first = userAccounts[0]
+    const daysLeft = getConsentStatus(first.consent_expires_at).daysLeft
+    const body =
+      userAccounts.length === 1
+        ? `Renueva la conexión de ${first.name} en los próximos ${daysLeft} día${daysLeft === 1 ? '' : 's'}.`
+        : `${userAccounts.length} conexiones bancarias caducan en breve. Renuévalas para seguir sincronizando.`
+
+    try {
+      await sendPushToUser(db, userId, {
+        title: 'Tu acceso bancario caduca pronto',
+        body,
+        url: '/cuentas',
+      })
+    } catch (err) {
+      console.error('[sync/eb/cron] push caducidad:', err)
+      continue
+    }
+
+    // Marcar como notificadas (idempotente por el valor de consent_expires_at).
+    await Promise.all(
+      userAccounts.map(account =>
+        db
+          .from('accounts')
+          .update({ consent_reminder_sent_for: account.consent_expires_at })
+          .eq('id', account.id)
+      )
+    )
+  }
+
+  return toNotify.length
 }
