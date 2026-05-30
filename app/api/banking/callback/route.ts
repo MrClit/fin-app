@@ -57,6 +57,8 @@ export async function GET(request: NextRequest) {
       .update({
         session_id: session.session_id,
         consent_expires_at: session.access.valid_until,
+        // Nueva caducidad → re-habilita el aviso PSD2 para el próximo ciclo (#115).
+        consent_reminder_sent_for: null,
         ...(ebAcc && { external_id: ebAcc.uid }),
         aspsp_name: state.aspspName,
         aspsp_country: state.aspspCountry,
@@ -83,6 +85,8 @@ export async function GET(request: NextRequest) {
       external_id: acc.uid,
       session_id: session.session_id,
       consent_expires_at: session.access.valid_until,
+      // Nueva caducidad → re-habilita el aviso PSD2 para el próximo ciclo (#115).
+      consent_reminder_sent_for: null,
       aspsp_name: state?.aspspName ?? null,
       aspsp_country: state?.aspspCountry ?? null,
       is_active: true,
