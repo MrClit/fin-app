@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { WifiOff } from 'lucide-react'
-import { OfflineBottomNav } from '@/components/offline-bottom-nav'
+import { BottomNav } from '@/components/bottom-nav'
 
 export const metadata: Metadata = {
   title: 'Sin conexión',
@@ -26,9 +26,11 @@ export default function OfflinePage() {
           </p>
         </div>
       </main>
-      {/* Salida de la pantalla offline: el bottom nav lleva a rutas ya cacheadas y
-          resalta la sección que el usuario intentó abrir. */}
-      <OfflineBottomNav />
+      {/* Salida de la pantalla offline: el bottom nav (enlaces estáticos, no necesitan
+          JS) lleva a rutas ya cacheadas. Sin item activo: el SW sirve el doc horneado de
+          `/~offline` y el JS no está precacheado, así que no se puede saber de forma
+          fiable la ruta intentada. alwaysShow evita el auto-ocultado en rutas de categoría. */}
+      <BottomNav alwaysShow />
     </>
   )
 }
