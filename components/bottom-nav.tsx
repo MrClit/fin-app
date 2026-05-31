@@ -12,9 +12,9 @@ const NAV_ITEMS = [
   { href: '/analisis',    label: 'Análisis',    Icon: BarChart2 },
 ] as const
 
-export function BottomNav() {
+export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const pathname = usePathname()
-  if (pathname.startsWith('/analisis/categoria/')) return null
+  if (!alwaysShow && pathname.startsWith('/analisis/categoria/')) return null
 
   return (
     <nav
