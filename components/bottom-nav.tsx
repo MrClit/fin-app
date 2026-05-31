@@ -12,9 +12,17 @@ const NAV_ITEMS = [
   { href: '/analisis',    label: 'Análisis',    Icon: BarChart2 },
 ] as const
 
-export function BottomNav() {
+export function BottomNav(
+  { alwaysShow = false, activePath }: { alwaysShow?: boolean; activePath?: string } = {},
+) {
   const pathname = usePathname()
-  if (pathname.startsWith('/analisis/categoria/')) return null
+  if (!alwaysShow && pathname.startsWith('/analisis/categoria/')) return null
+
+  // En la pantalla offline el SW sirve el documento horneado de `/~offline`, así que
+  // `usePathname()` devuelve `/~offline` y no la ruta que el usuario intentó abrir. En
+  // ese caso se pasa `activePath` (leído de window.location) para resaltar la pestaña
+  // pulsada. En el resto de la app no se pasa y se usa el pathname normal.
+  const currentPath = activePath ?? pathname
 
   return (
     <nav
@@ -24,7 +32,7 @@ export function BottomNav() {
     >
       <div className="flex pt-2.5">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
-          const active = pathname === href
+          const active = currentPath === href
           return (
             <Link
               key={href}
