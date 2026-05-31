@@ -24,6 +24,14 @@ export interface PushPayload {
   url: string
 }
 
+/**
+ * Opciones de envío comunes (issue #124). Acotamos el TTL a 1 día: el aviso de
+ * caducidad PSD2 (#115) pierde valor si llega con días de retraso, así que si el
+ * dispositivo sigue offline pasado ese plazo es mejor que el push service lo
+ * descarte. `urgency: 'normal'` es lo apropiado para un aviso no interactivo.
+ */
+const PUSH_OPTIONS = { TTL: 86400, urgency: 'normal' } as const
+
 let vapidConfigured = false
 
 /**
@@ -80,7 +88,8 @@ export async function sendPushToUser(
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          body
+          body,
+          PUSH_OPTIONS
         )
         sent++
       } catch (err) {
