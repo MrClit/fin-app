@@ -17,7 +17,7 @@ export function Toast({ message, onRetry, onDismiss }: ToastProps) {
   return (
     <div
       role="alert"
-      className="fixed left-1/2 z-[120] w-full max-w-105 -translate-x-1/2 px-4 animate-fade-in"
+      className="fixed left-1/2 z-120 w-full max-w-105 -translate-x-1/2 px-4 animate-fade-in"
       style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.5rem) + 84px)' }}
     >
       <div className="flex items-center gap-3 rounded-2xl bg-foreground px-4 py-3 text-background shadow-lg">
