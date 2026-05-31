@@ -145,4 +145,18 @@ describe('sendPushToUser', () => {
     expect(sent).toBe(1)
     expect(deleted).toEqual([])
   })
+
+  it('envía con TTL acotado y urgency normal (issue #124)', async () => {
+    const { db } = makeDb([{ endpoint: 'https://push/ok', p256dh: 'k', auth: 'a' }])
+    sendNotification.mockResolvedValue(undefined)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await sendPushToUser(db as any, 'user-1', { title: 't', body: 'b', url: '/' })
+
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      { TTL: 86400, urgency: 'normal' },
+    )
+  })
 })
