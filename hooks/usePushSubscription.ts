@@ -6,16 +6,24 @@ import { urlBase64ToUint8Array } from '@/lib/push-client'
 /**
  * Gestiona la suscripción a notificaciones push del navegador (issue #115).
  *
- * - `support`: 'loading' mientras se comprueba, 'supported' o 'unsupported'.
- *   No soportado típico: Safari iOS sin instalar la PWA (requiere iOS 16.4+ y
- *   "Añadir a pantalla de inicio").
+ * - `support`: 'loading' mientras se comprueba, 'supported', 'unsupported' o
+ *   'error' si la detección no pudo completarse (p. ej. el service worker nunca
+ *   activa). No soportado típico: Safari iOS sin instalar la PWA (requiere
+ *   iOS 16.4+ y "Añadir a pantalla de inicio").
  * - `enabled`: hay una suscripción activa para este navegador.
  * - `subscribe`/`unsubscribe`: solo deben llamarse desde una interacción
- *   explícita del usuario (pedir permiso al cargar es mal patrón).
+ *   explícita del usuario (pedir permiso al cargar es mal patrón). Rechazan la
+ *   promesa si algo falla; el llamante debe capturarla para avisar al usuario.
  */
-export type PushSupport = 'loading' | 'supported' | 'unsupported'
+export type PushSupport = 'loading' | 'supported' | 'unsupported' | 'error'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+/**
+ * Tope de espera para `navigator.serviceWorker.ready`: ese promise nunca resuelve
+ * si la SW no llega a activar, lo que dejaría el estado colgado en 'loading'.
+ */
+const READY_TIMEOUT_MS = 10_000
 
 export function usePushSubscription() {
   const [support, setSupport] = useState<PushSupport>('loading')
@@ -38,7 +46,14 @@ export function usePushSubscription() {
 
       if (!supported) return { support: 'unsupported' as const, enabled: false, denied: false }
 
-      const reg = await navigator.serviceWorker.ready
+      // `serviceWorker.ready` puede no resolver nunca; lo corremos contra un
+      // timeout para no quedarnos colgados en 'loading' indefinidamente.
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<null>(resolve => setTimeout(() => resolve(null), READY_TIMEOUT_MS)),
+      ])
+      if (!reg) return { support: 'error' as const, enabled: false, denied: false }
+
       const sub = await reg.pushManager.getSubscription().catch(() => null)
       return {
         support: 'supported' as const,
@@ -47,12 +62,18 @@ export function usePushSubscription() {
       }
     }
 
-    detect().then(state => {
-      if (cancelled) return
-      setSupport(state.support)
-      setEnabled(state.enabled)
-      setDenied(state.denied)
-    })
+    detect()
+      .then(state => {
+        if (cancelled) return
+        setSupport(state.support)
+        setEnabled(state.enabled)
+        setDenied(state.denied)
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('[usePushSubscription.detect]', err)
+        setSupport('error')
+      })
 
     return () => {
       cancelled = true

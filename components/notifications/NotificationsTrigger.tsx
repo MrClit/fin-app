@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, BellOff, BellRing } from 'lucide-react'
+import { Bell, BellOff, BellRing, Loader2 } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -11,6 +11,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { usePushSubscription } from '@/hooks/usePushSubscription'
+import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 
 /**
  * Campana del header (issue #115). Abre un Sheet para activar/desactivar las
@@ -19,6 +20,30 @@ import { usePushSubscription } from '@/hooks/usePushSubscription'
 export function NotificationsTrigger() {
   const [open, setOpen] = useState(false)
   const { support, enabled, busy, denied, subscribe, unsubscribe } = usePushSubscription()
+  const { showToast } = useSyncStatus()
+
+  // El hook rechaza la promesa si algo falla; aquí la capturamos para avisar al
+  // usuario en vez de dejar el botón como si «no hubiera pasado nada» (#123).
+  async function handleSubscribe() {
+    try {
+      await subscribe()
+    } catch (err) {
+      console.error('[NotificationsTrigger.subscribe]', err)
+      showToast('No se pudieron activar las notificaciones, inténtalo de nuevo.', handleSubscribe)
+    }
+  }
+
+  async function handleUnsubscribe() {
+    try {
+      await unsubscribe()
+    } catch (err) {
+      console.error('[NotificationsTrigger.unsubscribe]', err)
+      showToast(
+        'No se pudieron desactivar las notificaciones, inténtalo de nuevo.',
+        handleUnsubscribe
+      )
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -54,6 +79,20 @@ export function NotificationsTrigger() {
         </SheetHeader>
 
         <div className="flex flex-col gap-3 px-4 pb-2 pt-2">
+          {support === 'loading' && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+              Comprobando compatibilidad…
+            </p>
+          )}
+
+          {support === 'error' && (
+            <p className="text-xs text-muted-foreground">
+              No se pudo cargar el servicio de notificaciones. Recarga la página e inténtalo de
+              nuevo.
+            </p>
+          )}
+
           {support === 'unsupported' && (
             <p className="text-xs text-muted-foreground">
               Tu navegador no admite notificaciones push. En iPhone, instala antes la app desde
@@ -80,7 +119,7 @@ export function NotificationsTrigger() {
             (enabled ? (
               <button
                 type="button"
-                onClick={unsubscribe}
+                onClick={handleUnsubscribe}
                 disabled={busy}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
               >
@@ -90,7 +129,7 @@ export function NotificationsTrigger() {
             ) : (
               <button
                 type="button"
-                onClick={subscribe}
+                onClick={handleSubscribe}
                 disabled={busy || denied}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
