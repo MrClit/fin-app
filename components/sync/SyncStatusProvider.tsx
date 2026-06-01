@@ -47,16 +47,38 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
   // Evita relanzar una sync mientras otra está en curso (sin esperar al re-render).
   const syncingRef = useRef(false)
 
-  // Detección de conexión. El estado inicial es false en SSR y se corrige aquí
-  // tras el montaje para no provocar un mismatch de hidratación.
+  // Detección de conexión. El estado inicial es false en SSR y se corrige tras
+  // el montaje para no provocar un mismatch de hidratación.
+  //
+  // Fuente de verdad: el service worker, que informa de la conectividad real
+  // según el resultado de las peticiones de red (issue #137). `navigator.onLine`
+  // no es fiable —en algunos entornos devuelve true sin red—, así que solo lo
+  // usamos como pista inicial y como disparador extra cuando sus eventos llegan.
   useEffect(() => {
-    const update = () => setIsOffline(!navigator.onLine)
-    update()
-    window.addEventListener('online', update)
-    window.addEventListener('offline', update)
+    const fromNavigator = () => setIsOffline(!navigator.onLine)
+    fromNavigator()
+
+    const onSwMessage = (e: MessageEvent) => {
+      const data = e.data as { type?: string; online?: boolean }
+      if (data?.type === 'connectivity' && typeof data.online === 'boolean') {
+        setIsOffline(!data.online)
+      }
+    }
+
+    const sw = navigator.serviceWorker
+    sw?.addEventListener('message', onSwMessage)
+    // Pregunta el estado actual al SW al montar (cierra el hueco del arranque
+    // offline, donde no llega ningún evento de navegación).
+    sw?.ready
+      .then((reg) => reg.active?.postMessage({ type: 'connectivity-query' }))
+      .catch(() => {})
+
+    window.addEventListener('online', fromNavigator)
+    window.addEventListener('offline', fromNavigator)
     return () => {
-      window.removeEventListener('online', update)
-      window.removeEventListener('offline', update)
+      sw?.removeEventListener('message', onSwMessage)
+      window.removeEventListener('online', fromNavigator)
+      window.removeEventListener('offline', fromNavigator)
     }
   }, [])
 

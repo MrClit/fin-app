@@ -1,5 +1,10 @@
 import { defaultCache } from "@serwist/next/worker";
-import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
+import type {
+  PrecacheEntry,
+  RuntimeCaching,
+  SerwistGlobalConfig,
+  SerwistPlugin,
+} from "serwist";
 import { NetworkFirst, Serwist } from "serwist";
 
 // El manifest de precache lo inyecta el plugin de Serwist en tiempo de build.
@@ -32,6 +37,43 @@ function warmCacheKey(url: URL): string {
 const isWarmRoute = (url: URL): boolean =>
   (WARM_ROUTES as readonly string[]).includes(url.pathname);
 
+// ── Conectividad observada por el SW (issue #137 / banner offline) ─────────
+// `navigator.onLine` no es fiable (en algunos entornos devuelve true sin red),
+// así que el banner "Sin conexión" del cliente no se enteraba del offline. El SW
+// sí sabe si la red responde: difundimos el estado real a las pestañas según el
+// resultado de las peticiones de navegación, y respondemos a su consulta al
+// montar (cierra el hueco del arranque offline).
+let networkOnline = true;
+
+async function broadcastConnectivity(): Promise<void> {
+  const clients = await self.clients.matchAll({
+    includeUncontrolled: true,
+    type: "window",
+  });
+  for (const client of clients) {
+    client.postMessage({ type: "connectivity", online: networkOnline });
+  }
+}
+
+function setNetworkOnline(next: boolean): void {
+  if (next === networkOnline) return;
+  networkOnline = next;
+  void broadcastConnectivity();
+}
+
+// `fetchDidFail` = la red falló (offline); `fetchDidSucceed` = la red respondió.
+// Un status de error (p. ej. 500) NO dispara `fetchDidFail` (es una respuesta
+// válida), así que la señal equivale a conectividad real, no a errores HTTP.
+const connectivityPlugin: SerwistPlugin = {
+  fetchDidFail: async () => {
+    setNetworkOnline(false);
+  },
+  fetchDidSucceed: async ({ response }) => {
+    setNetworkOnline(true);
+    return response;
+  },
+};
+
 const warmPagesEntry: RuntimeCaching = {
   matcher: ({ request, url, sameOrigin }) =>
     sameOrigin && request.mode === "navigate" && isWarmRoute(url),
@@ -45,6 +87,8 @@ const warmPagesEntry: RuntimeCaching = {
         cacheKeyWillBeUsed: async ({ request }) =>
           warmCacheKey(new URL(request.url)),
       },
+      // Reporta la conectividad real a los clientes en cada navegación.
+      connectivityPlugin,
     ],
   }),
 };
@@ -110,6 +154,17 @@ self.addEventListener("activate", (event) => {
       );
     })(),
   );
+});
+
+// Responde a la consulta de conectividad que el cliente lanza al montar, para
+// que el banner refleje el estado aunque la pestaña arrancara ya sin red.
+self.addEventListener("message", (event) => {
+  if ((event.data as { type?: string })?.type === "connectivity-query") {
+    (event.source as Client | null)?.postMessage({
+      type: "connectivity",
+      online: networkOnline,
+    });
+  }
 });
 
 // ── Notificaciones push (issue #115) ──────────────────────────────────────
