@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Toast } from '@/components/ui/toast'
 
 interface ToastState {
@@ -18,7 +18,7 @@ interface ToastState {
 }
 
 interface SyncStatusValue {
-  /** Sin conexión a internet (navigator.onLine). */
+  /** Sin conexión a internet (comprobación de red activa vía service worker). */
   isOffline: boolean
   /** Hay una sincronización manual en curso. */
   isSyncing: boolean
@@ -40,6 +40,7 @@ const SYNC_TIMEOUT_MS = 10_000
 
 export function SyncStatusProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [isOffline, setIsOffline] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncError, setSyncError] = useState(false)
@@ -47,16 +48,36 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
   // Evita relanzar una sync mientras otra está en curso (sin esperar al re-render).
   const syncingRef = useRef(false)
 
+  // Pide al service worker una comprobación de red ACTIVA. El SW responde con un
+  // mensaje `connectivity` (lo escucha el efecto de abajo).
+  const queryConnectivity = useCallback(() => {
+    const sw = navigator.serviceWorker
+    sw?.ready
+      .then((reg) => (reg.active ?? sw.controller)?.postMessage({ type: 'connectivity-query' }))
+      .catch(() => {})
+  }, [])
+
   // Detección de conexión. El estado inicial es false en SSR y se corrige tras
   // el montaje para no provocar un mismatch de hidratación.
   //
-  // Fuente de verdad: el service worker, que informa de la conectividad real
-  // según el resultado de las peticiones de red (issue #137). `navigator.onLine`
-  // no es fiable —en algunos entornos devuelve true sin red—, así que solo lo
-  // usamos como pista inicial y como disparador extra cuando sus eventos llegan.
+  // Fuente de verdad: el service worker (issue #137). `navigator.onLine` NO es
+  // fiable —en algunos entornos devuelve true sin red—, así que con SW no lo
+  // usamos para marcar online: solo reaccionamos a la respuesta del SW y le
+  // re-preguntamos ante cualquier cambio relevante. Sin SW (p. ej. en dev)
+  // caemos a navigator.onLine como antes.
   useEffect(() => {
-    const fromNavigator = () => setIsOffline(!navigator.onLine)
-    fromNavigator()
+    const sw = navigator.serviceWorker
+
+    if (!sw) {
+      const fromNavigator = () => setIsOffline(!navigator.onLine)
+      fromNavigator()
+      window.addEventListener('online', fromNavigator)
+      window.addEventListener('offline', fromNavigator)
+      return () => {
+        window.removeEventListener('online', fromNavigator)
+        window.removeEventListener('offline', fromNavigator)
+      }
+    }
 
     const onSwMessage = (e: MessageEvent) => {
       const data = e.data as { type?: string; online?: boolean }
@@ -64,23 +85,29 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
         setIsOffline(!data.online)
       }
     }
-
-    const sw = navigator.serviceWorker
-    sw?.addEventListener('message', onSwMessage)
-    // Pregunta el estado actual al SW al montar (cierra el hueco del arranque
-    // offline, donde no llega ningún evento de navegación).
-    sw?.ready
-      .then((reg) => reg.active?.postMessage({ type: 'connectivity-query' }))
-      .catch(() => {})
-
-    window.addEventListener('online', fromNavigator)
-    window.addEventListener('offline', fromNavigator)
-    return () => {
-      sw?.removeEventListener('message', onSwMessage)
-      window.removeEventListener('online', fromNavigator)
-      window.removeEventListener('offline', fromNavigator)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') queryConnectivity()
     }
-  }, [])
+
+    sw.addEventListener('message', onSwMessage)
+    queryConnectivity()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', queryConnectivity)
+    window.addEventListener('offline', queryConnectivity)
+    return () => {
+      sw.removeEventListener('message', onSwMessage)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', queryConnectivity)
+      window.removeEventListener('offline', queryConnectivity)
+    }
+  }, [queryConnectivity])
+
+  // Re-comprueba la conexión en cada navegación: si estamos offline, la
+  // comprobación activa del SW lo confirma y el banner se mantiene (antes una
+  // página servida de caché ocultaba el banner al navegar).
+  useEffect(() => {
+    queryConnectivity()
+  }, [pathname, queryConnectivity])
 
   const showToast = useCallback((message: string, onRetry?: () => void) => {
     setToast({ message, onRetry })

@@ -40,10 +40,23 @@ const isWarmRoute = (url: URL): boolean =>
 // ── Conectividad observada por el SW (issue #137 / banner offline) ─────────
 // `navigator.onLine` no es fiable (en algunos entornos devuelve true sin red),
 // así que el banner "Sin conexión" del cliente no se enteraba del offline. El SW
-// sí sabe si la red responde: difundimos el estado real a las pestañas según el
-// resultado de las peticiones de navegación, y respondemos a su consulta al
-// montar (cierra el hueco del arranque offline).
+// sí sabe si la red responde de dos formas: (1) pasivamente, según el resultado
+// de las peticiones de navegación (plugin de abajo), y (2) activamente, con un
+// `fetch` propio cuando el cliente lo consulta. Las peticiones lanzadas DENTRO
+// del SW no pasan por su propio `fetch` handler, así que llegan a la red de
+// verdad (sin caché) y son una señal de conectividad fiable.
 let networkOnline = true;
+
+// Comprobación activa: golpea un recurso pequeño saltándose la caché. Offline
+// rechaza; online resuelve (cualquier status vale: lo que medimos es si hay red).
+async function probeNetwork(): Promise<boolean> {
+  try {
+    await fetch("/manifest.webmanifest", { method: "GET", cache: "no-store" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function broadcastConnectivity(): Promise<void> {
   const clients = await self.clients.matchAll({
@@ -156,14 +169,20 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Responde a la consulta de conectividad que el cliente lanza al montar, para
-// que el banner refleje el estado aunque la pestaña arrancara ya sin red.
+// Responde a la consulta de conectividad del cliente (al montar y en cada
+// navegación) con una comprobación de red ACTIVA, no con el último estado
+// conocido: así el banner refleja la realidad aunque la última navegación se
+// sirviera de caché sin tocar la red.
 self.addEventListener("message", (event) => {
   if ((event.data as { type?: string })?.type === "connectivity-query") {
-    (event.source as Client | null)?.postMessage({
-      type: "connectivity",
-      online: networkOnline,
-    });
+    const source = event.source as Client | null;
+    event.waitUntil(
+      (async () => {
+        const online = await probeNetwork();
+        setNetworkOnline(online); // difunde al resto de pestañas si cambió
+        source?.postMessage({ type: "connectivity", online });
+      })(),
+    );
   }
 });
 
