@@ -4,12 +4,12 @@ import { useEffect } from 'react'
 import { useTheme } from 'next-themes'
 
 /**
- * Sincroniza el color de la franja de la status bar (PWA iOS / isla dinámica)
- * con el tema activo. iOS pinta esa franja a partir de `<meta name="theme-color">`
- * y no reacciona al cambio de clase `.dark` de next-themes, sólo al arrancar o ante
- * cambios de esquema del sistema. Aquí actualizamos el `content` de todos los metas
- * `theme-color` cada vez que cambia `resolvedTheme`, leyendo el color directamente de
- * la variable CSS `--background` ya aplicada para no duplicar los hex de globals.css.
+ * Mantiene el `<meta name="theme-color">` en sincronía con el tema activo para los
+ * navegadores que sí lo usan para la franja de la status bar (Android / Chrome, que
+ * además repinta en vivo). En iOS standalone Safari ya no usa este meta: allí la franja
+ * la define el elemento fijo del layout pintado con `--background` (ver `app/layout.tsx`).
+ * Actualizamos el `content` de todos los metas `theme-color` cuando cambia `resolvedTheme`,
+ * leyendo el color de la variable CSS `--background` para no duplicar los hex de globals.css.
  */
 export function ThemeColorSync() {
   const { resolvedTheme } = useTheme()
