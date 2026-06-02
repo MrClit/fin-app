@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeColorSync } from '@/components/theme-color-sync'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -9,7 +10,10 @@ const dmSans = DM_Sans({
 })
 
 export const viewport: Viewport = {
-  themeColor: '#6366f1',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f5f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0f14' },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -39,6 +43,7 @@ export default function RootLayout({
     <html lang="es" className={dmSans.variable} suppressHydrationWarning>
       <body className="min-h-full antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeColorSync />
           {children}
         </ThemeProvider>
       </body>
