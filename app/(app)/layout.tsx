@@ -10,6 +10,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Datos de perfil del proveedor OAuth (Google rellena estos campos en
+  // user_metadata). Con login email/contraseña vienen vacíos.
+  const meta = user.user_metadata ?? {}
+  const avatarUrl = (meta.avatar_url ?? meta.picture ?? null) as string | null
+  const fullName = (meta.full_name ?? meta.name ?? null) as string | null
+
   // Estado de caducidad PSD2 para el banner global (spec §9.2). Consulta
   // ligera; se reejecuta al montar el grupo (app) y tras router.refresh().
   const { data: ebAccounts } = await supabase
@@ -22,7 +28,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="relative mx-auto w-full max-w-105 min-h-screen overflow-clip bg-background">
       <SyncStatusProvider>
-        <AppHeader email={user.email ?? ''} consentBanner={consentBanner} />
+        <AppHeader
+          email={user.email ?? ''}
+          avatarUrl={avatarUrl}
+          fullName={fullName}
+          consentBanner={consentBanner}
+        />
         <main className="pb-22.5 animate-fade-in">
           {children}
         </main>
