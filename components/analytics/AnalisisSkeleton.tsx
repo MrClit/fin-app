@@ -14,7 +14,7 @@ export function AnalisisSkeleton() {
     <div>
       {/* Sticky header — mismo encuadre que AnalyticsClient */}
       <div
-        className="sticky z-30 border-b border-border px-5 pt-3 pb-3"
+        className="sticky z-30 border-b border-border px-4 pt-3 pb-3"
         style={{
           top: 'calc(env(safe-area-inset-top) + 3rem)',
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
@@ -28,7 +28,7 @@ export function AnalisisSkeleton() {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-4 px-5 py-3">
+      <div className="flex flex-col gap-4 px-4 py-3">
         {/* KPI row */}
         <div className="flex gap-2.5">
           <CardSkeleton />
