@@ -13,11 +13,11 @@ import {
 import { signOut } from '@/app/actions/auth'
 import { ThemeToggle } from '@/components/theme-toggle'
 
-type Props = { email: string }
+type Props = { email: string; avatarUrl?: string | null; fullName?: string | null }
 
-export function UserMenuTrigger({ email }: Props) {
+export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
   const [open, setOpen] = useState(false)
-  const initial = email.trim().charAt(0).toUpperCase()
+  const initial = (fullName?.trim() || email.trim()).charAt(0).toUpperCase()
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -26,9 +26,19 @@ export function UserMenuTrigger({ email }: Props) {
           <button
             type="button"
             aria-label="Abrir menú de usuario"
-            className="grid size-9 place-items-center rounded-full border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            className="grid size-9 place-items-center overflow-hidden rounded-full border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
-            {initial || <User className="size-4.5" strokeWidth={2} />}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- avatar remoto de Google, sin optimización de next/image
+              <img
+                src={avatarUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-full object-cover"
+              />
+            ) : (
+              initial || <User className="size-4.5" strokeWidth={2} />
+            )}
           </button>
         }
       />
@@ -38,13 +48,23 @@ export function UserMenuTrigger({ email }: Props) {
       >
         <SheetHeader className="flex flex-row items-center gap-3 pt-3">
           <div
-            className="grid size-10 place-items-center rounded-full text-base font-semibold text-white"
+            className="grid size-10 place-items-center overflow-hidden rounded-full text-base font-semibold text-white"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
-            {initial || <UserCircle2 className="size-5" />}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- avatar remoto de Google, sin optimización de next/image
+              <img
+                src={avatarUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-full object-cover"
+              />
+            ) : (
+              initial || <UserCircle2 className="size-5" />
+            )}
           </div>
           <div className="flex flex-col gap-0.5 text-left">
-            <SheetTitle className="text-sm">Tu cuenta</SheetTitle>
+            <SheetTitle className="text-sm">{fullName || 'Tu cuenta'}</SheetTitle>
             <SheetDescription className="text-xs">{email || 'Sin email'}</SheetDescription>
           </div>
         </SheetHeader>
