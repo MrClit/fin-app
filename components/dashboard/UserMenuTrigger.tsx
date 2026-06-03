@@ -17,7 +17,11 @@ type Props = { email: string; avatarUrl?: string | null; fullName?: string | nul
 
 export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
   const [open, setOpen] = useState(false)
+  // Si la imagen remota (avatar de Google) falla o la bloquea una extensión,
+  // se cae a la inicial en vez de dejar el círculo vacío.
+  const [imgError, setImgError] = useState(false)
   const initial = (fullName?.trim() || email.trim()).charAt(0).toUpperCase()
+  const showAvatar = Boolean(avatarUrl) && !imgError
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -28,12 +32,13 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
             aria-label="Abrir menú de usuario"
             className="grid size-9 place-items-center overflow-hidden rounded-full border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
-            {avatarUrl ? (
+            {showAvatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- avatar remoto de Google, sin optimización de next/image
               <img
-                src={avatarUrl}
+                src={avatarUrl!}
                 alt=""
                 referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
                 className="size-full object-cover"
               />
             ) : (
@@ -51,12 +56,13 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
             className="grid size-10 place-items-center overflow-hidden rounded-full text-base font-semibold text-white"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
-            {avatarUrl ? (
+            {showAvatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- avatar remoto de Google, sin optimización de next/image
               <img
-                src={avatarUrl}
+                src={avatarUrl!}
                 alt=""
                 referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
                 className="size-full object-cover"
               />
             ) : (
