@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function CuentasSkeleton() {
   return (
-    <div className="px-5 pt-3 pb-6 flex flex-col gap-4">
+    <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
       {/* Título */}
       <Skeleton className="mb-2 h-7 w-28" />
       {/* Tarjetas de cuenta */}

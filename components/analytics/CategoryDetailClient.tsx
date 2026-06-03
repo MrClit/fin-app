@@ -150,7 +150,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
     <div>
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-50 border-b border-border px-5 pb-3"
+        className="sticky top-0 z-50 border-b border-border px-4 pb-3"
         style={{
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
@@ -210,7 +210,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-4 px-5 py-4">
+      <div className="flex flex-col gap-4 px-4 py-4">
         {/* Evolution card */}
         <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
           <div className="mb-1 flex items-center justify-between">
