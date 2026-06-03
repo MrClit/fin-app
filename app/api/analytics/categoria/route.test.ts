@@ -9,12 +9,13 @@ vi.mock('@/lib/supabase/server', () => ({
 const { GET } = await import('./route')
 
 const USER_ID = '00000000-0000-0000-0000-000000000001'
+const HOUSEHOLD_ID = '00000000-0000-0000-0000-0000000000a1'
 
 // Jueves 21 mayo 2026, 12:00 local
 const NOW = new Date(2026, 4, 21, 12, 0, 0, 0)
 
 interface RpcParams {
-  p_user_id: string
+  p_household_id: string
   p_start_date: string
   p_end_date: string
 }
@@ -40,6 +41,22 @@ interface MockOpts {
   user?: { id: string } | null
   authError?: unknown
   rpc?: RpcImpl
+  householdId?: string | null
+}
+
+/** Builder encadenable que imita la consulta de getHouseholdId(). */
+function householdBuilder(householdId: string | null) {
+  const builder = {
+    select: () => builder,
+    eq: () => builder,
+    order: () => builder,
+    limit: () => builder,
+    maybeSingle: async () => ({
+      data: householdId ? { household_id: householdId } : null,
+      error: null,
+    }),
+  }
+  return builder
 }
 
 function buildSupabase(opts: MockOpts = {}) {
@@ -50,6 +67,7 @@ function buildSupabase(opts: MockOpts = {}) {
         error: null,
       }))
   )
+  const householdId = opts.householdId === undefined ? HOUSEHOLD_ID : opts.householdId
   const supabase = {
     auth: {
       getUser: vi.fn(async () => ({
@@ -57,6 +75,7 @@ function buildSupabase(opts: MockOpts = {}) {
         error: opts.authError ?? null,
       })),
     },
+    from: vi.fn(() => householdBuilder(householdId)),
     rpc: rpcSpy,
   }
   return { supabase, rpcSpy }
@@ -243,7 +262,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
     for (const p of body.periods) expect(p.amount).toBe(0)
   })
 
-  it('llama al RPC con p_user_id y fechas ISO por cada periodo', async () => {
+  it('llama al RPC con p_household_id y fechas ISO por cada periodo', async () => {
     const { supabase, rpcSpy } = buildSupabase()
     vi.mocked(createClient).mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
@@ -252,7 +271,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
     await GET(req({ gran: 'month', id: 'restaurant' }))
     for (const [name, params] of rpcSpy.mock.calls) {
       expect(name).toBe('get_period_data')
-      expect(params.p_user_id).toBe(USER_ID)
+      expect(params.p_household_id).toBe(HOUSEHOLD_ID)
       expect(params.p_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       expect(params.p_end_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     }

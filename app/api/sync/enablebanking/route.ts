@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getHouseholdId } from '@/lib/household'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
@@ -10,6 +11,11 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
   let accountsQuery = db
     .from('accounts')
     .select('id, external_id, session_id, last_synced')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .eq('source', 'enablebanking')
     .eq('is_active', true)
     // Caducidad PSD2: no se sincronizan conexiones caducadas (issue #78).
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
     db
       .from('categorization_rules')
       .select('pattern, field, category_id')
-      .eq('user_id', user.id)
+      .eq('household_id', householdId)
       .eq('is_active', true)
       .order('priority', { ascending: false }),
   ])
@@ -109,6 +115,7 @@ export async function POST(request: Request) {
 
         return {
           user_id:              user.id,
+          household_id:         householdId,
           account_id:           account.id,
           date:                 tx.booking_date,
           amount,
@@ -121,7 +128,7 @@ export async function POST(request: Request) {
 
       const { error: upsertError } = await db
         .from('transactions')
-        .upsert(rows, { onConflict: 'user_id,external_id', ignoreDuplicates: true })
+        .upsert(rows, { onConflict: 'household_id,external_id', ignoreDuplicates: true })
 
       if (upsertError) {
         console.error(`[sync/eb] upsert ${account.external_id}:`, upsertError)

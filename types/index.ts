@@ -48,9 +48,25 @@ export type CategoryId =
   | 'transfer'
   | 'loan_payment'
 
+export interface Household {
+  id: string
+  name: string
+  primary_currency: string
+  month_start_day: number
+  created_at: string
+}
+
+export interface HouseholdMember {
+  household_id: string
+  user_id: string
+  role: string
+  created_at: string
+}
+
 export interface Account {
   id: string
   user_id: string
+  household_id: string
   name: string
   type: AccountType
   source: DataSource
@@ -72,6 +88,7 @@ export interface Account {
 export interface Transaction {
   id: string
   user_id: string
+  household_id: string
   account_id: string
   date: string
   amount: number
@@ -97,6 +114,7 @@ export interface TransactionWithAccount extends Transaction {
 
 export interface UserConfig {
   user_id: string
+  household_id: string
   primary_currency: string
   month_start_day: number
   created_at: string

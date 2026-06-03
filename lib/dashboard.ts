@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import type { Account } from '@/types'
 
 export interface DashboardData {
@@ -24,10 +25,13 @@ export async function getDashboardData(): Promise<DashboardData> {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) throw new Error('Unauthorized')
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) throw new Error('Unauthorized')
+
   const { data: accounts, error: accError } = await supabase
     .from('accounts')
     .select('id, name, type, is_liability, balance, number, color, currency, source, last_synced, consent_expires_at, created_at, user_id, external_id, session_id, is_active')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .eq('is_active', true)
     .order('created_at', { ascending: true })
 
@@ -42,7 +46,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const { data: transactions, error: txError } = await supabase
     .from('transactions')
     .select('date, amount')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .gte('date', thirtyDaysAgo.toISOString())
 
   if (txError) throw new Error('Failed to fetch transactions')
@@ -78,7 +82,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const { data: monthlyTxData } = await supabase
     .from('transactions')
     .select('date, amount')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .gte('date', twelveMonthsAgo.toISOString().split('T')[0])
 
   const txByMonth: Record<string, number> = {}

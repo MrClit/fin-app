@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 
 export async function GET() {
   const supabase = await createClient()
@@ -8,10 +9,15 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { data: accounts, error } = await supabase
     .from('accounts')
     .select('id, name, type, source, is_liability, balance, number, color, currency, last_synced, consent_expires_at, created_at')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .eq('is_active', true)
     .order('created_at', { ascending: true })
 

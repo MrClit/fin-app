@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import { getWindowPeriods, toISODate } from '@/lib/analytics'
 import type { Granularity, CategoryId, CategoryAnalyticsResponse } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
@@ -22,6 +23,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const allPeriods = getWindowPeriods(gran, 0)
     const window = allPeriods.slice(-WINDOW)
@@ -29,9 +35,9 @@ export async function GET(request: NextRequest) {
     const periods = await Promise.all(
       window.map(async (range) => {
         const { data } = await supabase.rpc('get_period_data', {
-          p_user_id:    user.id,
-          p_start_date: toISODate(range.start),
-          p_end_date:   toISODate(range.end),
+          p_household_id: householdId,
+          p_start_date:   toISODate(range.start),
+          p_end_date:     toISODate(range.end),
         })
         const row = data?.[0]
         const byCategory: { category: string | null; amount: number }[] = row?.by_category ?? []
