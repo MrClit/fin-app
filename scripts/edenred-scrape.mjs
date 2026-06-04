@@ -18,6 +18,7 @@ import { chromium } from 'playwright'
 import { existsSync, readdirSync, unlinkSync, closeSync, openSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './lib/edenred-config.mjs'
 
@@ -28,6 +29,10 @@ import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './lib/edenred-config.mj
 const CRON_MODE = process.env.EDENRED_CRON === '1'
 const CRON_LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
 const CRON_MARKER_PREFIX = 'edenred-last-success.'
+// Marker para throttlear la notificación de sesión caducada a 1/día: el plist
+// dispara 6 slots, pero sólo queremos un aviso. Se borra al primer éxito (ver
+// writeCronMarker) para "re-armar" el aviso ante un fallo posterior del día.
+const NOTIFY_MARKER_PREFIX = 'edenred-notified.'
 function cronMarkerPath() {
   const today = new Date().toISOString().slice(0, 10)
   return join(CRON_LOG_DIR, `${CRON_MARKER_PREFIX}${today}`)
@@ -35,13 +40,41 @@ function cronMarkerPath() {
 function cronMarkerExists() {
   return existsSync(cronMarkerPath())
 }
+function notifyMarkerPath() {
+  const today = new Date().toISOString().slice(0, 10)
+  return join(CRON_LOG_DIR, `${NOTIFY_MARKER_PREFIX}${today}`)
+}
 function writeCronMarker() {
   closeSync(openSync(cronMarkerPath(), 'a'))
   for (const name of readdirSync(CRON_LOG_DIR)) {
-    if (name.startsWith(CRON_MARKER_PREFIX) && join(CRON_LOG_DIR, name) !== cronMarkerPath()) {
+    // Limpia markers de éxito antiguos y cualquier marker de notificación:
+    // tras un éxito el sistema vuelve a estar "armado" para volver a avisar.
+    const isStaleSuccess =
+      name.startsWith(CRON_MARKER_PREFIX) && join(CRON_LOG_DIR, name) !== cronMarkerPath()
+    const isNotify = name.startsWith(NOTIFY_MARKER_PREFIX)
+    if (isStaleSuccess || isNotify) {
       try { unlinkSync(join(CRON_LOG_DIR, name)) } catch {}
     }
   }
+}
+
+// Notificación nativa de macOS cuando la sesión Edenred caduca (exit 2). Sólo
+// se dispara desde el cron (CRON_MODE): en ejecuciones manuales el error ya se
+// ve por pantalla. Throttle de 1/día vía marker. Nunca debe romper el exit del
+// script, por eso todo va envuelto en try/catch.
+function notifySessionExpired() {
+  try {
+    if (existsSync(notifyMarkerPath())) return
+    const title = 'Edenred: sesión caducada'
+    const message = 'Ejecuta pnpm scrape:edenred:login para regenerarla.'
+    // JSON.stringify produce literales de cadena válidos para AppleScript
+    // (comillas dobles + escape). execFileSync no usa shell → sin inyección.
+    execFileSync('osascript', [
+      '-e',
+      `display notification ${JSON.stringify(message)} with title ${JSON.stringify(title)}`,
+    ])
+    closeSync(openSync(notifyMarkerPath(), 'a'))
+  } catch {}
 }
 
 // Selectores capturados sobre empleados.edenred.es con el design system
@@ -62,6 +95,7 @@ const SELECTORS = {
 
 function die(code, msg) {
   console.error(`[edenred-scrape] ${msg}`)
+  if (code === 2 && CRON_MODE) notifySessionExpired()
   process.exit(code)
 }
 
