@@ -66,24 +66,25 @@ export async function POST(req: Request) {
 
   const db = createServiceClient()
 
-  // App de usuario único: el webhook no tiene sesión, así que el user_id se
-  // resuelve leyendo el único registro de user_config (decisión documentada
-  // en el plan de #53).
+  // El webhook no tiene sesión: se resuelve el hogar (y un user_id de
+  // creador/auditoría) leyendo el único registro de user_config. App personal
+  // con un único hogar (decisión documentada en el plan de #53, adaptada a #131).
   const { data: userRow, error: userErr } = await db
     .from('user_config')
-    .select('user_id')
+    .select('user_id, household_id')
     .limit(1)
     .maybeSingle()
-  if (userErr || !userRow) {
-    console.error('[edenred] no user_config:', userErr)
+  if (userErr || !userRow || !userRow.household_id) {
+    console.error('[edenred] no user_config/household:', userErr)
     return NextResponse.json({ error: 'No user configured' }, { status: 500 })
   }
   const userId = userRow.user_id as string
+  const householdId = userRow.household_id as string
 
   const { data: existingAccount, error: accSelErr } = await db
     .from('accounts')
     .select('id')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .eq('source', 'scraper')
     .eq('name', 'Edenred')
     .maybeSingle()
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
       .from('accounts')
       .insert({
         user_id: userId,
+        household_id: householdId,
         name: 'Edenred',
         type: 'edenred',
         source: 'scraper',
@@ -131,6 +133,7 @@ export async function POST(req: Request) {
   if (payload.transactions.length > 0) {
     const rows = payload.transactions.map(tx => ({
       user_id: userId,
+      household_id: householdId,
       account_id: accountId,
       date: tx.transaction_date,
       amount: tx.amount,
@@ -142,7 +145,7 @@ export async function POST(req: Request) {
 
     const { error: upsertErr } = await db
       .from('transactions')
-      .upsert(rows, { onConflict: 'user_id,external_id', ignoreDuplicates: false })
+      .upsert(rows, { onConflict: 'household_id,external_id', ignoreDuplicates: false })
     if (upsertErr) {
       console.error('[edenred] upsert transactions:', upsertErr)
       return NextResponse.json({ error: 'DB error' }, { status: 500 })

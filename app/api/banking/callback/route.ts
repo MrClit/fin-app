@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import { createSessionFromCode, decodeBankingState } from '@/lib/enablebanking'
 
 /** Normaliza un IBAN para comparar (sin espacios, mayúsculas). */
@@ -24,6 +25,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/login`)
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.redirect(`${appUrl}/login`)
+  }
+
   let session
   try {
     session = await createSessionFromCode(code)
@@ -38,7 +44,7 @@ export async function GET(request: NextRequest) {
       .from('accounts')
       .select('id, iban')
       .eq('id', state.accountId)
-      .eq('user_id', user.id)
+      .eq('household_id', householdId)
       .maybeSingle()
 
     if (!target) {
@@ -76,6 +82,7 @@ export async function GET(request: NextRequest) {
 
     const accountData = {
       user_id: user.id,
+      household_id: householdId,
       name: acc.product ?? acc.name ?? 'Cuenta bancaria',
       type: 'bank' as const,
       source: 'enablebanking' as const,
@@ -96,7 +103,7 @@ export async function GET(request: NextRequest) {
       const { data: existing } = await supabase
         .from('accounts')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('household_id', householdId)
         .eq('iban', iban)
         .maybeSingle()
 
@@ -108,7 +115,7 @@ export async function GET(request: NextRequest) {
     } else {
       await supabase.from('accounts').upsert(
         { ...accountData, balance: null },
-        { onConflict: 'user_id,external_id' }
+        { onConflict: 'household_id,external_id' }
       )
     }
   }

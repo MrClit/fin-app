@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import { MovimientosClient } from '@/components/transactions/MovimientosClient'
 import { MovimientosSkeleton } from '@/components/transactions/MovimientosSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
@@ -30,6 +31,9 @@ async function MovimientosContent({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) redirect('/login')
+
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
@@ -50,7 +54,7 @@ async function MovimientosContent({
     supabase
       .from('accounts')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('household_id', householdId)
       .eq('source', 'manual')
       .order('created_at', { ascending: true })
       .limit(1),
@@ -61,7 +65,7 @@ async function MovimientosContent({
   if (!manualAccountId) {
     const { data: created } = await supabase
       .from('accounts')
-      .insert({ user_id: user.id, name: 'Manual', type: 'cash', source: 'manual', color: '#64748b' })
+      .insert({ user_id: user.id, household_id: householdId, name: 'Manual', type: 'cash', source: 'manual', color: '#64748b' })
       .select('id')
       .single()
     manualAccountId = created?.id

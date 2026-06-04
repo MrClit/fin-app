@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   const { data: accounts, error: accountsError } = await db
     .from('accounts')
-    .select('id, user_id, name, external_id, session_id, last_synced, consent_expires_at, consent_reminder_sent_for')
+    .select('id, user_id, household_id, name, external_id, session_id, last_synced, consent_expires_at, consent_reminder_sent_for')
     .eq('source', 'enablebanking')
     .eq('is_active', true)
 
@@ -58,11 +58,11 @@ export async function POST(req: Request) {
     return true
   })
 
-  const userIds = Array.from(new Set(syncable.map(a => a.user_id as string)))
+  const householdIds = Array.from(new Set(syncable.map(a => a.household_id as string)))
   const { data: rulesData, error: rulesError } = await db
     .from('categorization_rules')
-    .select('user_id, pattern, field, category_id')
-    .in('user_id', userIds)
+    .select('household_id, pattern, field, category_id')
+    .in('household_id', householdIds)
     .eq('is_active', true)
     .order('priority', { ascending: false })
 
@@ -71,17 +71,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
-  const rulesByUser = new Map<string, DbCategorizationRule[]>()
+  const rulesByHousehold = new Map<string, DbCategorizationRule[]>()
   for (const row of rulesData ?? []) {
-    const userId = (row as { user_id: string }).user_id
+    const householdId = (row as { household_id: string }).household_id
     const rule: DbCategorizationRule = {
       pattern: (row as { pattern: string }).pattern,
       field: (row as { field: DbCategorizationRule['field'] }).field,
       category_id: (row as { category_id: string }).category_id,
     }
-    const list = rulesByUser.get(userId)
+    const list = rulesByHousehold.get(householdId)
     if (list) list.push(rule)
-    else rulesByUser.set(userId, [rule])
+    else rulesByHousehold.set(householdId, [rule])
   }
 
   let totalSynced = 0
@@ -91,7 +91,8 @@ export async function POST(req: Request) {
     if (!account.external_id || !account.session_id) continue
 
     const userId = account.user_id as string
-    const dbRules = rulesByUser.get(userId) ?? []
+    const householdId = account.household_id as string
+    const dbRules = rulesByHousehold.get(householdId) ?? []
     const dateFrom = account.last_synced
       ? (account.last_synced as string).slice(0, 10)
       : undefined
@@ -123,20 +124,21 @@ export async function POST(req: Request) {
         const amount = parseFloat(tx.transaction_amount.amount) * sign
 
         return {
-          user_id:     userId,
-          account_id:  account.id,
-          date:        tx.booking_date,
+          user_id:      userId,
+          household_id: householdId,
+          account_id:   account.id,
+          date:         tx.booking_date,
           amount,
           description,
-          category:    categorizeWithRules(dbRules, description, merchant ?? undefined),
-          source:      'enablebanking' as const,
-          external_id: externalId,
+          category:     categorizeWithRules(dbRules, description, merchant ?? undefined),
+          source:       'enablebanking' as const,
+          external_id:  externalId,
         }
       })
 
       const { error: upsertError } = await db
         .from('transactions')
-        .upsert(rows, { onConflict: 'user_id,external_id', ignoreDuplicates: true })
+        .upsert(rows, { onConflict: 'household_id,external_id', ignoreDuplicates: true })
 
       if (upsertError) {
         console.error(`[sync/eb/cron] upsert ${account.external_id}:`, upsertError)

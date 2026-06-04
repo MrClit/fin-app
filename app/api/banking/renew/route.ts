@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 
 /**
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { accountId } = await request.json()
   if (!accountId) {
     return NextResponse.json({ error: 'accountId es obligatorio' }, { status: 400 })
@@ -24,7 +30,7 @@ export async function POST(request: NextRequest) {
     .from('accounts')
     .select('id, source, aspsp_name, aspsp_country')
     .eq('id', accountId)
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .maybeSingle()
 
   if (!account || account.source !== 'enablebanking') {

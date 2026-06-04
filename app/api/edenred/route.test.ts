@@ -9,10 +9,11 @@ const { POST } = await import('./route')
 
 const SECRET = 'test-secret'
 const USER_ID = '00000000-0000-0000-0000-000000000001'
+const HOUSEHOLD_ID = '00000000-0000-0000-0000-0000000000a1'
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000aaa'
 
 type MockOpts = {
-  userConfig?: { data: { user_id: string } | null; error?: unknown }
+  userConfig?: { data: { user_id: string; household_id?: string } | null; error?: unknown }
   accountSelect?: { data: { id: string } | null; error?: unknown }
   accountInsert?: { data: { id: string } | null; error?: unknown }
   accountUpdate?: { error?: unknown }
@@ -236,7 +237,7 @@ describe('POST /api/edenred — user_config', () => {
 describe('POST /api/edenred — primer POST (crea cuenta)', () => {
   it('inserta la cuenta Edenred con los campos esperados y upsertea las txns', async () => {
     const { db, insertSpy, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID }, error: null },
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: null, error: null },
       accountInsert: { data: { id: ACCOUNT_ID }, error: null },
     })
@@ -251,6 +252,7 @@ describe('POST /api/edenred — primer POST (crea cuenta)', () => {
     expect(insertSpy).toHaveBeenCalledTimes(1)
     expect(insertSpy).toHaveBeenCalledWith({
       user_id: USER_ID,
+      household_id: HOUSEHOLD_ID,
       name: 'Edenred',
       type: 'edenred',
       source: 'scraper',
@@ -265,6 +267,7 @@ describe('POST /api/edenred — primer POST (crea cuenta)', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       user_id: USER_ID,
+      household_id: HOUSEHOLD_ID,
       account_id: ACCOUNT_ID,
       external_id: 'ext-1',
       source: 'scraper',
@@ -275,7 +278,7 @@ describe('POST /api/edenred — primer POST (crea cuenta)', () => {
 describe('POST /api/edenred — POST siguiente (actualiza cuenta)', () => {
   it('actualiza solo balance y last_synced de la cuenta existente', async () => {
     const { db, insertSpy, updateSpy, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID }, error: null },
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -301,9 +304,9 @@ describe('POST /api/edenred — POST siguiente (actualiza cuenta)', () => {
 })
 
 describe('POST /api/edenred — idempotencia', () => {
-  it('llama a upsert con onConflict="user_id,external_id" e ignoreDuplicates=false', async () => {
+  it('llama a upsert con onConflict="household_id,external_id" e ignoreDuplicates=false', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID }, error: null },
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -315,7 +318,7 @@ describe('POST /api/edenred — idempotencia', () => {
     expect(upsertSpy).toHaveBeenCalledTimes(1)
     const [, options] = upsertSpy.mock.calls[0]
     expect(options).toEqual({
-      onConflict: 'user_id,external_id',
+      onConflict: 'household_id,external_id',
       ignoreDuplicates: false,
     })
   })
@@ -324,7 +327,7 @@ describe('POST /api/edenred — idempotencia', () => {
 describe('POST /api/edenred — mapeo de category', () => {
   it('aplica "restaurant" cuando la txn no trae category', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID }, error: null },
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -349,7 +352,7 @@ describe('POST /api/edenred — mapeo de category', () => {
 
   it('respeta la category provista por el scraper (p. ej. "income" en una recarga)', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID }, error: null },
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(

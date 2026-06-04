@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 import type { CategoryId } from '@/types'
 
 const VALID_CATEGORIES: CategoryId[] = [
@@ -26,6 +27,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { id } = await params
   const body = await request.json()
   const { category_manual } = body
@@ -38,7 +44,7 @@ export async function PATCH(
     .from('transactions')
     .update({ category_manual })
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .select()
     .single()
 
@@ -60,13 +66,18 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { id } = await params
 
   const { data: tx } = await supabase
     .from('transactions')
     .select('source')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .single()
 
   if (!tx) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -78,7 +89,7 @@ export async function DELETE(
     .from('transactions')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
 
   if (error) {
     console.error('[DELETE /api/transactions/[id]]', error)

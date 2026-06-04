@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdId } from '@/lib/household'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -19,6 +25,7 @@ export async function POST(request: NextRequest) {
     .from('transactions')
     .insert({
       user_id: user.id,
+      household_id: householdId,
       account_id,
       amount,
       description,
@@ -44,6 +51,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const householdId = await getHouseholdId(supabase, user.id)
+  if (!householdId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = request.nextUrl
   const accountsParam = searchParams.get('accounts')
   const category = searchParams.get('category')
@@ -62,7 +74,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('transactions')
     .select('*, account:accounts(id, name, color)')
-    .eq('user_id', user.id)
+    .eq('household_id', householdId)
     .order('date', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit + 1)
