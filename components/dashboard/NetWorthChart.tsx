@@ -7,7 +7,7 @@ interface Props {
   annualDelta: number | null
 }
 
-export function PatrimonioChart({ data, annualDelta }: Props) {
+export function NetWorthChart({ data, annualDelta }: Props) {
   return (
     <div className="bg-card rounded-3xl p-6 border border-border">
       <div className="flex justify-between items-center mb-1">
@@ -33,7 +33,7 @@ export function PatrimonioChart({ data, annualDelta }: Props) {
       <ResponsiveContainer width="100%" height={80}>
         <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
           <defs>
-            <linearGradient id="patrimonioGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366f1" stopOpacity={0.18} />
               <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
             </linearGradient>
@@ -50,7 +50,7 @@ export function PatrimonioChart({ data, annualDelta }: Props) {
             dataKey="value"
             stroke="#6366f1"
             strokeWidth={2.5}
-            fill="url(#patrimonioGrad)"
+            fill="url(#netWorthGrad)"
             dot={false}
             activeDot={{ r: 4, fill: '#6366f1' }}
           />

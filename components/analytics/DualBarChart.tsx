@@ -147,7 +147,7 @@ export default function DualBarChart({
   const localSel   = selectedBarIdx !== null ? selectedBarIdx - startIdx : visible.length - 1
   const clampedSel = Math.max(0, Math.min(visible.length - 1, localSel))
 
-  const maxVal = Math.max(...allData.map(d => Math.max(d.ingresos, d.gastos)), 1)
+  const maxVal = Math.max(...allData.map(d => Math.max(d.income, d.expense)), 1)
 
   const canGoBack = startIdx > 0
   const canGoFwd  = offset > 0
@@ -165,8 +165,8 @@ export default function DualBarChart({
   const chartData = visible.map((d, i) => ({
     ...d,
     isSelected: i === clampedSel,
-    yoyIngRatio: (d.yoyIngresos != null && d.ingresos > 0) ? d.yoyIngresos / d.ingresos : null,
-    yoyGasRatio: (d.yoyGastos   != null && d.gastos   > 0) ? d.yoyGastos   / d.gastos   : null,
+    yoyIncomeRatio: (d.yoyIncome != null && d.income > 0) ? d.yoyIncome / d.income : null,
+    yoyExpenseRatio: (d.yoyExpense   != null && d.expense   > 0) ? d.yoyExpense   / d.expense   : null,
   }))
 
   return (
@@ -207,7 +207,7 @@ export default function DualBarChart({
         >
           <YAxis domain={[0, maxVal]} hide />
           <Bar
-            dataKey="ingresos"
+            dataKey="income"
             shape={(props: object) => {
               const p = props as BarShapeProps & { index?: number }
               return (
@@ -215,7 +215,7 @@ export default function DualBarChart({
                   {...p}
                   barColor="#22c55e" topColor="#4ade80" glow="#22c55e44"
                   gradId="grad-ing-sel" showYoY={showYoY}
-                  yoyRatio={(p as { yoyIngRatio?: number | null }).yoyIngRatio ?? null}
+                  yoyRatio={(p as { yoyIncomeRatio?: number | null }).yoyIncomeRatio ?? null}
                   onBarClick={() => typeof p.index === 'number' && onSelect(startIdx + p.index)}
                 />
               )
@@ -223,7 +223,7 @@ export default function DualBarChart({
             isAnimationActive={false}
           />
           <Bar
-            dataKey="gastos"
+            dataKey="expense"
             shape={(props: object) => {
               const p = props as BarShapeProps & { index?: number }
               return (
@@ -231,7 +231,7 @@ export default function DualBarChart({
                   {...p}
                   barColor="#6366f1" topColor="#818cf8" glow="#6366f144"
                   gradId="grad-gas-sel" showYoY={showYoY}
-                  yoyRatio={(p as { yoyGasRatio?: number | null }).yoyGasRatio ?? null}
+                  yoyRatio={(p as { yoyExpenseRatio?: number | null }).yoyExpenseRatio ?? null}
                   onBarClick={() => typeof p.index === 'number' && onSelect(startIdx + p.index)}
                 />
               )

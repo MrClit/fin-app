@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { AnalyticsResponse, Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
-import GranPicker from './GranPicker'
+import GranularityPicker from './GranularityPicker'
 import SavingsCard from './SavingsCard'
 import KpiCard from './KpiCard'
 import DualBarChart from './DualBarChart'
@@ -51,13 +51,13 @@ interface PageState {
 }
 
 export default function AnalyticsClient() {
-  const { gran, setShowPicker } = useAnalytics()
+  const { granularity, setShowPicker } = useAnalytics()
   const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
     data: null, selectedBarIdx: null, showYoY: false,
   })
 
-  // Derived: loading when data hasn't arrived yet or belongs to a different gran
-  const loading = !data || data.gran !== gran
+  // Derived: loading when data hasn't arrived yet or belongs to a different granularity
+  const loading = !data || data.granularity !== granularity
 
   const setSelectedBarIdx = (idx: number) =>
     setPageState(s => ({ ...s, selectedBarIdx: idx }))
@@ -66,29 +66,29 @@ export default function AnalyticsClient() {
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/analytics?gran=${gran}&offset=0`)
+    fetch(`/api/analytics?granularity=${granularity}&offset=0`)
       .then(r => r.json())
       .then((d: AnalyticsResponse) => {
         if (!cancelled) setPageState({ data: d, selectedBarIdx: null, showYoY: false })
       })
     return () => { cancelled = true }
-  }, [gran])
+  }, [granularity])
 
   // Derived active bar
   const activeIdx = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
   const activeBar = data?.periods[activeIdx]
   const prevBar   = activeIdx > 0 ? data?.periods[activeIdx - 1] : undefined
-  const deltaRef  = DELTA_REF[gran]
+  const deltaRef  = DELTA_REF[granularity]
 
-  const deltaVsAnteriorIngresos = (prevBar && prevBar.ingresos > 0)
-    ? ((activeBar!.ingresos - prevBar.ingresos) / prevBar.ingresos) * 100 : null
-  const deltaVsAnteriorGastos = (prevBar && prevBar.gastos > 0)
-    ? ((activeBar!.gastos - prevBar.gastos) / prevBar.gastos) * 100 : null
+  const deltaVsPrevIncome = (prevBar && prevBar.income > 0)
+    ? ((activeBar!.income - prevBar.income) / prevBar.income) * 100 : null
+  const deltaVsPrevExpense = (prevBar && prevBar.expense > 0)
+    ? ((activeBar!.expense - prevBar.expense) / prevBar.expense) * 100 : null
 
-  const deltaVsAnioIngresos = (activeBar?.yoyIngresos != null && activeBar.yoyIngresos > 0)
-    ? ((activeBar.ingresos - activeBar.yoyIngresos) / activeBar.yoyIngresos) * 100 : null
-  const deltaVsAnioGastos = (activeBar?.yoyGastos != null && activeBar.yoyGastos > 0)
-    ? ((activeBar.gastos - activeBar.yoyGastos) / activeBar.yoyGastos) * 100 : null
+  const deltaVsYearIncome = (activeBar?.yoyIncome != null && activeBar.yoyIncome > 0)
+    ? ((activeBar.income - activeBar.yoyIncome) / activeBar.yoyIncome) * 100 : null
+  const deltaVsYearExpense = (activeBar?.yoyExpense != null && activeBar.yoyExpense > 0)
+    ? ((activeBar.expense - activeBar.yoyExpense) / activeBar.yoyExpense) * 100 : null
 
   return (
     <div>
@@ -113,7 +113,7 @@ export default function AnalyticsClient() {
             }}
           >
             <CalendarIcon />
-            <span className="text-xs font-bold">{PERIOD_LABELS[gran]}</span>
+            <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
             <span className="text-[10px] opacity-70">▾</span>
           </button>
         </div>
@@ -135,17 +135,17 @@ export default function AnalyticsClient() {
         ) : (
           <div className="flex gap-2.5">
             <KpiCard
-              type="ingresos"
-              value={activeBar.ingresos}
-              deltaVsAnterior={deltaVsAnteriorIngresos}
-              deltaVsAnio={deltaVsAnioIngresos}
+              type="income"
+              value={activeBar.income}
+              deltaVsPrev={deltaVsPrevIncome}
+              deltaVsYear={deltaVsYearIncome}
               deltaRef={deltaRef}
             />
             <KpiCard
-              type="gastos"
-              value={activeBar.gastos}
-              deltaVsAnterior={deltaVsAnteriorGastos}
-              deltaVsAnio={deltaVsAnioGastos}
+              type="expense"
+              value={activeBar.expense}
+              deltaVsPrev={deltaVsPrevExpense}
+              deltaVsYear={deltaVsYearExpense}
               deltaRef={deltaRef}
             />
           </div>
@@ -195,11 +195,11 @@ export default function AnalyticsClient() {
         {loading || !activeBar ? (
           <CardSkeleton />
         ) : (
-          <SavingsCard ingresos={activeBar.ingresos} ahorro={activeBar.ahorro} gran={gran} />
+          <SavingsCard income={activeBar.income} savings={activeBar.savings} granularity={granularity} />
         )}
       </div>
 
-      <GranPicker />
+      <GranularityPicker />
     </div>
   )
 }

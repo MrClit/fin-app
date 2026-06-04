@@ -7,14 +7,14 @@ import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/',            label: 'Inicio',      Icon: Home },
-  { href: '/movimientos', label: 'Movimientos', Icon: List },
-  { href: '/cuentas',     label: 'Cuentas',     Icon: Wallet },
-  { href: '/analisis',    label: 'Análisis',    Icon: BarChart2 },
+  { href: '/transactions', label: 'Movimientos', Icon: List },
+  { href: '/accounts',     label: 'Cuentas',     Icon: Wallet },
+  { href: '/analytics',    label: 'Análisis',    Icon: BarChart2 },
 ] as const
 
 export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const pathname = usePathname()
-  if (!alwaysShow && pathname.startsWith('/analisis/categoria/')) return null
+  if (!alwaysShow && pathname.startsWith('/analytics/category/')) return null
 
   return (
     <nav

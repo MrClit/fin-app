@@ -4,21 +4,21 @@ import { useMemo, useState } from 'react'
 import { CATEGORY_META } from '@/lib/theme'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
-export type TypeFilter = 'todos' | 'ingresos' | 'gastos' | 'no-computable'
+export type TypeFilter = 'all' | 'income' | 'expense' | 'non-computable'
 
 export const TYPE_PILLS: { key: TypeFilter; label: string }[] = [
-  { key: 'todos', label: 'Todos' },
-  { key: 'ingresos', label: 'Ingresos' },
-  { key: 'gastos', label: 'Gastos' },
-  { key: 'no-computable', label: 'No Computable' },
+  { key: 'all', label: 'Todos' },
+  { key: 'income', label: 'Ingresos' },
+  { key: 'expense', label: 'Gastos' },
+  { key: 'non-computable', label: 'No Computable' },
 ]
 
-export function useMovimientosFilters(
+export function useTransactionsFilters(
   transactions: TransactionWithAccount[],
   initialAccountIds: string[] = []
 ) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('todos')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialAccountIds)
 
   const filtered = useMemo(() => {
@@ -28,14 +28,14 @@ export function useMovimientosFilters(
       result = result.filter(tx => selectedAccountIds.includes(tx.account_id))
     }
 
-    if (typeFilter !== 'todos') {
+    if (typeFilter !== 'all') {
       result = result.filter(tx => {
         const catId = (tx.category_manual ?? tx.category) as CategoryId | null
         if (catId === null) return false
         const catType = CATEGORY_META[catId]?.type
-        if (typeFilter === 'ingresos')      return catType === 'income'
-        if (typeFilter === 'gastos')        return catType === 'expense'
-        if (typeFilter === 'no-computable') return catType === 'non_computable'
+        if (typeFilter === 'income')      return catType === 'income'
+        if (typeFilter === 'expense')        return catType === 'expense'
+        if (typeFilter === 'non-computable') return catType === 'non_computable'
         return true
       })
     }

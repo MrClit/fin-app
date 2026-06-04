@@ -132,16 +132,16 @@ export interface PeriodData {
   label: string
   start: string        // 'YYYY-MM-DD'
   end: string          // 'YYYY-MM-DD'
-  ingresos: number
-  gastos: number
-  ahorro: number
+  income: number
+  expense: number
+  savings: number
   byCategory: CategoryBreakdown[]
-  yoyIngresos: number | null  // null si no hay histórico suficiente (§5.7)
-  yoyGastos: number | null
+  yoyIncome: number | null  // null si no hay histórico suficiente (§5.7)
+  yoyExpense: number | null
 }
 
 export interface AnalyticsResponse {
-  gran: Granularity
+  granularity: Granularity
   periods: PeriodData[]
 }
 
@@ -153,7 +153,7 @@ export interface CategoryPeriodData {
 }
 
 export interface CategoryAnalyticsResponse {
-  gran: Granularity
+  granularity: Granularity
   categoryId: CategoryId
   periods: CategoryPeriodData[]
 }

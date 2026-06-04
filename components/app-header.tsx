@@ -15,7 +15,7 @@ type Props = {
 
 export function AppHeader({ email, avatarUrl, fullName, consentBanner }: Props) {
   const pathname = usePathname()
-  if (pathname.startsWith('/analisis/categoria/')) return null
+  if (pathname.startsWith('/analytics/category/')) return null
 
   return (
     <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-40 bg-background/85 backdrop-blur-xl">

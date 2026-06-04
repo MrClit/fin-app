@@ -64,8 +64,8 @@ function getYearRange(offset: number): PeriodRange {
   return { start, end, label: String(year) }
 }
 
-export function getPeriodRange(gran: Granularity, offset: number): PeriodRange {
-  switch (gran) {
+export function getPeriodRange(granularity: Granularity, offset: number): PeriodRange {
+  switch (granularity) {
     case 'week':    return getWeekRange(offset)
     case 'month':   return getMonthRange(offset)
     case 'quarter': return getQuarterRange(offset)
@@ -74,9 +74,9 @@ export function getPeriodRange(gran: Granularity, offset: number): PeriodRange {
 }
 
 // Devuelve N rangos terminando en (período actual − offset), del más antiguo al más reciente
-export function getWindowPeriods(gran: Granularity, offset: number): PeriodRange[] {
-  const n = WINDOW_SIZE[gran]
-  return Array.from({ length: n }, (_, i) => getPeriodRange(gran, offset + (n - 1 - i)))
+export function getWindowPeriods(granularity: Granularity, offset: number): PeriodRange[] {
+  const n = WINDOW_SIZE[granularity]
+  return Array.from({ length: n }, (_, i) => getPeriodRange(granularity, offset + (n - 1 - i)))
 }
 
 // Mismo rango pero −1 año (para comparativa YoY, §5.2)

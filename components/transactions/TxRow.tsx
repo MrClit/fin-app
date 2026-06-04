@@ -2,7 +2,7 @@
 
 import { Edit3 } from 'lucide-react'
 import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe'
-import { CATEGORY_META, SIN_CATEGORIA } from '@/lib/theme'
+import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
@@ -19,7 +19,7 @@ const ACTION_WIDTH = 120
 
 export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
-  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : SIN_CATEGORIA
+  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
   const Icon = meta.Icon
 
   const isOpen = swipedId === tx.id

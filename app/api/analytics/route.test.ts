@@ -23,9 +23,9 @@ interface RpcParams {
 }
 
 interface PeriodRow {
-  ingresos: number
-  gastos: number
-  ahorro: number
+  income: number
+  expense: number
+  savings: number
   by_category: { category: string | null; amount: number }[]
 }
 
@@ -57,19 +57,19 @@ function householdBuilder(householdId: string | null) {
 }
 
 const emptyRow = (): PeriodRow => ({
-  ingresos: 0,
-  gastos: 0,
-  ahorro: 0,
+  income: 0,
+  expense: 0,
+  savings: 0,
   by_category: [],
 })
 
 /**
  * Devuelve el set de `p_start_date` ISO esperados para los períodos CUR de
- * la ventana actual, dado `gran` y `offset`. Se usa para que un mock pueda
+ * la ventana actual, dado `granularity` y `offset`. Se usa para que un mock pueda
  * distinguir RPCs CUR vs YoY sin asumir orden de llamada.
  */
-function curStartSet(gran: Granularity, offset = 0): Set<string> {
-  return new Set(getWindowPeriods(gran, offset).map((r) => toISODate(r.start)))
+function curStartSet(granularity: Granularity, offset = 0): Set<string> {
+  return new Set(getWindowPeriods(granularity, offset).map((r) => toISODate(r.start)))
 }
 
 /**
@@ -77,12 +77,12 @@ function curStartSet(gran: Granularity, offset = 0): Set<string> {
  * y `yoy` para los demás (asumidos YoY).
  */
 function rpcByPeriod(
-  gran: Granularity,
+  granularity: Granularity,
   cur: PeriodRow | null,
   yoy: PeriodRow | null,
   offset = 0
 ): RpcImpl {
-  const curStarts = curStartSet(gran, offset)
+  const curStarts = curStartSet(granularity, offset)
   return async (_, p) => {
     const row = curStarts.has(p.p_start_date) ? cur : yoy
     return { data: row === null ? [] : [row], error: null }
@@ -124,10 +124,10 @@ afterEach(() => {
 
 describe('GET /api/analytics — validación de params', () => {
   it.each<[string, Record<string, string>]>([
-    ['gran ausente', {}],
-    ['gran inválido', { gran: 'day' }],
-    ['offset negativo', { gran: 'month', offset: '-1' }],
-    ['offset no numérico', { gran: 'month', offset: 'abc' }],
+    ['granularity ausente', {}],
+    ['granularity inválido', { granularity: 'day' }],
+    ['offset negativo', { granularity: 'month', offset: '-1' }],
+    ['offset no numérico', { granularity: 'month', offset: 'abc' }],
   ])('devuelve 400 cuando %s', async (_label, query) => {
     const { supabase } = buildSupabase()
     vi.mocked(createClient).mockResolvedValue(
@@ -147,7 +147,7 @@ describe('GET /api/analytics — validación de params', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     expect(res.status).toBe(200)
   })
 })
@@ -162,7 +162,7 @@ describe('GET /api/analytics — autenticación', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     expect(res.status).toBe(401)
     expect(await res.json()).toEqual({ error: 'Unauthorized' })
     expect(rpcSpy).not.toHaveBeenCalled()
@@ -174,7 +174,7 @@ describe('GET /api/analytics — autenticación', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     expect(res.status).toBe(401)
     expect(rpcSpy).not.toHaveBeenCalled()
   })
@@ -189,16 +189,16 @@ describe('GET /api/analytics — shape de la respuesta', () => {
       year: 8,
     }
 
-    for (const [gran, expected] of Object.entries(expectedLengths)) {
+    for (const [granularity, expected] of Object.entries(expectedLengths)) {
       const { supabase } = buildSupabase()
       vi.mocked(createClient).mockResolvedValue(
         supabase as unknown as Awaited<ReturnType<typeof createClient>>
       )
 
-      const res = await GET(req({ gran }))
+      const res = await GET(req({ granularity }))
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.gran).toBe(gran)
+      expect(body.granularity).toBe(granularity)
       expect(body.periods).toHaveLength(expected)
     }
   })
@@ -208,15 +208,15 @@ describe('GET /api/analytics — shape de la respuesta', () => {
       rpc: rpcByPeriod(
         'month',
         {
-          ingresos: 1000,
-          gastos: 750,
-          ahorro: 250,
+          income: 1000,
+          expense: 750,
+          savings: 250,
           by_category: [{ category: 'groceries', amount: -200 }],
         },
         {
-          ingresos: 800,
-          gastos: 600,
-          ahorro: 200,
+          income: 800,
+          expense: 600,
+          savings: 200,
           by_category: [{ category: 'groceries', amount: -150 }],
         }
       ),
@@ -225,7 +225,7 @@ describe('GET /api/analytics — shape de la respuesta', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
 
     expect(body.periods).toHaveLength(12)
@@ -234,11 +234,11 @@ describe('GET /api/analytics — shape de la respuesta', () => {
         label: expect.any(String),
         start: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
         end: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-        ingresos: 1000,
-        gastos: 750,
-        ahorro: 250,
-        yoyIngresos: 800,
-        yoyGastos: 600,
+        income: 1000,
+        expense: 750,
+        savings: 250,
+        yoyIncome: 800,
+        yoyExpense: 600,
       })
       expect(p.byCategory).toEqual([{ category: 'groceries', amount: -200 }])
     }
@@ -256,7 +256,7 @@ describe('GET /api/analytics — shape de la respuesta', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    await GET(req({ gran: 'month' }))
+    await GET(req({ granularity: 'month' }))
     // 12 meses × 2 llamadas
     expect(rpcSpy).toHaveBeenCalledTimes(24)
     for (const [name, params] of rpcSpy.mock.calls) {
@@ -269,11 +269,11 @@ describe('GET /api/analytics — shape de la respuesta', () => {
 })
 
 describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
-  it('devuelve yoyIngresos/yoyGastos === null cuando el RPC del año anterior está vacío', async () => {
+  it('devuelve yoyIncome/yoyExpense === null cuando el RPC del año anterior está vacío', async () => {
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
-        { ingresos: 1000, gastos: 500, ahorro: 500, by_category: [] },
+        { income: 1000, expense: 500, savings: 500, by_category: [] },
         null
       ),
     })
@@ -281,32 +281,32 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
 
     for (const p of body.periods) {
-      expect(p.yoyIngresos).toBeNull()
-      expect(p.yoyGastos).toBeNull()
+      expect(p.yoyIncome).toBeNull()
+      expect(p.yoyExpense).toBeNull()
     }
   })
 
-  it('devuelve yoy* === null cuando el período anterior tiene ingresos=0 y gastos=0 (histórico insuficiente, no cero real)', async () => {
+  it('devuelve yoy* === null cuando el período anterior tiene income=0 y expense=0 (histórico insuficiente, no cero real)', async () => {
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
-        { ingresos: 100, gastos: 50, ahorro: 50, by_category: [] },
-        { ingresos: 0, gastos: 0, ahorro: 0, by_category: [] }
+        { income: 100, expense: 50, savings: 50, by_category: [] },
+        { income: 0, expense: 0, savings: 0, by_category: [] }
       ),
     })
     vi.mocked(createClient).mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
     for (const p of body.periods) {
-      expect(p.yoyIngresos).toBeNull()
-      expect(p.yoyGastos).toBeNull()
+      expect(p.yoyIncome).toBeNull()
+      expect(p.yoyExpense).toBeNull()
     }
   })
 
@@ -314,36 +314,36 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
-        { ingresos: 100, gastos: 50, ahorro: 50, by_category: [] },
-        { ingresos: 0, gastos: 200, ahorro: -200, by_category: [] }
+        { income: 100, expense: 50, savings: 50, by_category: [] },
+        { income: 0, expense: 200, savings: -200, by_category: [] }
       ),
     })
     vi.mocked(createClient).mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
     for (const p of body.periods) {
-      expect(p.yoyIngresos).toBe(0)
-      expect(p.yoyGastos).toBe(200)
+      expect(p.yoyIncome).toBe(0)
+      expect(p.yoyExpense).toBe(200)
     }
   })
 
-  it('clasificación por categories.type (§13 nota 10): una devolución de nómina (amount=-1500, type=income) suma a ingresos, no a gastos', async () => {
+  it('clasificación por categories.type (§13 nota 10): una devolución de nómina (amount=-1500, type=income) suma a income, no a expense', async () => {
     // El RPC v2 (post-#63) clasifica por `categories.type`, no por signo del amount.
     // Para una devolución de nómina (única transacción del período, amount=-1500,
-    // categoría con type='income') devuelve ingresos=-1500 / gastos=0 / ahorro=-1500
+    // categoría con type='income') devuelve income=-1500 / expense=0 / savings=-1500
     // y by_category con el amount negativo preservado. Este test es el guardián
     // del contrato: si el route o alguna capa intermedia reintrodujese lógica
-    // basada en el signo (ingresos = solo amount > 0), aquí saltaría.
+    // basada en el signo (income = solo amount > 0), aquí saltaría.
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
         {
-          ingresos: -1500,
-          gastos: 0,
-          ahorro: -1500,
+          income: -1500,
+          expense: 0,
+          savings: -1500,
           by_category: [{ category: 'salary', amount: -1500 }],
         },
         null
@@ -353,13 +353,13 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
 
     for (const p of body.periods) {
-      expect(p.ingresos).toBe(-1500)
-      expect(p.gastos).toBe(0)
-      expect(p.ahorro).toBe(-1500)
+      expect(p.income).toBe(-1500)
+      expect(p.expense).toBe(0)
+      expect(p.savings).toBe(-1500)
       expect(p.byCategory).toEqual([{ category: 'salary', amount: -1500 }])
     }
   })
@@ -374,15 +374,15 @@ describe('GET /api/analytics — defensa frente a datos faltantes', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
     for (const p of body.periods) {
-      expect(p.ingresos).toBe(0)
-      expect(p.gastos).toBe(0)
-      expect(p.ahorro).toBe(0)
+      expect(p.income).toBe(0)
+      expect(p.expense).toBe(0)
+      expect(p.savings).toBe(0)
       expect(p.byCategory).toEqual([])
-      expect(p.yoyIngresos).toBeNull()
-      expect(p.yoyGastos).toBeNull()
+      expect(p.yoyIncome).toBeNull()
+      expect(p.yoyExpense).toBeNull()
     }
   })
 
@@ -391,9 +391,9 @@ describe('GET /api/analytics — defensa frente a datos faltantes', () => {
       rpc: async () => ({
         data: [
           {
-            ingresos: 10,
-            gastos: 5,
-            ahorro: 5,
+            income: 10,
+            expense: 5,
+            savings: 5,
             // @ts-expect-error – simulando respuesta del RPC con null
             by_category: null,
           },
@@ -405,7 +405,7 @@ describe('GET /api/analytics — defensa frente a datos faltantes', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     const body = await res.json()
     for (const p of body.periods) {
       expect(p.byCategory).toEqual([])
@@ -426,7 +426,7 @@ describe('GET /api/analytics — errores', () => {
 
     // Silenciar console.error para no contaminar la salida del test
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const res = await GET(req({ gran: 'month' }))
+    const res = await GET(req({ granularity: 'month' }))
     expect(res.status).toBe(500)
     expect(await res.json()).toEqual({ error: 'DB error' })
     errSpy.mockRestore()

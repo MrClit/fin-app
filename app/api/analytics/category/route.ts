@@ -5,15 +5,15 @@ import { getWindowPeriods, toISODate } from '@/lib/analytics'
 import type { Granularity, CategoryId, CategoryAnalyticsResponse } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
 
-const VALID_GRAN: Granularity[] = ['week', 'month', 'quarter', 'year']
+const VALID_GRANULARITY: Granularity[] = ['week', 'month', 'quarter', 'year']
 const WINDOW = 6
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
-  const gran = searchParams.get('gran') as Granularity
+  const granularity = searchParams.get('granularity') as Granularity
   const id   = searchParams.get('id') as CategoryId
 
-  if (!VALID_GRAN.includes(gran) || !id || !(id in CATEGORY_META)) {
+  if (!VALID_GRANULARITY.includes(granularity) || !id || !(id in CATEGORY_META)) {
     return NextResponse.json({ error: 'Invalid params' }, { status: 400 })
   }
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const allPeriods = getWindowPeriods(gran, 0)
+    const allPeriods = getWindowPeriods(granularity, 0)
     const window = allPeriods.slice(-WINDOW)
 
     const periods = await Promise.all(
@@ -52,12 +52,12 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json({
-      gran,
+      granularity,
       categoryId: id,
       periods,
     } satisfies CategoryAnalyticsResponse)
   } catch (e) {
-    console.error('[GET /api/analytics/categoria]', e)
+    console.error('[GET /api/analytics/category]', e)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }

@@ -4,8 +4,8 @@ import { createContext, useContext, useState } from 'react'
 import type { Granularity } from '@/types'
 
 interface AnalyticsContextValue {
-  gran: Granularity
-  setGran: (g: Granularity) => void
+  granularity: Granularity
+  setGranularity: (g: Granularity) => void
   showPicker: boolean
   setShowPicker: (v: boolean) => void
 }
@@ -13,11 +13,11 @@ interface AnalyticsContextValue {
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null)
 
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
-  const [gran, setGran] = useState<Granularity>('month')
+  const [granularity, setGranularity] = useState<Granularity>('month')
   const [showPicker, setShowPicker] = useState(false)
 
   return (
-    <AnalyticsContext.Provider value={{ gran, setGran, showPicker, setShowPicker }}>
+    <AnalyticsContext.Provider value={{ granularity, setGranularity, showPicker, setShowPicker }}>
       {children}
     </AnalyticsContext.Provider>
   )

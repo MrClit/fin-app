@@ -206,7 +206,7 @@ async function notifyExpiringConsents(db: CronDb, accounts: NotifiableAccount[])
       await sendPushToUser(db, userId, {
         title: 'Tu acceso bancario caduca pronto',
         body,
-        url: '/cuentas',
+        url: '/accounts',
       })
     } catch (err) {
       console.error('[sync/eb/cron] push caducidad:', err)

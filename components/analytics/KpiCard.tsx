@@ -3,10 +3,10 @@
 import { fmt } from '@/lib/formatting'
 
 interface KpiCardProps {
-  type: 'ingresos' | 'gastos'
+  type: 'income' | 'expense'
   value: number
-  deltaVsAnterior: number | null
-  deltaVsAnio: number | null
+  deltaVsPrev: number | null
+  deltaVsYear: number | null
   deltaRef: string
 }
 
@@ -16,15 +16,15 @@ function formatDelta(delta: number | null): string {
 }
 
 export default function KpiCard({
-  type, value, deltaVsAnterior, deltaVsAnio, deltaRef,
+  type, value, deltaVsPrev, deltaVsYear, deltaRef,
 }: KpiCardProps) {
-  const isIngresos = type === 'ingresos'
-  const mainColor  = isIngresos ? '#22c55e' : '#ef4444'
-  const label      = isIngresos ? 'Ingresos' : 'Gastos'
+  const isIncome = type === 'income'
+  const mainColor  = isIncome ? '#22c55e' : '#ef4444'
+  const label      = isIncome ? 'Ingresos' : 'Gastos'
 
   // Smart color for YoY: + is good for Ingresos, bad for Gastos
-  const yoyPositive = deltaVsAnio !== null && deltaVsAnio > 0
-  const yoyColor = isIngresos
+  const yoyPositive = deltaVsYear !== null && deltaVsYear > 0
+  const yoyColor = isIncome
     ? (yoyPositive ? '#22c55e' : '#ef4444')
     : (yoyPositive ? '#ef4444' : '#22c55e')
 
@@ -56,7 +56,7 @@ export default function KpiCard({
           color: 'var(--muted-foreground)',
         }}
       >
-        {formatDelta(deltaVsAnterior)} {deltaRef}
+        {formatDelta(deltaVsPrev)} {deltaRef}
       </div>
 
       {/* Badge vs año anterior — smart color */}
@@ -65,7 +65,7 @@ export default function KpiCard({
         style={{ background: `${yoyColor}18` }}
       >
         <span className="text-[10px] font-bold" style={{ color: yoyColor }}>
-          {formatDelta(deltaVsAnio)}
+          {formatDelta(deltaVsYear)}
         </span>
         <span className="text-[10px] text-muted-foreground">vs año anterior</span>
       </div>
