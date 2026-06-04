@@ -10,7 +10,7 @@ import type { CategoryId, CategoryPeriodData, TransactionWithAccount } from '@/t
 import { TxRow } from '@/components/transactions/TxRow'
 import { TxModal } from '@/components/transactions/TxModal'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
-import GranPicker from './GranPicker'
+import GranularityPicker from './GranularityPicker'
 import CategoryBarChart from './CategoryBarChart'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -44,7 +44,7 @@ interface Props {
 
 export default function CategoryDetailClient({ categoryId }: Props) {
   const router = useRouter()
-  const { gran, setShowPicker } = useAnalytics()
+  const { granularity, setShowPicker } = useAnalytics()
   const meta = CATEGORY_META[categoryId]
   const { Icon, label, color } = meta
 
@@ -60,17 +60,17 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
   // Mark loading during render when inputs change (React 19: setState in effect body is disallowed)
-  const periodsKey = `${gran}|${categoryId}`
+  const periodsKey = `${granularity}|${categoryId}`
   const [lastPeriodsKey, setLastPeriodsKey] = useState(periodsKey)
   if (periodsKey !== lastPeriodsKey) {
     setLastPeriodsKey(periodsKey)
     setLoadingPeriods(true)
   }
 
-  // Fetch 6-period chart data when gran changes
+  // Fetch 6-period chart data when granularity changes
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/analytics/categoria?id=${categoryId}&gran=${gran}`)
+    fetch(`/api/analytics/category?id=${categoryId}&granularity=${granularity}`)
       .then(r => r.json())
       .then(d => {
         if (!cancelled) {
@@ -80,7 +80,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         }
       })
     return () => { cancelled = true }
-  }, [gran, categoryId])
+  }, [granularity, categoryId])
 
   const selectedPeriodForKey = periods[selectedBarIdx]
   const txsKey = selectedPeriodForKey
@@ -196,7 +196,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
             }}
           >
             <CalendarIcon />
-            <span className="text-xs font-bold">{PERIOD_LABELS[gran]}</span>
+            <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
             <span className="text-[10px] opacity-70">▾</span>
           </button>
         </div>
@@ -215,7 +215,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[15px] font-bold text-foreground">Evolución</span>
-            <span className="text-xs text-muted-foreground capitalize">{PERIOD_LABELS[gran]}</span>
+            <span className="text-xs text-muted-foreground capitalize">{PERIOD_LABELS[granularity]}</span>
           </div>
 
           {/* KPI */}
@@ -319,7 +319,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         />
       )}
 
-      <GranPicker />
+      <GranularityPicker />
     </div>
   )
 }

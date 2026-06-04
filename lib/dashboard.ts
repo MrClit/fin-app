@@ -7,7 +7,7 @@ export interface DashboardData {
   weeklyDelta: number
   dailyBalances: number[]
   accounts: Account[]
-  patrimonioData: { label: string; value: number }[]
+  netWorthData: { label: string; value: number }[]
   annualDelta: number | null
 }
 
@@ -108,12 +108,12 @@ export async function getDashboardData(): Promise<DashboardData> {
     values[i] = values[i + 1] - (txByMonth[activeMonths[i + 1]] ?? 0)
   }
 
-  const patrimonioData = activeMonths.map((m, i) => ({
+  const netWorthData = activeMonths.map((m, i) => ({
     label: MONTH_LABELS[Number(m.split('-')[1]) - 1],
     value: Math.round(values[i]),
   }))
 
   const annualDelta = activeMonths.length === 12 ? Math.round(balance - values[0]) : null
 
-  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[], patrimonioData, annualDelta }
+  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[], netWorthData, annualDelta }
 }

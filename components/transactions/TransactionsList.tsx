@@ -7,7 +7,7 @@ import { fmt } from '@/lib/formatting'
 import { formatDayLabel, type TxDayGroup } from '@/lib/transactions'
 import type { TransactionWithAccount } from '@/types'
 
-interface MovimientosListProps {
+interface TransactionsListProps {
   groups: TxDayGroup[]
   swipedTxId: string | null
   onSwipe: (id: string | null) => void
@@ -19,7 +19,7 @@ interface MovimientosListProps {
   loadMoreError: string | null
 }
 
-export function MovimientosList({
+export function TransactionsList({
   groups,
   swipedTxId,
   onSwipe,
@@ -29,7 +29,7 @@ export function MovimientosList({
   hasMore,
   loadingMore,
   loadMoreError,
-}: MovimientosListProps) {
+}: TransactionsListProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   // El sentinel se monta siempre al final, incluso con lista filtrada vacía,

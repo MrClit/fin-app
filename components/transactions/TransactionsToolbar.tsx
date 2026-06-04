@@ -2,9 +2,9 @@
 
 import { Search, X, ChevronDown, Box } from 'lucide-react'
 import type { Account } from '@/types'
-import { TYPE_PILLS, type TypeFilter } from './useMovimientosFilters'
+import { TYPE_PILLS, type TypeFilter } from './useTransactionsFilters'
 
-interface MovimientosToolbarProps {
+interface TransactionsToolbarProps {
   searchQuery: string
   onSearchChange: (q: string) => void
   typeFilter: TypeFilter
@@ -14,7 +14,7 @@ interface MovimientosToolbarProps {
   onOpenAccountFilter: () => void
 }
 
-export function MovimientosToolbar({
+export function TransactionsToolbar({
   searchQuery,
   onSearchChange,
   typeFilter,
@@ -22,7 +22,7 @@ export function MovimientosToolbar({
   selectedAccountIds,
   accounts,
   onOpenAccountFilter,
-}: MovimientosToolbarProps) {
+}: TransactionsToolbarProps) {
   const accountLabel =
     selectedAccountIds.length === 0
       ? 'Todas las cuentas'

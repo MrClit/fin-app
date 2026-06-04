@@ -5,27 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
-import { CuentasSkeleton } from '@/components/accounts/CuentasSkeleton'
+import { AccountsSkeleton } from '@/components/accounts/AccountsSkeleton'
 import type { Account } from '@/types'
 
-type CuentasSearchParams = { connected?: string; error?: string; renewed?: string }
+type AccountsSearchParams = { connected?: string; error?: string; renewed?: string }
 
-export default function CuentasPage({
+export default function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<CuentasSearchParams>
+  searchParams: Promise<AccountsSearchParams>
 }) {
   return (
-    <Suspense fallback={<CuentasSkeleton />}>
-      <CuentasContent searchParams={searchParams} />
+    <Suspense fallback={<AccountsSkeleton />}>
+      <AccountsContent searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function CuentasContent({
+async function AccountsContent({
   searchParams,
 }: {
-  searchParams: Promise<CuentasSearchParams>
+  searchParams: Promise<AccountsSearchParams>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

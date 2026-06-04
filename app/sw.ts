@@ -22,7 +22,7 @@ declare const self: ServiceWorkerGlobalScope;
 // cualquier GET same-origin y provoca caídas intermitentes a /~offline sin red.
 // Las servimos desde un cache propio, con clave normalizada al pathname, y las
 // calentamos en `activate` para garantizar el documento HTML offline.
-const WARM_ROUTES = ["/", "/movimientos", "/cuentas", "/analisis"] as const;
+const WARM_ROUTES = ["/", "/transactions", "/accounts", "/analytics"] as const;
 const WARM_CACHE = "warm-pages";
 
 // Clave estable = origin + pathname (sin query). Se aplica en lectura (mode

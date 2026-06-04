@@ -4,14 +4,14 @@ import { getHouseholdId } from '@/lib/household'
 import { getWindowPeriods, getYoYRange, toISODate } from '@/lib/analytics'
 import type { Granularity, PeriodData, AnalyticsResponse } from '@/types'
 
-const VALID_GRAN: Granularity[] = ['week', 'month', 'quarter', 'year']
+const VALID_GRANULARITY: Granularity[] = ['week', 'month', 'quarter', 'year']
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
-  const gran = searchParams.get('gran') as Granularity
+  const granularity = searchParams.get('granularity') as Granularity
   const offset = parseInt(searchParams.get('offset') ?? '0', 10)
 
-  if (!VALID_GRAN.includes(gran) || isNaN(offset) || offset < 0) {
+  if (!VALID_GRANULARITY.includes(granularity) || isNaN(offset) || offset < 0) {
     return NextResponse.json({ error: 'Invalid params' }, { status: 400 })
   }
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const window = getWindowPeriods(gran, offset)
+    const window = getWindowPeriods(granularity, offset)
 
     const periods: PeriodData[] = await Promise.all(
       window.map(async (range) => {
@@ -48,23 +48,23 @@ export async function GET(request: NextRequest) {
         const curRow  = cur.data?.[0]
         const prevRow = prev.data?.[0]
         // §5.7: null cuando no hay transacciones del período del año anterior
-        const hasYoy  = prevRow && (Number(prevRow.ingresos) > 0 || Number(prevRow.gastos) > 0)
+        const hasYoy  = prevRow && (Number(prevRow.income) > 0 || Number(prevRow.expense) > 0)
 
         return {
           label:       range.label,
           start:       toISODate(range.start),
           end:         toISODate(range.end),
-          ingresos:    Number(curRow?.ingresos   ?? 0),
-          gastos:      Number(curRow?.gastos     ?? 0),
-          ahorro:      Number(curRow?.ahorro     ?? 0),
+          income:    Number(curRow?.income   ?? 0),
+          expense:      Number(curRow?.expense     ?? 0),
+          savings:      Number(curRow?.savings     ?? 0),
           byCategory:  curRow?.by_category ?? [],
-          yoyIngresos: hasYoy ? Number(prevRow.ingresos) : null,
-          yoyGastos:   hasYoy ? Number(prevRow.gastos)   : null,
+          yoyIncome: hasYoy ? Number(prevRow.income) : null,
+          yoyExpense:   hasYoy ? Number(prevRow.expense)   : null,
         }
       })
     )
 
-    return NextResponse.json({ gran, periods } satisfies AnalyticsResponse)
+    return NextResponse.json({ granularity, periods } satisfies AnalyticsResponse)
   } catch (e) {
     console.error('[GET /api/analytics]', e)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })

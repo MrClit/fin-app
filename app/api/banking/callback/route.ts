@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const state = decodeBankingState(searchParams.get('state'))
 
   if (error || !code) {
-    return NextResponse.redirect(`${appUrl}/cuentas?error=bank_auth_cancelled`)
+    return NextResponse.redirect(`${appUrl}/accounts?error=bank_auth_cancelled`)
   }
 
   const supabase = await createClient()
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     session = await createSessionFromCode(code)
   } catch (err) {
     console.error('[EB callback] createSessionFromCode error:', err)
-    return NextResponse.redirect(`${appUrl}/cuentas?error=session_fetch_failed`)
+    return NextResponse.redirect(`${appUrl}/accounts?error=session_fetch_failed`)
   }
 
   // Modo renovación: actualiza la cuenta existente, no crea filas nuevas (issue #79).
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (!target) {
-      return NextResponse.redirect(`${appUrl}/cuentas?error=renew_account_not_found`)
+      return NextResponse.redirect(`${appUrl}/accounts?error=renew_account_not_found`)
     }
 
     // El uid de la cuenta EB puede cambiar entre sesiones; se empareja por IBAN.
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       })
       .eq('id', target.id)
 
-    return NextResponse.redirect(`${appUrl}/cuentas?renewed=${target.id}`)
+    return NextResponse.redirect(`${appUrl}/accounts?renewed=${target.id}`)
   }
 
   // Modo conexión: alta o actualización de cuentas de la sesión.
@@ -120,5 +120,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${appUrl}/cuentas?connected=true`)
+  return NextResponse.redirect(`${appUrl}/accounts?connected=true`)
 }

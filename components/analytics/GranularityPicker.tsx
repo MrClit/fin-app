@@ -11,11 +11,11 @@ const OPTIONS: { id: Granularity; label: string }[] = [
   { id: 'year', label: 'Año' },
 ]
 
-export default function GranPicker() {
-  const { gran, setGran, showPicker, setShowPicker } = useAnalytics()
+export default function GranularityPicker() {
+  const { granularity, setGranularity, showPicker, setShowPicker } = useAnalytics()
 
   function select(g: Granularity) {
-    setGran(g)
+    setGranularity(g)
     setShowPicker(false)
   }
 
@@ -31,7 +31,7 @@ export default function GranPicker() {
         <p className="text-base font-bold text-foreground text-center mb-4">Ver por período</p>
         <div className="flex flex-col gap-2">
           {OPTIONS.map(o => {
-            const active = gran === o.id
+            const active = granularity === o.id
             return (
               <button
                 key={o.id}

@@ -26,9 +26,9 @@ interface ByCat {
 }
 
 interface PeriodRow {
-  ingresos: number
-  gastos: number
-  ahorro: number
+  income: number
+  expense: number
+  savings: number
   by_category: ByCat[] | null
 }
 
@@ -63,7 +63,7 @@ function buildSupabase(opts: MockOpts = {}) {
   const rpcSpy = vi.fn<RpcImpl>(
     opts.rpc ??
       (async () => ({
-        data: [{ ingresos: 0, gastos: 0, ahorro: 0, by_category: [] }],
+        data: [{ income: 0, expense: 0, savings: 0, by_category: [] }],
         error: null,
       }))
   )
@@ -82,7 +82,7 @@ function buildSupabase(opts: MockOpts = {}) {
 }
 
 function req(query: Record<string, string> = {}) {
-  const url = new URL('http://test/api/analytics/categoria')
+  const url = new URL('http://test/api/analytics/category')
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v)
   return new NextRequest(url)
 }
@@ -96,12 +96,12 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('GET /api/analytics/categoria — validación de params', () => {
+describe('GET /api/analytics/category — validación de params', () => {
   it.each<[string, Record<string, string>]>([
-    ['gran ausente', { id: 'restaurant' }],
-    ['gran inválido', { gran: 'day', id: 'restaurant' }],
-    ['id ausente', { gran: 'month' }],
-    ['id desconocido (no existe en CATEGORY_META)', { gran: 'month', id: 'nope' }],
+    ['granularity ausente', { id: 'restaurant' }],
+    ['granularity inválido', { granularity: 'day', id: 'restaurant' }],
+    ['id ausente', { granularity: 'month' }],
+    ['id desconocido (no existe en CATEGORY_META)', { granularity: 'month', id: 'nope' }],
   ])('devuelve 400 cuando %s', async (_label, query) => {
     const { supabase } = buildSupabase()
     vi.mocked(createClient).mockResolvedValue(
@@ -115,7 +115,7 @@ describe('GET /api/analytics/categoria — validación de params', () => {
   })
 })
 
-describe('GET /api/analytics/categoria — autenticación', () => {
+describe('GET /api/analytics/category — autenticación', () => {
   it('devuelve 401 si auth.getUser devuelve error', async () => {
     const { supabase, rpcSpy } = buildSupabase({
       user: null,
@@ -125,7 +125,7 @@ describe('GET /api/analytics/categoria — autenticación', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month', id: 'restaurant' }))
+    const res = await GET(req({ granularity: 'month', id: 'restaurant' }))
     expect(res.status).toBe(401)
     expect(await res.json()).toEqual({ error: 'Unauthorized' })
     expect(rpcSpy).not.toHaveBeenCalled()
@@ -137,23 +137,23 @@ describe('GET /api/analytics/categoria — autenticación', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month', id: 'restaurant' }))
+    const res = await GET(req({ granularity: 'month', id: 'restaurant' }))
     expect(res.status).toBe(401)
     expect(rpcSpy).not.toHaveBeenCalled()
   })
 })
 
-describe('GET /api/analytics/categoria — ventana de drilldown', () => {
+describe('GET /api/analytics/category — ventana de drilldown', () => {
   it('devuelve exactamente 6 períodos (recortado desde la ventana completa)', async () => {
     const { supabase, rpcSpy } = buildSupabase()
     vi.mocked(createClient).mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const res = await GET(req({ gran: 'month', id: 'restaurant' }))
+    const res = await GET(req({ granularity: 'month', id: 'restaurant' }))
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.gran).toBe('month')
+    expect(body.granularity).toBe('month')
     expect(body.categoryId).toBe('restaurant')
     expect(body.periods).toHaveLength(6)
     expect(rpcSpy).toHaveBeenCalledTimes(6)
@@ -165,7 +165,7 @@ describe('GET /api/analytics/categoria — ventana de drilldown', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ gran: 'month', id: 'restaurant' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'restaurant' }))).json()
     // Mes actual = mayo 2026; ventana=12; últimos 6 = dic 2025..mayo 2026
     expect(body.periods[0].start).toBe('2025-12-01')
     expect(body.periods.at(-1).start).toBe('2026-05-01')
@@ -173,15 +173,15 @@ describe('GET /api/analytics/categoria — ventana de drilldown', () => {
   })
 })
 
-describe('GET /api/analytics/categoria — drilldown por categoría', () => {
+describe('GET /api/analytics/category — drilldown por categoría', () => {
   it('devuelve el valor absoluto del amount para la categoría pedida (gasto)', async () => {
     const { supabase } = buildSupabase({
       rpc: async () => ({
         data: [
           {
-            ingresos: 0,
-            gastos: 320,
-            ahorro: -320,
+            income: 0,
+            expense: 320,
+            savings: -320,
             by_category: [
               { category: 'restaurant', amount: -120 },
               { category: 'groceries', amount: -200 },
@@ -195,21 +195,21 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ gran: 'month', id: 'restaurant' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'restaurant' }))).json()
     expect(body.periods).toHaveLength(6)
     for (const p of body.periods) {
       expect(p.amount).toBe(120)
     }
   })
 
-  it('devuelve el amount sin signo cuando la categoría representa ingresos', async () => {
+  it('devuelve el amount sin signo cuando la categoría representa income', async () => {
     const { supabase } = buildSupabase({
       rpc: async () => ({
         data: [
           {
-            ingresos: 2000,
-            gastos: 0,
-            ahorro: 2000,
+            income: 2000,
+            expense: 0,
+            savings: 2000,
             by_category: [{ category: 'income', amount: 2000 }],
           },
         ],
@@ -220,7 +220,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ gran: 'month', id: 'income' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'income' }))).json()
     for (const p of body.periods) {
       expect(p.amount).toBe(2000)
     }
@@ -231,9 +231,9 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       rpc: async () => ({
         data: [
           {
-            ingresos: 0,
-            gastos: 200,
-            ahorro: -200,
+            income: 0,
+            expense: 200,
+            savings: -200,
             by_category: [{ category: 'groceries', amount: -200 }],
           },
         ],
@@ -244,7 +244,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ gran: 'month', id: 'restaurant' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'restaurant' }))).json()
     for (const p of body.periods) {
       expect(p.amount).toBe(0)
     }
@@ -258,7 +258,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ gran: 'month', id: 'restaurant' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'restaurant' }))).json()
     for (const p of body.periods) expect(p.amount).toBe(0)
   })
 
@@ -268,7 +268,7 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    await GET(req({ gran: 'month', id: 'restaurant' }))
+    await GET(req({ granularity: 'month', id: 'restaurant' }))
     for (const [name, params] of rpcSpy.mock.calls) {
       expect(name).toBe('get_period_data')
       expect(params.p_household_id).toBe(HOUSEHOLD_ID)
@@ -278,22 +278,22 @@ describe('GET /api/analytics/categoria — drilldown por categoría', () => {
   })
 })
 
-describe('GET /api/analytics/categoria — granularidades', () => {
+describe('GET /api/analytics/category — granularidades', () => {
   it.each<[string]>([['week'], ['month'], ['quarter'], ['year']])(
-    'devuelve 6 períodos para gran=%s',
-    async (gran) => {
+    'devuelve 6 períodos para granularity=%s',
+    async (granularity) => {
       const { supabase } = buildSupabase()
       vi.mocked(createClient).mockResolvedValue(
         supabase as unknown as Awaited<ReturnType<typeof createClient>>
       )
 
-      const body = await (await GET(req({ gran, id: 'restaurant' }))).json()
+      const body = await (await GET(req({ granularity, id: 'restaurant' }))).json()
       expect(body.periods).toHaveLength(6)
     }
   )
 })
 
-describe('GET /api/analytics/categoria — errores', () => {
+describe('GET /api/analytics/category — errores', () => {
   it('devuelve 500 "DB error" si el RPC lanza', async () => {
     const { supabase } = buildSupabase({
       rpc: async () => {
@@ -305,7 +305,7 @@ describe('GET /api/analytics/categoria — errores', () => {
     )
 
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const res = await GET(req({ gran: 'month', id: 'restaurant' }))
+    const res = await GET(req({ granularity: 'month', id: 'restaurant' }))
     expect(res.status).toBe(500)
     expect(await res.json()).toEqual({ error: 'DB error' })
     errSpy.mockRestore()

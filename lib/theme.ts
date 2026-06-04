@@ -153,7 +153,7 @@ export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
   loan_payment:   { label: 'Amortización',          color: '#b45309', type: 'non_computable',  Icon: Wallet          },
 }
 
-export const SIN_CATEGORIA = {
+export const UNCATEGORIZED = {
   label: 'Sin categoría',
   color: '#94a3b8',
   Icon: CircleHelp,

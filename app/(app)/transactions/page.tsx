@@ -2,31 +2,31 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
-import { MovimientosClient } from '@/components/transactions/MovimientosClient'
-import { MovimientosSkeleton } from '@/components/transactions/MovimientosSkeleton'
+import { TransactionsClient } from '@/components/transactions/TransactionsClient'
+import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
 import type { TransactionWithAccount } from '@/types'
 
 const INITIAL_PAGE_SIZE = 200
 
-export default function MovimientosPage({
+export default function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cuenta?: string }>
+  searchParams: Promise<{ account?: string }>
 }) {
   return (
-    <Suspense fallback={<MovimientosSkeleton />}>
-      <MovimientosContent searchParams={searchParams} />
+    <Suspense fallback={<TransactionsSkeleton />}>
+      <TransactionsContent searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function MovimientosContent({
+async function TransactionsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ cuenta?: string }>
+  searchParams: Promise<{ account?: string }>
 }) {
-  const { cuenta } = await searchParams
+  const { account } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -73,13 +73,13 @@ async function MovimientosContent({
 
   const accountsList = accounts ?? []
   const initialAccountIds =
-    cuenta && accountsList.some(a => a.id === cuenta) ? [cuenta] : []
+    account && accountsList.some(a => a.id === account) ? [account] : []
 
   const initialTransactions = (transactions ?? []) as TransactionWithAccount[]
   const initialCursor = buildNextCursor(initialTransactions, INITIAL_PAGE_SIZE)
 
   return (
-    <MovimientosClient
+    <TransactionsClient
       initialTransactions={initialTransactions}
       initialCursor={initialCursor}
       accounts={accountsList}

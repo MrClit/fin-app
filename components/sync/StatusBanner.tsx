@@ -21,7 +21,7 @@ export function StatusBanner({ consent }: { consent: ConsentBannerData | null })
         <ShieldAlert className="size-3.5 shrink-0" />
         <span>{consentMessage(consent)}</span>
         <Link
-          href="/cuentas"
+          href="/accounts"
           className="ml-auto shrink-0 font-bold underline underline-offset-2"
         >
           Renovar →

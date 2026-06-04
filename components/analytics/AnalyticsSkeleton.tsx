@@ -5,11 +5,11 @@ function CardSkeleton({ height = 120 }: { height?: number }) {
 }
 
 /**
- * Estado de carga de ruta para /analisis. Replica la estructura de
+ * Estado de carga de ruta para /analytics. Replica la estructura de
  * AnalyticsClient (header sticky + tarjetas) para que no haya salto de layout
- * al llegar el contenido real. Se sirve vía app/(app)/analisis/loading.tsx.
+ * al llegar el contenido real. Se sirve vía app/(app)/analytics/loading.tsx.
  */
-export function AnalisisSkeleton() {
+export function AnalyticsSkeleton() {
   return (
     <div>
       {/* Sticky header — mismo encuadre que AnalyticsClient */}

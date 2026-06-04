@@ -117,7 +117,7 @@ export function AccountCard({ account }: { account: Account }) {
           </div>
         </div>
         <Link
-          href={`/movimientos?cuenta=${account.id}`}
+          href={`/transactions?account=${account.id}`}
           className="text-xs font-semibold px-3 py-1.5 rounded-[10px]"
           style={{ background: '#6366f115', color: '#6366f1' }}
         >

@@ -5,17 +5,17 @@ import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
 import { AddTxModal } from './AddTxModal'
-import { MovimientosToolbar } from './MovimientosToolbar'
-import { MovimientosList } from './MovimientosList'
+import { TransactionsToolbar } from './TransactionsToolbar'
+import { TransactionsList } from './TransactionsList'
 import { AddTxFab } from './AddTxFab'
-import { useMovimientosFilters } from './useMovimientosFilters'
+import { useTransactionsFilters } from './useTransactionsFilters'
 import { useTxMutations } from './useTxMutations'
 import { useTxPagination } from './useTxPagination'
 import { groupTxByDate } from '@/lib/transactions'
 import type { TransactionCursor } from '@/lib/pagination'
 import type { Account, TransactionWithAccount } from '@/types'
 
-interface MovimientosClientProps {
+interface TransactionsClientProps {
   initialTransactions: TransactionWithAccount[]
   initialCursor: TransactionCursor | null
   accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
@@ -23,18 +23,18 @@ interface MovimientosClientProps {
   initialAccountIds?: string[]
 }
 
-export function MovimientosClient({ initialTransactions, initialCursor, accounts, manualAccountId, initialAccountIds }: MovimientosClientProps) {
+export function TransactionsClient({ initialTransactions, initialCursor, accounts, manualAccountId, initialAccountIds }: TransactionsClientProps) {
   const { transactions, addTx, appendTxs, deleteTx, recategorize } = useTxMutations(initialTransactions)
   const pagination = useTxPagination({ initialCursor, appendTxs })
-  const filters = useMovimientosFilters(transactions, initialAccountIds)
+  const filters = useTransactionsFilters(transactions, initialAccountIds)
 
-  // `?cuenta=` solo actúa como deep-link de entrada: lo consumimos en el server
+  // `?account=` solo actúa como deep-link de entrada: lo consumimos en el server
   // para inicializar el filtro y aquí limpiamos la URL para evitar que mienta
   // cuando el usuario cambia el filtro desde el selector. `replaceState` no
   // dispara navegación de Next, solo reescribe la URL del browser.
   useEffect(() => {
     if (initialAccountIds && initialAccountIds.length > 0) {
-      window.history.replaceState(null, '', '/movimientos')
+      window.history.replaceState(null, '', '/transactions')
     }
   }, [initialAccountIds])
 
@@ -66,7 +66,7 @@ export function MovimientosClient({ initialTransactions, initialCursor, accounts
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
       <h1 className="text-xl font-bold text-foreground">Movimientos</h1>
 
-      <MovimientosToolbar
+      <TransactionsToolbar
         searchQuery={filters.searchQuery}
         onSearchChange={filters.setSearchQuery}
         typeFilter={filters.typeFilter}
@@ -76,7 +76,7 @@ export function MovimientosClient({ initialTransactions, initialCursor, accounts
         onOpenAccountFilter={() => setShowAccountFilter(true)}
       />
 
-      <MovimientosList
+      <TransactionsList
         groups={groups}
         swipedTxId={swipedTxId}
         onSwipe={setSwipedTxId}

@@ -9,8 +9,8 @@ import { fmt } from '@/lib/formatting'
 import DonutChart, { type DonutItem } from './DonutChart'
 
 const MIN_PCT = 5
-const RESTO_KEY = '__resto__'
-const RESTO_COLOR = '#94a3b8'
+const REST_KEY = '__rest__'
+const REST_COLOR = '#94a3b8'
 
 interface CategoryBreakdownSectionProps {
   byCategory: CategoryBreakdown[]
@@ -63,10 +63,10 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
   const items: DonutItem[] = [
     ...main.map(toItem),
     ...(rest.length > 0 ? [{
-      key: RESTO_KEY,
+      key: REST_KEY,
       categoryId: null,
       label: 'Resto',
-      color: RESTO_COLOR,
+      color: REST_COLOR,
       Icon: MoreHorizontal,
       amount: rest.reduce((s, i) => s + i.amount, 0),
       pct: rest.reduce((s, i) => s + i.pct, 0),
@@ -131,14 +131,14 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
             {items.map((item, i) => {
               const isSelected = effectiveIdx === i
               const isDimmed = effectiveIdx !== null && !isSelected
-              const isNavigable = item.categoryId !== null && item.key !== RESTO_KEY
+              const isNavigable = item.categoryId !== null && item.key !== REST_KEY
               const { Icon } = item
               return (
                 <div
                   key={item.key}
                   onClick={() => {
                     if (isNavigable) {
-                      router.push(`/analisis/categoria/${item.categoryId}`)
+                      router.push(`/analytics/category/${item.categoryId}`)
                     } else {
                       handleSelect(effectiveIdx === i ? null : i)
                     }

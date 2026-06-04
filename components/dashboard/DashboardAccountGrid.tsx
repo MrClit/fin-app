@@ -16,7 +16,7 @@ function AccountMiniCard({ account }: { account: Account }) {
 
   return (
     <Link
-      href="/cuentas"
+      href="/accounts"
       className="block bg-card rounded-2xl p-3.5 border border-border active:opacity-70 transition-opacity"
     >
       <div className="flex items-center justify-between mb-2.5">

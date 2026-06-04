@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function MovimientosSkeleton() {
+export function TransactionsSkeleton() {
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
       {/* Título */}
