@@ -31,16 +31,22 @@ Desde la raíz del proyecto:
 El script:
 
 1. Genera `~/Library/LaunchAgents/com.fin-app.edenred-scraper.plist` apuntando al directorio actual del proyecto y al `pnpm` que tenga tu shell en el `PATH`.
-2. Lo registra con `launchctl load` para que se ejecute cada día a las 07:00 hora local.
+2. Lo registra con `launchctl load`. Se ejecuta en varios slots diarios (07, 10, 13, 16, 19, 22 hora local) y, gracias a `RunAtLoad`, también intenta un scrape **inmediato** al instalar el agente o al reiniciar el Mac — así ves el resultado en segundos sin esperar al siguiente slot. El marker diario (`~/Library/Logs/fin-app/edenred-last-success.YYYY-MM-DD`) evita que se ejecute dos veces el mismo día.
 3. Crea `~/Library/Logs/fin-app/` para los logs (`edenred-scraper.out.log` y `edenred-scraper.err.log`).
 
 ### Verificar y operar
 
 ```bash
 launchctl list | grep edenred-scraper      # confirma que está cargado
-launchctl start com.fin-app.edenred-scraper # dispararlo a mano (sin esperar a las 07:00)
+launchctl start com.fin-app.edenred-scraper # dispararlo a mano (no-op si ya hubo éxito hoy)
 tail -f ~/Library/Logs/fin-app/edenred-scraper.out.log
 tail -f ~/Library/Logs/fin-app/edenred-scraper.err.log
+```
+
+Para **forzar** un re-scrape aunque ya exista el marker del día (sin borrar ficheros ni desexportar `EDENRED_CRON`):
+
+```bash
+pnpm scrape:edenred:force
 ```
 
 Tras una ejecución exitosa:
@@ -101,4 +107,5 @@ El run falla con código HTTP no-2xx solo si el endpoint devuelve 5xx (DB inalca
 - `pnpm build` — compilar para producción
 - `pnpm test` — tests Vitest
 - `pnpm scrape:edenred` — ejecutar el scraper (requiere `storage-state.json` válido)
+- `pnpm scrape:edenred:force` — ejecutar el scraper ignorando el marker diario (re-ejecuta aunque ya haya corrido hoy)
 - `pnpm scrape:edenred:login` — regenerar `storage-state.json` con login manual

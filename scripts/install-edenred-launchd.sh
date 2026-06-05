@@ -3,7 +3,8 @@
 # una vez al día. Define varios slots horarios para tolerar que el Mac esté
 # dormido en algunos: el primero que pille la máquina despierta ejecuta el
 # scraper; los siguientes salen no-op gracias al guard EDENRED_CRON=1 del
-# script, que usa un marker diario en ~/Library/Logs/fin-app.
+# script, que usa un marker diario en ~/Library/Logs/fin-app. Además, RunAtLoad
+# dispara un intento inmediato al instalar el agente o reiniciar el Mac.
 #
 # Uso:
 #   ./scripts/install-edenred-launchd.sh             # instalar
@@ -58,8 +59,11 @@ cat > "$PLIST" <<EOF
     <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
     <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
   </array>
+  <!-- Intento inmediato al instalar/reiniciar: feedback en segundos sin esperar
+       al siguiente slot. El guard del marker diario (EDENRED_CRON=1) hace no-op
+       si ya hubo un éxito hoy, así que no se ejecuta dos veces. -->
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
   <key>StandardOutPath</key>
   <string>$LOG_DIR/edenred-scraper.out.log</string>
   <key>StandardErrorPath</key>

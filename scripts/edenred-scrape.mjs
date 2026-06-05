@@ -2,7 +2,8 @@
 // Edenred scraper — Playwright headless.
 //
 // Uso:
-//   pnpm scrape:edenred
+//   pnpm scrape:edenred         (respeta el marker diario si EDENRED_CRON=1)
+//   pnpm scrape:edenred:force   (EDENRED_SKIP_MARKER=1: ignora el marker)
 //
 // Se ejecuta en local (launchd en el Mac). Edenred bindea la sesión por IP
 // residencial, así que correr esto desde GitHub Actions invalida el state.
@@ -26,7 +27,9 @@ import { parseAmount, parseDate } from './lib/edenred-parsers.mjs'
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
 // para tolerar que el Mac estuviera dormido: el plist define varios slots a
 // lo largo del día y el primero que pille la máquina despierta ejecuta; los
-// siguientes salen no-op porque encuentran el marker.
+// siguientes salen no-op porque encuentran el marker. EDENRED_SKIP_MARKER=1
+// (vía pnpm scrape:edenred:force) salta ese guard para forzar un re-disparo
+// aunque ya haya marker del día, sin tocar ficheros ni desexportar EDENRED_CRON.
 const CRON_MODE = process.env.EDENRED_CRON === '1'
 const CRON_LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
 const CRON_MARKER_PREFIX = 'edenred-last-success.'
@@ -241,7 +244,7 @@ async function postToWebhook({ balance, transactions }) {
 }
 
 async function main() {
-  if (CRON_MODE && cronMarkerExists()) {
+  if (CRON_MODE && !process.env.EDENRED_SKIP_MARKER && cronMarkerExists()) {
     console.log(`[edenred-scrape] skip: ya hubo ejecución correcta hoy`)
     return
   }
