@@ -21,6 +21,7 @@ import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './lib/edenred-config.mjs'
+import { parseAmount, parseDate } from './lib/edenred-parsers.mjs'
 
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
 // para tolerar que el Mac estuviera dormido: el plist define varios slots a
@@ -150,30 +151,6 @@ function requireEnv(name) {
 function resolveStorageStatePath() {
   if (existsSync(LOCAL_STORAGE_PATH)) return LOCAL_STORAGE_PATH
   die(1, `No hay storage-state. Ejecuta: pnpm scrape:edenred:login`)
-}
-
-// Parsea importes en formato español ("12,50 €" o "-12,50 €") a number.
-function parseAmount(raw) {
-  const cleaned = raw.replace(/[^0-9,.\-]/g, '').replace(/\./g, '').replace(',', '.')
-  const n = Number.parseFloat(cleaned)
-  if (Number.isNaN(n)) throw new Error(`No se pudo parsear importe: "${raw}"`)
-  return n
-}
-
-// "15/05/2026" o "15 may 2026" → "2026-05-15".
-function parseDate(raw) {
-  const m = raw.trim().match(/(\d{1,2})[\/\s-](\d{1,2}|[a-záéíóú]+)[\/\s-](\d{4})/i)
-  if (!m) throw new Error(`No se pudo parsear fecha: "${raw}"`)
-  const day = m[1].padStart(2, '0')
-  const monthRaw = m[2].toLowerCase()
-  const months = {
-    ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
-    jul: '07', ago: '08', sep: '09', oct: '10', nov: '11', dic: '12',
-  }
-  const month = /^\d+$/.test(monthRaw)
-    ? monthRaw.padStart(2, '0')
-    : months[monthRaw.slice(0, 3)] || die(4, `Mes desconocido: "${monthRaw}"`)
-  return `${m[3]}-${month}-${day}`
 }
 
 async function isSessionInvalid(page) {
