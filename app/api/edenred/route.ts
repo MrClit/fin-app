@@ -131,6 +131,13 @@ export async function POST(req: Request) {
 
   let upserted = 0
   if (payload.transactions.length > 0) {
+    // `category` debe coincidir con un `id` de la tabla `categories` (datos de
+    // referencia compartidos, seed en
+    // supabase/migrations/20260509000000_categories_type.sql). La matview
+    // `transactions_monthly_summary` hace INNER JOIN sobre `categories`, así que
+    // un `id` desconocido excluiría la tx de las agregaciones SIN error. El
+    // scraper sólo emite 'restaurant' e 'income', y el fallback de aquí es
+    // 'restaurant'; ambos están garantizados por ese seed. Ver issue #101.
     const rows = payload.transactions.map(tx => ({
       user_id: userId,
       household_id: householdId,
