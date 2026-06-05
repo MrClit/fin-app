@@ -11,6 +11,7 @@ const LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
 const OUT_LOG = join(LOG_DIR, 'edenred-scraper.out.log')
 const ERR_LOG = join(LOG_DIR, 'edenred-scraper.err.log')
 const MARKER_PREFIX = 'edenred-last-success.'
+const FAILURE_PREFIX = 'edenred-failure-'
 const AGENT_LABEL = 'com.fin-app.edenred-scraper'
 
 const fmtDate = (d) =>
@@ -37,6 +38,16 @@ function lastMarker() {
     date: name.slice(MARKER_PREFIX.length),
     mtime: statSync(path).mtime,
   }
+}
+
+function lastFailureDump() {
+  if (!existsSync(LOG_DIR)) return null
+  const dumps = readdirSync(LOG_DIR)
+    .filter((n) => n.startsWith(FAILURE_PREFIX) && n.endsWith('.png'))
+    .sort()
+  if (dumps.length === 0) return null
+  const name = dumps[dumps.length - 1]
+  return { name, mtime: statSync(join(LOG_DIR, name)).mtime }
 }
 
 function logSummary(path) {
@@ -107,4 +118,13 @@ if (!err.exists) {
 } else {
   console.log(`  ${fmtDate(err.mtime)} · ${err.size} B`)
   for (const line of err.tail) console.log(`  | ${line}`)
+}
+
+const dump = lastFailureDump()
+if (!dump) {
+  console.log('\nÚltimo dump de fallo: (ninguno)')
+} else {
+  console.log(
+    `\nÚltimo dump de fallo: ${join(LOG_DIR, dump.name)} · ${fmtDate(dump.mtime)} (${ageSince(dump.mtime)})`,
+  )
 }
