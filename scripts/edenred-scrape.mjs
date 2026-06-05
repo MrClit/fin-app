@@ -15,7 +15,7 @@
 //   4 — error de scraping (no se encontraron selectores en el DOM)
 
 import { chromium } from 'playwright'
-import { existsSync, readdirSync, unlinkSync, closeSync, openSync } from 'node:fs'
+import { existsSync, readdirSync, unlinkSync, closeSync, openSync, writeFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -33,6 +33,10 @@ const CRON_MARKER_PREFIX = 'edenred-last-success.'
 // dispara 6 slots, pero sólo queremos un aviso. Se borra al primer éxito (ver
 // writeCronMarker) para "re-armar" el aviso ante un fallo posterior del día.
 const NOTIFY_MARKER_PREFIX = 'edenred-notified.'
+// Prefijo de los volcados de diagnóstico (screenshot + HTML) que se generan al
+// fallar. Compartido implícitamente con edenred-status.mjs (mismo literal allí).
+const FAILURE_PREFIX = 'edenred-failure-'
+const FAILURE_KEEP = 5
 function cronMarkerPath() {
   const today = new Date().toISOString().slice(0, 10)
   return join(CRON_LOG_DIR, `${CRON_MARKER_PREFIX}${today}`)
@@ -93,6 +97,44 @@ const SELECTORS = {
   transactionRow: 'tbody tr.ore-table-row',
 }
 
+// Timestamp local "YYYY-MM-DD_HHmm" para nombrar los volcados de fallo.
+function failureStamp() {
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`
+}
+
+// Conserva sólo los FAILURE_KEEP volcados más recientes por extensión; borra el
+// resto. El stamp ordena cronológicamente, así que basta ordenar por nombre.
+function rotateFailureDumps() {
+  for (const ext of ['.png', '.html']) {
+    const files = readdirSync(CRON_LOG_DIR)
+      .filter((n) => n.startsWith(FAILURE_PREFIX) && n.endsWith(ext))
+      .sort()
+    for (const name of files.slice(0, -FAILURE_KEEP)) {
+      try { unlinkSync(join(CRON_LOG_DIR, name)) } catch {}
+    }
+  }
+}
+
+// Vuelca screenshot + HTML de la página a CRON_LOG_DIR para diagnosticar fallos
+// (sesión caducada, selector cambiado) sin reproducir con playwright codegen.
+// Todo va en try/catch silencioso: si el dump falla (página cerrada, etc.) el
+// die() posterior debe salir igualmente con su exit code original.
+async function dumpFailure(page) {
+  try {
+    mkdirSync(CRON_LOG_DIR, { recursive: true })
+    const stamp = failureStamp()
+    const pngPath = join(CRON_LOG_DIR, `${FAILURE_PREFIX}${stamp}.png`)
+    const htmlPath = join(CRON_LOG_DIR, `${FAILURE_PREFIX}${stamp}.html`)
+    await page.screenshot({ fullPage: true, path: pngPath })
+    writeFileSync(htmlPath, await page.content())
+    console.error(`[edenred-scrape] dump: ${pngPath}`)
+    console.error(`[edenred-scrape] dump: ${htmlPath}`)
+    rotateFailureDumps()
+  } catch {}
+}
+
 function die(code, msg) {
   console.error(`[edenred-scrape] ${msg}`)
   if (code === 2 && CRON_MODE) notifySessionExpired()
@@ -146,14 +188,20 @@ async function isSessionInvalid(page) {
 
 async function extractBalance(page) {
   const el = page.locator(SELECTORS.balance).first()
-  if (!(await el.isVisible().catch(() => false))) die(4, 'Saldo no encontrado en el DOM')
+  if (!(await el.isVisible().catch(() => false))) {
+    await dumpFailure(page)
+    die(4, 'Saldo no encontrado en el DOM')
+  }
   const text = (await el.textContent()) ?? ''
   return parseAmount(text)
 }
 
 async function extractTransactions(page) {
   const rows = await page.locator(SELECTORS.transactionRow).all()
-  if (rows.length === 0) die(4, 'No se encontró ninguna fila de transacciones')
+  if (rows.length === 0) {
+    await dumpFailure(page)
+    die(4, 'No se encontró ninguna fila de transacciones')
+  }
 
   const txs = []
   for (const row of rows) {
@@ -230,6 +278,7 @@ async function main() {
 
     const invalid = await isSessionInvalid(page)
     if (invalid) {
+      await dumpFailure(page)
       die(2, `Sesión Edenred no válida (${invalid}). Regenera con: pnpm scrape:edenred:login`)
     }
 
