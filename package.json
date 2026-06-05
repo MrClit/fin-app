@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "icons:generate": "node scripts/generate-icons.mjs",
     "scrape:edenred": "node --env-file-if-exists=.env.local scripts/edenred-scrape.mjs",
+    "scrape:edenred:force": "EDENRED_SKIP_MARKER=1 pnpm scrape:edenred",
     "scrape:edenred:login": "node --env-file=.env.local scripts/edenred-login.mjs",
     "cron:edenred:status": "node scripts/edenred-status.mjs",
     "push:test": "node --env-file=.env.local scripts/send-test-push.mjs"
