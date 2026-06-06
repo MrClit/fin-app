@@ -16,6 +16,10 @@
     "scrape:edenred:force": "EDENRED_SKIP_MARKER=1 pnpm scrape:edenred",
     "scrape:edenred:login": "node --env-file=.env.local scripts/edenred-login.mjs",
     "cron:edenred:status": "node scripts/edenred-status.mjs",
+    "scrape:sabadell": "node --env-file-if-exists=.env.local scripts/sabadell-scrape.mjs",
+    "scrape:sabadell:force": "SABADELL_SKIP_MARKER=1 pnpm scrape:sabadell",
+    "scrape:sabadell:login": "node --env-file-if-exists=.env.local scripts/sabadell-login.mjs",
+    "cron:sabadell:status": "node scripts/sabadell-status.mjs",
     "push:test": "node --env-file=.env.local scripts/send-test-push.mjs"
   },
   "dependencies": {
