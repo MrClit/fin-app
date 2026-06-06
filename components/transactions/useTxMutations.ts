@@ -2,11 +2,13 @@
 
 import { useCallback, useState } from 'react'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
+import { useUnread } from '@/components/transactions/UnreadProvider'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 export function useTxMutations(initial: TransactionWithAccount[]) {
   const [transactions, setTransactions] = useState(initial)
   const { showToast } = useSyncStatus()
+  const { increment, decrement } = useUnread()
 
   const addTx = useCallback((tx: TransactionWithAccount) => {
     setTransactions(prev => [tx, ...prev])
@@ -73,5 +75,41 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
     })()
   }, [showToast])
 
-  return { transactions, addTx, appendTxs, deleteTx, recategorize }
+  // Marca leído/no leído de forma optimista, ajustando además el contador del badge
+  // (UnreadProvider). El contador solo se toca si el estado realmente cambia, para
+  // que un re-toggle redundante no lo descuadre. Rollback simétrico + toast.
+  const setRead = useCallback((id: string, isRead: boolean) => {
+    return (async function attempt() {
+      let changed = false
+      let snapshot: TransactionWithAccount[] = []
+      setTransactions(prev => {
+        snapshot = prev
+        changed = prev.some(t => t.id === id && t.is_read !== isRead)
+        return prev.map(t => (t.id === id ? { ...t, is_read: isRead } : t))
+      })
+      if (!changed) return
+      // Leído → un no leído menos; no leído → uno más.
+      if (isRead) decrement()
+      else increment()
+      try {
+        const res = await fetch(`/api/transactions/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_read: isRead }),
+        })
+        if (!res.ok) throw new Error(await res.text())
+      } catch (err) {
+        setTransactions(snapshot)
+        if (isRead) increment()
+        else decrement()
+        console.error('[useTxMutations.setRead] Error marcando leído/no leído:', err)
+        showToast('No se pudo actualizar el movimiento', () => { void attempt() })
+      }
+    })()
+  }, [showToast, increment, decrement])
+
+  const markRead = useCallback((id: string) => setRead(id, true), [setRead])
+  const markUnread = useCallback((id: string) => setRead(id, false), [setRead])
+
+  return { transactions, addTx, appendTxs, deleteTx, recategorize, markRead, markUnread }
 }

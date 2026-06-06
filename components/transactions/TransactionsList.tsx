@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { TxRow } from './TxRow'
+import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fmt } from '@/lib/formatting'
 import { formatDayLabel, type TxDayGroup } from '@/lib/transactions'
@@ -9,9 +10,13 @@ import type { TransactionWithAccount } from '@/types'
 
 interface TransactionsListProps {
   groups: TxDayGroup[]
-  swipedTxId: string | null
-  onSwipe: (id: string | null) => void
+  /** Movimientos no leídos fijados arriba (lista plana por fecha desc). */
+  pinnedUnread: TransactionWithAccount[]
+  swiped: { id: string; side: SwipeSide } | null
+  onOpenSwipe: (id: string, side: SwipeSide) => void
+  onCloseSwipe: () => void
   onRecategorize: (tx: TransactionWithAccount) => void
+  onToggleRead: (tx: TransactionWithAccount) => void
   onTap: (tx: TransactionWithAccount) => void
   onLoadMore: () => void
   hasMore: boolean
@@ -21,9 +26,12 @@ interface TransactionsListProps {
 
 export function TransactionsList({
   groups,
-  swipedTxId,
-  onSwipe,
+  pinnedUnread,
+  swiped,
+  onOpenSwipe,
+  onCloseSwipe,
   onRecategorize,
+  onToggleRead,
   onTap,
   onLoadMore,
   hasMore,
@@ -31,6 +39,16 @@ export function TransactionsList({
   loadMoreError,
 }: TransactionsListProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const rowProps = (tx: TransactionWithAccount) => ({
+    tx,
+    openSide: swiped?.id === tx.id ? swiped.side : null,
+    onOpenSwipe,
+    onCloseSwipe,
+    onRecategorize,
+    onToggleRead,
+    onTap,
+  })
 
   // El sentinel se monta siempre al final, incluso con lista filtrada vacía,
   // para que la auto-paginación dispare búsquedas que solo matcheen en
@@ -49,10 +67,26 @@ export function TransactionsList({
     return () => observer.disconnect()
   }, [hasMore, loadingMore, loadMoreError, onLoadMore])
 
-  const isEmpty = groups.length === 0
+  const isEmpty = groups.length === 0 && pinnedUnread.length === 0
 
   return (
     <div className="flex flex-col gap-4">
+      {pinnedUnread.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between px-3 pb-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-primary">
+              No leídos
+            </span>
+            <span className="text-xs font-bold text-primary">{pinnedUnread.length}</span>
+          </div>
+          <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
+            {pinnedUnread.map(tx => (
+              <TxRow key={tx.id} {...rowProps(tx)} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {isEmpty ? (
         <div className="flex items-center justify-center py-16">
           <p className="text-sm text-muted-foreground text-center">
@@ -77,14 +111,7 @@ export function TransactionsList({
 
               <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
                 {group.transactions.map(tx => (
-                  <TxRow
-                    key={tx.id}
-                    tx={tx}
-                    swipedId={swipedTxId}
-                    onSwipe={onSwipe}
-                    onRecategorize={onRecategorize}
-                    onTap={onTap}
-                  />
+                  <TxRow key={tx.id} {...rowProps(tx)} />
                 ))}
               </div>
             </div>

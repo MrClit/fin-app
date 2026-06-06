@@ -1,7 +1,7 @@
 'use client'
 
-import { Edit3 } from 'lucide-react'
-import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe'
+import { Edit3, Check, X } from 'lucide-react'
+import { useHorizontalSwipe, type SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import { cn } from '@/lib/utils'
@@ -9,52 +9,55 @@ import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface TxRowProps {
   tx: TransactionWithAccount
-  swipedId: string | null
-  onSwipe: (id: string | null) => void
+  /** Lado del panel de acción abierto para ESTA fila (`null` si está cerrada). */
+  openSide: SwipeSide | null
+  onOpenSwipe: (id: string, side: SwipeSide) => void
+  onCloseSwipe: () => void
   onRecategorize: (tx: TransactionWithAccount) => void
+  onToggleRead: (tx: TransactionWithAccount) => void
   onTap: (tx: TransactionWithAccount) => void
 }
 
 const ACTION_WIDTH = 120
 
-export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowProps) {
+export function TxRow({ tx, openSide, onOpenSwipe, onCloseSwipe, onRecategorize, onToggleRead, onTap }: TxRowProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
   const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
   const Icon = meta.Icon
 
-  const isOpen = swipedId === tx.id
   const { bind, currentX, isAnimating, didMoveRef } = useHorizontalSwipe({
     actionWidth: ACTION_WIDTH,
-    isOpen,
-    onOpen: () => onSwipe(tx.id),
-    onClose: () => onSwipe(null),
+    openSide,
+    onOpen: side => onOpenSwipe(tx.id, side),
+    onClose: onCloseSwipe,
   })
 
   const absAmount = fmt(Math.abs(tx.amount), 2)
   const amountStr = (tx.amount > 0 ? '+' : '-') + absAmount + ' €'
 
   return (
-    // overflow-hidden recorta el panel de acción cuando está fuera de la fila
+    // overflow-hidden recorta los paneles de acción cuando están fuera de la fila
     <div className="overflow-hidden">
       {/*
-       * Slider flex único: [panel acción][contenido]
-       * En reposo: translateX(-ACTION_WIDTH) → panel fuera por la izquierda, contenido visible
-       * Abierto:   translateX(0)             → panel visible, contenido desplazado a la derecha
+       * Slider flex único: [panel izq][contenido][panel der]
+       * En reposo: translateX(-ACTION_WIDTH) → ambos paneles fuera, contenido visible
+       * Abierto izq: translateX(0)              → panel izquierdo visible (swipe →)
+       * Abierto der: translateX(-2·ACTION_WIDTH) → panel derecho visible (swipe ←)
        */}
       <div
-        className="flex items-stretch w-[calc(100%+120px)]"
+        className="flex items-stretch w-[calc(100%+240px)]"
         style={{
           transform: `translateX(${currentX - ACTION_WIDTH}px)`,
           transition: isAnimating ? 'transform 0.25s' : 'none',
         }}
         {...bind}
       >
-        {/* Panel de acción — oculto a la izquierda hasta que se hace swipe */}
+        {/* Panel izquierdo — «Categoría» (swipe →) */}
         <div className="flex w-30 shrink-0 items-center justify-center bg-primary">
           <button
             className={cn(
               'flex items-center gap-1.5 rounded-[10px] bg-white/20 px-3 py-1.5 text-xs font-bold text-white',
-              !isOpen && 'pointer-events-none'
+              openSide !== 'left' && 'pointer-events-none'
             )}
             onClick={() => onRecategorize(tx)}
           >
@@ -68,10 +71,15 @@ export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowPro
           className="flex flex-1 min-w-0 items-center gap-3 px-3 py-2.5 bg-card"
           onClick={() => {
             if (didMoveRef.current) { didMoveRef.current = false; return }
-            if (isOpen) onSwipe(null)
+            if (openSide) onCloseSwipe()
             else onTap(tx)
           }}
         >
+          {/* Dot de no leído (gutter reservado para que las filas no se descuadren) */}
+          <span className="flex w-2 shrink-0 items-center justify-center">
+            {!tx.is_read && <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leído" />}
+          </span>
+
           <div
             className="flex items-center justify-center rounded-[14px] shrink-0 h-10.5 w-10.5"
             style={{ background: meta.color + '18' }}
@@ -95,6 +103,29 @@ export function TxRow({ tx, swipedId, onSwipe, onRecategorize, onTap }: TxRowPro
           >
             {amountStr}
           </span>
+        </div>
+
+        {/* Panel derecho — toggle «Leído» / «No leído» (swipe ←) */}
+        <div className="flex w-30 shrink-0 items-center justify-center bg-primary">
+          <button
+            className={cn(
+              'flex items-center gap-1.5 rounded-[10px] bg-white/20 px-3 py-1.5 text-xs font-bold text-white',
+              openSide !== 'right' && 'pointer-events-none'
+            )}
+            onClick={() => onToggleRead(tx)}
+          >
+            {tx.is_read ? (
+              <>
+                <X size={13} strokeWidth={2.5} color="white" />
+                No leído
+              </>
+            ) : (
+              <>
+                <Check size={13} strokeWidth={2.5} color="white" />
+                Leído
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

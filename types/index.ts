@@ -98,6 +98,7 @@ export interface Transaction {
   source: DataSource
   external_id: string | null
   notes: string | null
+  is_read: boolean
   created_at: string
 }
 
