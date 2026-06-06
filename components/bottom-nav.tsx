@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, List, Wallet, BarChart2 } from 'lucide-react'
+import { useUnread } from '@/components/transactions/UnreadProvider'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
 
 export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const pathname = usePathname()
+  const { count: unreadCount } = useUnread()
   if (!alwaysShow && pathname.startsWith('/analytics/category/')) return null
 
   return (
@@ -25,6 +27,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
       <div className="flex pt-2.5">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const active = pathname === href
+          const showBadge = href === '/transactions' && unreadCount > 0
           return (
             <Link
               key={href}
@@ -36,11 +39,20 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
             >
               <span
                 className={cn(
-                  'flex items-center justify-center rounded-xl px-4 py-1 transition-colors duration-200',
+                  'relative flex items-center justify-center rounded-xl px-4 py-1 transition-colors duration-200',
                   active && 'bg-accent'
                 )}
               >
                 <Icon className="size-5" strokeWidth={active ? 2 : 1.8} />
+                {showBadge && (
+                  <span
+                    className="absolute -top-0.5 right-2 flex h-4 min-w-4 items-center justify-center
+                               rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground"
+                    aria-label={`${unreadCount} movimientos no leídos`}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </span>
               {label}
             </Link>

@@ -7,9 +7,11 @@ import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import type { CategoryId, CategoryPeriodData, TransactionWithAccount } from '@/types'
+import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { TxRow } from '@/components/transactions/TxRow'
 import { TxModal } from '@/components/transactions/TxModal'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
+import { useUnread } from '@/components/transactions/UnreadProvider'
 import GranularityPicker from './GranularityPicker'
 import CategoryBarChart from './CategoryBarChart'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -55,9 +57,31 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const [loadingTxs, setLoadingTxs] = useState(true)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
-  const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
+  const [swiped, setSwiped] = useState<{ id: string; side: SwipeSide } | null>(null)
+  const { increment, decrement } = useUnread()
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
+
+  // Marca leído/no leído optimista, ajustando el badge (UnreadProvider). Estilo
+  // best-effort coherente con handleDelete de este fichero: rollback + log si falla.
+  function setRead(tx: TransactionWithAccount, isRead: boolean) {
+    if (tx.is_read === isRead) return
+    setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, is_read: isRead } : t)))
+    if (isRead) decrement()
+    else increment()
+    fetch(`/api/transactions/${tx.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_read: isRead }),
+    })
+      .then(res => { if (!res.ok) throw new Error('PATCH is_read failed') })
+      .catch(err => {
+        setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, is_read: tx.is_read } : t)))
+        if (isRead) increment()
+        else decrement()
+        console.error('[CategoryDetailClient.setRead]', err)
+      })
+  }
 
   // Mark loading during render when inputs change (React 19: setState in effect body is disallowed)
   const periodsKey = `${granularity}|${categoryId}`
@@ -286,10 +310,12 @@ export default function CategoryDetailClient({ categoryId }: Props) {
                       <TxRow
                         key={tx.id}
                         tx={tx}
-                        swipedId={swipedTxId}
-                        onSwipe={setSwipedTxId}
-                        onRecategorize={tx => { setCatPickerTx(tx); setSwipedTxId(null) }}
-                        onTap={tx => { setSelectedTxId(tx.id); setSwipedTxId(null) }}
+                        openSide={swiped?.id === tx.id ? swiped.side : null}
+                        onOpenSwipe={(id, side) => setSwiped({ id, side })}
+                        onCloseSwipe={() => setSwiped(null)}
+                        onRecategorize={tx => { setCatPickerTx(tx); setSwiped(null) }}
+                        onToggleRead={tx => { setSwiped(null); setRead(tx, !tx.is_read) }}
+                        onTap={tx => { setSelectedTxId(tx.id); setSwiped(null); if (!tx.is_read) setRead(tx, true) }}
                       />
                     ))}
                   </div>

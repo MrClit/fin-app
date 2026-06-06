@@ -32,6 +32,10 @@ export async function POST(request: NextRequest) {
       date,
       category_manual: category_manual ?? null,
       source: 'manual',
+      // Un movimiento que crea el propio usuario no es una novedad que deba
+      // notificarse: nace leído (issue #149). El DEFAULT false de la columna solo
+      // aplica a los inserts de sincronización.
+      is_read: true,
     })
     .select('*, account:accounts(id, name, color)')
     .single()

@@ -34,15 +34,33 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { category_manual } = body
+  const { category_manual, is_read } = body
 
-  if (category_manual !== null && !VALID_CATEGORIES.includes(category_manual)) {
-    return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
+  // Update parcial: solo se tocan los campos presentes en el body. `category_manual`
+  // (incluido null para "sin categoría") y `is_read` son independientes.
+  const update: { category_manual?: CategoryId | null; is_read?: boolean } = {}
+
+  if ('category_manual' in body) {
+    if (category_manual !== null && !VALID_CATEGORIES.includes(category_manual)) {
+      return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
+    }
+    update.category_manual = category_manual
+  }
+
+  if ('is_read' in body) {
+    if (typeof is_read !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid is_read' }, { status: 400 })
+    }
+    update.is_read = is_read
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('transactions')
-    .update({ category_manual })
+    .update(update)
     .eq('id', id)
     .eq('household_id', householdId)
     .select()

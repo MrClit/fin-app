@@ -138,6 +138,10 @@ export async function POST(req: Request) {
     // un `id` desconocido excluiría la tx de las agregaciones SIN error. El
     // scraper sólo emite 'restaurant' e 'income', y el fallback de aquí es
     // 'restaurant'; ambos están garantizados por ese seed. Ver issue #101.
+    // `is_read` se omite a propósito (issue #149): los inserts nuevos toman el
+    // DEFAULT false (nacen "no leídos"), y como el upsert usa
+    // `ignoreDuplicates: false` (actualiza filas existentes), NO incluirlo evita
+    // que un re-sync reescriba el estado de lectura de un movimiento ya leído.
     const rows = payload.transactions.map(tx => ({
       user_id: userId,
       household_id: householdId,

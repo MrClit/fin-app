@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
@@ -24,9 +25,29 @@ interface TransactionsClientProps {
 }
 
 export function TransactionsClient({ initialTransactions, initialCursor, accounts, manualAccountId, initialAccountIds }: TransactionsClientProps) {
-  const { transactions, addTx, appendTxs, deleteTx, recategorize } = useTxMutations(initialTransactions)
+  const { transactions, addTx, appendTxs, deleteTx, recategorize, markRead, markUnread } = useTxMutations(initialTransactions)
   const pagination = useTxPagination({ initialCursor, appendTxs })
   const filters = useTransactionsFilters(transactions, initialAccountIds)
+
+  // Membresía CONGELADA de la sección «No leídos»: un movimiento entra en la
+  // sección si era no leído la primera vez que apareció en la lista (snapshot
+  // inicial o página paginada), y permanece aunque luego se marque leído. Así el
+  // dot se apaga al instante pero la fila no salta. Al volver/recargar el
+  // componente se remonta y la membresía se recalcula desde datos frescos.
+  //
+  // Se modela con estado (no refs) y se actualiza durante el render —patrón
+  // recomendado por React— al detectar ids nuevos respecto a los ya vistos.
+  const [seenIds, setSeenIds] = useState<Set<string>>(
+    () => new Set(initialTransactions.map(t => t.id))
+  )
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(
+    () => new Set(initialTransactions.filter(t => !t.is_read).map(t => t.id))
+  )
+  const freshIds = transactions.filter(t => !seenIds.has(t.id))
+  if (freshIds.length > 0) {
+    setSeenIds(prev => new Set([...prev, ...freshIds.map(t => t.id)]))
+    setPinnedIds(prev => new Set([...prev, ...freshIds.filter(t => !t.is_read).map(t => t.id)]))
+  }
 
   // `?account=` solo actúa como deep-link de entrada: lo consumimos en el server
   // para inicializar el filtro y aquí limpiamos la URL para evitar que mienta
@@ -40,21 +61,39 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
 
   const [showAccountFilter, setShowAccountFilter] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [swipedTxId, setSwipedTxId] = useState<string | null>(null)
+  const [swiped, setSwiped] = useState<{ id: string; side: SwipeSide } | null>(null)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
-  const groups = useMemo(() => groupTxByDate(filters.filtered), [filters.filtered])
+
+  // Partición de la vista filtrada: arriba los «No leídos» (membresía congelada,
+  // lista plana por fecha desc) y debajo el resto agrupado por día como siempre.
+  const pinnedUnread = useMemo(
+    () => filters.filtered.filter(t => pinnedIds.has(t.id)),
+    [filters.filtered, pinnedIds]
+  )
+  const groups = useMemo(
+    () => groupTxByDate(filters.filtered.filter(t => !pinnedIds.has(t.id))),
+    [filters.filtered, pinnedIds]
+  )
 
   function handleTxTap(tx: TransactionWithAccount) {
     setSelectedTxId(tx.id)
-    setSwipedTxId(null)
+    setSwiped(null)
+    // Abrir el detalle marca leído aunque no se edite nada (issue #149).
+    if (!tx.is_read) void markRead(tx.id)
   }
 
   function handleRecategorize(tx: TransactionWithAccount) {
     setCatPickerTx(tx)
-    setSwipedTxId(null)
+    setSwiped(null)
+  }
+
+  function handleToggleRead(tx: TransactionWithAccount) {
+    setSwiped(null)
+    if (tx.is_read) void markUnread(tx.id)
+    else void markRead(tx.id)
   }
 
   async function handleDelete(txId: string) {
@@ -78,9 +117,12 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
 
       <TransactionsList
         groups={groups}
-        swipedTxId={swipedTxId}
-        onSwipe={setSwipedTxId}
+        pinnedUnread={pinnedUnread}
+        swiped={swiped}
+        onOpenSwipe={(id, side) => setSwiped({ id, side })}
+        onCloseSwipe={() => setSwiped(null)}
         onRecategorize={handleRecategorize}
+        onToggleRead={handleToggleRead}
         onTap={handleTxTap}
         onLoadMore={pagination.loadMore}
         hasMore={pagination.hasMore}
