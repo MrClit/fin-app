@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Sabadell login — registro de dispositivo / regeneración de sesión.
+// Sabadell VISA login — registro de dispositivo / regeneración de sesión.
 //
 // Uso:
-//   pnpm scrape:sabadell:login
+//   pnpm scrape:sabadell-visa:login
 //
 // Requiere en .env.local: SABADELL_USER (DNI), SABADELL_PASS (PIN de 8 dígitos).
 //
@@ -26,7 +26,7 @@ import {
   STEALTH_INIT_SCRIPT,
   LOGIN_SELECTORS,
   isStorageStateValid,
-} from './lib/sabadell-config.mjs'
+} from './config.mjs'
 
 const SNAPSHOT_INTERVAL_MS = 4000
 
@@ -104,7 +104,7 @@ async function main() {
       const key = `${url}|${html.length}`
       if (key !== lastKey) {
         lastKey = key
-        await writeFile(`scripts/.sabadell-dom-${dumpStamp()}.local.html`, html)
+        await writeFile(`scripts/scrapers/sabadell-visa/.dump-${dumpStamp()}.local.html`, html)
         console.log(`[sabadell-login] snapshot (${url})`)
       }
       await context.storageState({ path: LOCAL_STORAGE_PATH, indexedDB: true })

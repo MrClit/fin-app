@@ -1,6 +1,6 @@
 // Parsers puros del scraper de Edenred. Sin dependencias de Playwright ni de
-// process.exit: así son testeables de forma aislada (ver edenred-parsers.test.mjs).
-// Las usa scripts/edenred-scrape.mjs.
+// process.exit: así son testeables de forma aislada (ver parsers.test.mjs).
+// Las usa scrape.mjs.
 
 // Parsea importes en formato español ("12,50 €" o "-12,50 €") a number.
 export function parseAmount(raw) {

@@ -1,9 +1,9 @@
-// Configuración compartida entre edenred-login.mjs y edenred-scrape.mjs.
+// Configuración compartida entre login.mjs y scrape.mjs.
 // Mantener selectores y rutas en un único sitio evita que el script de
 // login y el de scraping se desincronicen (causa típica de exit code 2).
 
-export const LOCAL_STORAGE_PATH = 'scripts/storage-state.json'
-export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/storage-state.json.bak'
+export const LOCAL_STORAGE_PATH = 'scripts/scrapers/edenred/storage-state.json'
+export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/edenred/storage-state.json.bak'
 
 export const EDENRED_LOGIN_URL = 'https://empleados.edenred.es/login'
 export const EDENRED_ACCOUNT_URL = 'https://empleados.edenred.es'

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAmount, parseDate } from './sabadell-parsers.mjs'
+import { parseAmount, parseDate } from './parsers.mjs'
 
 describe('parseAmount', () => {
   it('parsea el valor máquina del atributo abbr (punto decimal)', () => {

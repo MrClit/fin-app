@@ -21,8 +21,8 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
-import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './lib/edenred-config.mjs'
-import { parseAmount, parseDate } from './lib/edenred-parsers.mjs'
+import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './config.mjs'
+import { parseAmount, parseDate } from './parsers.mjs'
 
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
 // para tolerar que el Mac estuviera dormido: el plist define varios slots a
@@ -38,7 +38,7 @@ const CRON_MARKER_PREFIX = 'edenred-last-success.'
 // writeCronMarker) para "re-armar" el aviso ante un fallo posterior del día.
 const NOTIFY_MARKER_PREFIX = 'edenred-notified.'
 // Prefijo de los volcados de diagnóstico (screenshot + HTML) que se generan al
-// fallar. Compartido implícitamente con edenred-status.mjs (mismo literal allí).
+// fallar. Compartido implícitamente con status.mjs (mismo literal allí).
 const FAILURE_PREFIX = 'edenred-failure-'
 const FAILURE_KEEP = 5
 function cronMarkerPath() {
@@ -87,7 +87,7 @@ function notifySessionExpired() {
 
 // Selectores capturados sobre empleados.edenred.es con el design system
 // "ore-*". Si Edenred refactoriza el front, revisar con:
-//   pnpm exec playwright codegen --load-storage=scripts/storage-state.json https://empleados.edenred.es
+//   pnpm exec playwright codegen --load-storage=scripts/scrapers/edenred/storage-state.json https://empleados.edenred.es
 const SELECTORS = {
   // El form de login sólo aparece si la sesión no es válida.
   loginIndicators: ['input[type="password"]'],

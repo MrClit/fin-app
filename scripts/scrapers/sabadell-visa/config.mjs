@@ -1,4 +1,4 @@
-// Configuración compartida entre sabadell-login.mjs y sabadell-scrape.mjs.
+// Configuración compartida entre login.mjs y scrape.mjs.
 // Mantener selectores, rutas y opciones de navegador en un único sitio evita
 // que el script de login y el de scraping se desincronicen.
 
@@ -7,9 +7,9 @@
 // un PERFIL PERSISTENTE de Chrome (userDataDir): conserva cookies, localStorage e
 // indexedDB entre ejecuciones, que es lo que mantiene viva la sesión del banco.
 // El storage-state JSON se exporta sólo para validar/inspeccionar cookies.
-export const USER_DATA_DIR = 'scripts/.sabadell-userdata'
-export const LOCAL_STORAGE_PATH = 'scripts/sabadell-storage-state.json'
-export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/sabadell-storage-state.json.bak'
+export const USER_DATA_DIR = 'scripts/scrapers/sabadell-visa/.userdata'
+export const LOCAL_STORAGE_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json'
+export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json.bak'
 
 // URL de la página de login de BS Online particulares. Configurable por si
 // cambia. Se puede sobreescribir con SABADELL_LOGIN_URL en .env.local.

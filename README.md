@@ -4,7 +4,7 @@ App web personal de gestión y análisis de finanzas. Stack: Next.js 16 (App Rou
 
 ## Cron de Edenred
 
-El scraper de Edenred (`scripts/edenred-scrape.mjs`) se ejecuta **cada día a las 07:00 hora local** mediante un agente de `launchd` en el Mac del usuario.
+El scraper de Edenred (`scripts/scrapers/edenred/scrape.mjs`) se ejecuta **cada día a las 07:00 hora local** mediante un agente de `launchd` en el Mac del usuario.
 
 > **¿Por qué local y no en GitHub Actions?** Edenred valida la IP de origen de la sesión: una sesión creada desde una IP residencial española queda invalidada al usarla desde el datacenter de GitHub. Probado y descartado. Ejecutar el cron desde el Mac evita el problema, a costa de que el Mac tiene que estar encendido a la hora del scrape (si no, se salta ese día).
 
@@ -17,7 +17,7 @@ El scraper de Edenred (`scripts/edenred-scrape.mjs`) se ejecuta **cada día a la
   | `APP_URL` | URL del deploy donde vive el webhook (`https://<...>.vercel.app`, sin barra final) |
   | `EDENRED_USER` | email de edenred.es (solo para `scrape:edenred:login`) |
   | `EDENRED_PASS` | contraseña de edenred.es (solo para `scrape:edenred:login`) |
-- Sesión válida en `scripts/storage-state.json` — la generas con `pnpm scrape:edenred:login`.
+- Sesión válida en `scripts/scrapers/edenred/storage-state.json` — la generas con `pnpm scrape:edenred:login`.
 - `pnpm` instalado y en el `PATH`.
 
 ### Instalar el cron
@@ -25,7 +25,7 @@ El scraper de Edenred (`scripts/edenred-scrape.mjs`) se ejecuta **cada día a la
 Desde la raíz del proyecto:
 
 ```bash
-./scripts/install-edenred-launchd.sh
+./scripts/scrapers/edenred/install-launchd.sh
 ```
 
 El script:
@@ -61,12 +61,12 @@ El scraper sale con **exit code 2** si Edenred pide login o 2FA. En ese caso:
 pnpm scrape:edenred:login   # abre Chromium, completas 2FA, ENTER al final
 ```
 
-`scripts/storage-state.json` se actualiza y el siguiente run del cron volverá a funcionar. No hay que reinstalar el agente.
+`scripts/scrapers/edenred/storage-state.json` se actualiza y el siguiente run del cron volverá a funcionar. No hay que reinstalar el agente.
 
 ### Desinstalar
 
 ```bash
-./scripts/install-edenred-launchd.sh --uninstall
+./scripts/scrapers/edenred/install-launchd.sh --uninstall
 ```
 
 ## Cron de Enable Banking
@@ -106,6 +106,6 @@ El run falla con código HTTP no-2xx solo si el endpoint devuelve 5xx (DB inalca
 - `pnpm dev` — desarrollo local
 - `pnpm build` — compilar para producción
 - `pnpm test` — tests Vitest
-- `pnpm scrape:edenred` — ejecutar el scraper (requiere `storage-state.json` válido)
+- `pnpm scrape:edenred` — ejecutar el scraper (requiere `scripts/scrapers/edenred/storage-state.json` válido)
 - `pnpm scrape:edenred:force` — ejecutar el scraper ignorando el marker diario (re-ejecuta aunque ya haya corrido hoy)
-- `pnpm scrape:edenred:login` — regenerar `storage-state.json` con login manual
+- `pnpm scrape:edenred:login` — regenerar `scripts/scrapers/edenred/storage-state.json` con login manual
