@@ -80,14 +80,15 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
   // que un re-toggle redundante no lo descuadre. Rollback simétrico + toast.
   const setRead = useCallback((id: string, isRead: boolean) => {
     return (async function attempt() {
-      let changed = false
+      // El estado real ya cambia: no reenviar ni descuadrar el contador. Se
+      // comprueba contra `transactions` (estado actual en el closure), NO dentro
+      // del updater de setState —que React no ejecuta de forma síncrona—.
+      if (!transactions.some(t => t.id === id && t.is_read !== isRead)) return
       let snapshot: TransactionWithAccount[] = []
       setTransactions(prev => {
         snapshot = prev
-        changed = prev.some(t => t.id === id && t.is_read !== isRead)
         return prev.map(t => (t.id === id ? { ...t, is_read: isRead } : t))
       })
-      if (!changed) return
       // Leído → un no leído menos; no leído → uno más.
       if (isRead) decrement()
       else increment()
@@ -106,7 +107,7 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
         showToast('No se pudo actualizar el movimiento', () => { void attempt() })
       }
     })()
-  }, [showToast, increment, decrement])
+  }, [transactions, showToast, increment, decrement])
 
   const markRead = useCallback((id: string) => setRead(id, true), [setRead])
   const markUnread = useCallback((id: string) => setRead(id, false), [setRead])
