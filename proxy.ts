@@ -7,7 +7,7 @@ export async function proxy(request: NextRequest) {
   // Webhooks públicos con auth Bearer: saltar el chequeo de sesión.
   if (
     pathname.startsWith('/api/edenred') ||
-    pathname.startsWith('/api/sabadell') ||
+    pathname.startsWith('/api/sabadell-visa') ||
     pathname === '/api/sync/enablebanking/cron'
   ) {
     return NextResponse.next({ request })

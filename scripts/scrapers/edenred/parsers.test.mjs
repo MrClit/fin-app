@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAmount, parseDate } from './edenred-parsers.mjs'
+import { parseAmount, parseDate } from './parsers.mjs'
 
 describe('parseAmount', () => {
   it('parsea importes con coma decimal', () => {

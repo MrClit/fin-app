@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-// Sabadell scraper — tarjetas de crédito (#147). Playwright HEADED (Sabadell
+// Sabadell VISA scraper — tarjetas de crédito (#147). Playwright HEADED (Sabadell
 // bloquea headless vía WAF Akamai) con Chrome real + perfil persistente enrolado
 // como dispositivo de confianza (sin OTP en logins posteriores).
 //
 // Uso:
-//   pnpm scrape:sabadell          (respeta el marker diario si SABADELL_CRON=1)
-//   pnpm scrape:sabadell:force    (SABADELL_SKIP_MARKER=1: ignora el marker)
+//   pnpm scrape:sabadell-visa          (respeta el marker diario si SABADELL_CRON=1)
+//   pnpm scrape:sabadell-visa:force    (SABADELL_SKIP_MARKER=1: ignora el marker)
 //
 // Flags de desarrollo:
 //   SABADELL_DRY_RUN=1   no hace POST; imprime el payload
 //   SABADELL_DEBUG=1     vuelca DOM en cada paso a ~/Library/Logs/fin-app
 //
 // Exit codes:
-//   0 éxito · 1 falta config · 2 sesión/OTP (re-enrolar con scrape:sabadell:login)
+//   0 éxito · 1 falta config · 2 sesión/OTP (re-enrolar con scrape:sabadell-visa:login)
 //   3 error webhook · 4 error de scraping (navegación/selectores)
 
 import { chromium } from 'playwright'
@@ -24,16 +24,16 @@ import { execFileSync } from 'node:child_process'
 import {
   USER_DATA_DIR, SABADELL_LOGIN_URL,
   CHROME_CHANNEL, CHROME_ARGS, STEALTH_INIT_SCRIPT, LOGIN_SELECTORS,
-} from './lib/sabadell-config.mjs'
-import { parseAmount, parseDate } from './lib/sabadell-parsers.mjs'
+} from './config.mjs'
+import { parseAmount, parseDate } from './parsers.mjs'
 
 const CRON_MODE = process.env.SABADELL_CRON === '1'
 const DRY_RUN = process.env.SABADELL_DRY_RUN === '1'
 const DEBUG = process.env.SABADELL_DEBUG === '1'
 const LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
-const MARKER_PREFIX = 'sabadell-last-success.'
-const NOTIFY_PREFIX = 'sabadell-notified.'
-const FAILURE_PREFIX = 'sabadell-failure-'
+const MARKER_PREFIX = 'sabadell-visa-last-success.'
+const NOTIFY_PREFIX = 'sabadell-visa-notified.'
+const FAILURE_PREFIX = 'sabadell-visa-failure-'
 const FAILURE_KEEP = 5
 
 // Las 2 tarjetas de crédito a sincronizar, por sus últimos 4 dígitos (#147).
@@ -61,7 +61,7 @@ function notifySessionExpired() {
   try {
     if (existsSync(notifyPath())) return
     execFileSync('osascript', ['-e',
-      `display notification ${JSON.stringify('Ejecuta pnpm scrape:sabadell:login para re-enrolar el dispositivo.')} with title ${JSON.stringify('Sabadell: sesión caducada')}`,
+      `display notification ${JSON.stringify('Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.')} with title ${JSON.stringify('Sabadell VISA: sesión caducada')}`,
     ])
     mkdirSync(LOG_DIR, { recursive: true })
     closeSync(openSync(notifyPath(), 'a'))
@@ -230,9 +230,9 @@ async function extractCard(page) {
 
 async function postToWebhook(cards) {
   const appUrl = requireEnv('APP_URL').replace(/\/$/, '')
-  const secret = requireEnv('SABADELL_WEBHOOK_SECRET')
+  const secret = requireEnv('SABADELL_VISA_WEBHOOK_SECRET')
   const body = JSON.stringify({ last_synced_at: new Date().toISOString(), cards })
-  const res = await fetch(`${appUrl}/api/sabadell`, {
+  const res = await fetch(`${appUrl}/api/sabadell-visa`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}` },
     body,
@@ -250,7 +250,7 @@ async function main() {
     return
   }
   if (!existsSync(USER_DATA_DIR)) {
-    die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell:login')
+    die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell-visa:login')
   }
 
   const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
@@ -273,7 +273,7 @@ async function main() {
       const cardLast4 = card.cardNumber.slice(-4)
       cards.push({
         card_id: card.cardNumber,
-        name: `Sabadell •••• ${cardLast4}`,
+        name: `Sabadell VISA •••• ${cardLast4}`,
         number: card.cardNumber,
         balance: card.balance,
         transactions: card.transactions,

@@ -117,7 +117,7 @@ function callRoute(body: unknown, opts: { auth?: string | null; rawBody?: string
   const headers: Record<string, string> = {}
   if (opts.auth !== null) headers.authorization = opts.auth ?? `Bearer ${SECRET}`
   return POST(
-    new Request('http://test/api/sabadell', {
+    new Request('http://test/api/sabadell-visa', {
       method: 'POST',
       headers,
       body: opts.rawBody ?? JSON.stringify(body),
@@ -150,14 +150,14 @@ const validPayload = {
 }
 
 beforeEach(() => {
-  vi.stubEnv('SABADELL_WEBHOOK_SECRET', SECRET)
+  vi.stubEnv('SABADELL_VISA_WEBHOOK_SECRET', SECRET)
 })
 
 afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('POST /api/sabadell — auth', () => {
+describe('POST /api/sabadell-visa — auth', () => {
   it('rechaza con 401 si falta el header Authorization', async () => {
     const { db } = buildMockDb()
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
@@ -175,10 +175,10 @@ describe('POST /api/sabadell — auth', () => {
   })
 })
 
-describe('POST /api/sabadell — configuración', () => {
-  it('devuelve 500 si falta SABADELL_WEBHOOK_SECRET', async () => {
+describe('POST /api/sabadell-visa — configuración', () => {
+  it('devuelve 500 si falta SABADELL_VISA_WEBHOOK_SECRET', async () => {
     vi.unstubAllEnvs()
-    delete process.env.SABADELL_WEBHOOK_SECRET
+    delete process.env.SABADELL_VISA_WEBHOOK_SECRET
     const { db } = buildMockDb()
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
     const res = await callRoute(validPayload)
@@ -187,7 +187,7 @@ describe('POST /api/sabadell — configuración', () => {
   })
 })
 
-describe('POST /api/sabadell — validación de body', () => {
+describe('POST /api/sabadell-visa — validación de body', () => {
   it.each<[string, string | object]>([
     ['JSON no parseable', 'not-json{'],
     ['falta cards', { last_synced_at: '2026-06-06T10:00:00Z' }],
@@ -216,7 +216,7 @@ describe('POST /api/sabadell — validación de body', () => {
   })
 })
 
-describe('POST /api/sabadell — user_config', () => {
+describe('POST /api/sabadell-visa — user_config', () => {
   it('devuelve 500 si user_config está vacío', async () => {
     const { db } = buildMockDb({ userConfig: { data: null, error: null } })
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
@@ -226,7 +226,7 @@ describe('POST /api/sabadell — user_config', () => {
   })
 })
 
-describe('POST /api/sabadell — primer POST (crea cuentas)', () => {
+describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
   it('inserta una cuenta de tarjeta por cada card y upsertea sus txns', async () => {
     const { db, insertSpy, upsertSpy, rpcSpy } = buildMockDb({
       userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
@@ -266,7 +266,7 @@ describe('POST /api/sabadell — primer POST (crea cuentas)', () => {
   })
 })
 
-describe('POST /api/sabadell — POST siguiente (actualiza cuentas)', () => {
+describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () => {
   it('actualiza balance/last_synced/name de cada cuenta existente sin insertar', async () => {
     const { db, insertSpy, updateSpy } = buildMockDb({
       userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
@@ -287,7 +287,7 @@ describe('POST /api/sabadell — POST siguiente (actualiza cuentas)', () => {
   })
 })
 
-describe('POST /api/sabadell — idempotencia', () => {
+describe('POST /api/sabadell-visa — idempotencia', () => {
   it('upsert con onConflict="household_id,external_id" e ignoreDuplicates=false', async () => {
     const { db, upsertSpy } = buildMockDb({
       userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },

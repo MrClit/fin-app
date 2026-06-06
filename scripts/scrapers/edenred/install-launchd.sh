@@ -7,8 +7,8 @@
 # dispara un intento inmediato al instalar el agente o reiniciar el Mac.
 #
 # Uso:
-#   ./scripts/install-edenred-launchd.sh             # instalar
-#   ./scripts/install-edenred-launchd.sh --uninstall # desinstalar
+#   ./scripts/scrapers/edenred/install-launchd.sh             # instalar
+#   ./scripts/scrapers/edenred/install-launchd.sh --uninstall # desinstalar
 
 set -euo pipefail
 
@@ -27,7 +27,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
   exit 0
 fi
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PNPM_BIN="$(command -v pnpm || true)"
 if [[ -z "$PNPM_BIN" ]]; then
   echo "Error: pnpm no está en el PATH. Instálalo antes (https://pnpm.io/installation)." >&2

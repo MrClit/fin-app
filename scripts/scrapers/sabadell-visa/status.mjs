@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Estado del cron de Sabadell — resumen del último éxito, últimos logs y
-// estado del agente launchd. Uso: pnpm cron:sabadell:status
+// Estado del cron de Sabadell VISA — resumen del último éxito, últimos logs y
+// estado del agente launchd. Uso: pnpm cron:sabadell-visa:status
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -8,11 +8,11 @@ import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 const LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
-const OUT_LOG = join(LOG_DIR, 'sabadell-scraper.out.log')
-const ERR_LOG = join(LOG_DIR, 'sabadell-scraper.err.log')
-const MARKER_PREFIX = 'sabadell-last-success.'
-const FAILURE_PREFIX = 'sabadell-failure-'
-const AGENT_LABEL = 'com.fin-app.sabadell-scraper'
+const OUT_LOG = join(LOG_DIR, 'sabadell-visa-scraper.out.log')
+const ERR_LOG = join(LOG_DIR, 'sabadell-visa-scraper.err.log')
+const MARKER_PREFIX = 'sabadell-visa-last-success.'
+const FAILURE_PREFIX = 'sabadell-visa-failure-'
+const AGENT_LABEL = 'com.fin-app.sabadell-visa-scraper'
 
 const fmtDate = (d) =>
   d.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' })
@@ -70,7 +70,7 @@ function launchctlInfo() {
   }
 }
 
-console.log(`Cron Sabadell — ${AGENT_LABEL}\n`)
+console.log(`Cron Sabadell VISA — ${AGENT_LABEL}\n`)
 
 const agent = launchctlInfo()
 if (!agent.loaded) {

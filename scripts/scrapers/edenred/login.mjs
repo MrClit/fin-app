@@ -31,7 +31,7 @@ import {
   LOCAL_STORAGE_BACKUP_PATH,
   EDENRED_LOGIN_URL,
   isStorageStateValid,
-} from './lib/edenred-config.mjs'
+} from './config.mjs'
 
 // Locators del formulario de login (capturados con `playwright codegen`
 // sobre empleados.edenred.es/login).

@@ -64,9 +64,9 @@ function safeBearerMatch(header: string | null, secret: string): boolean {
 }
 
 export async function POST(req: Request) {
-  const secret = process.env.SABADELL_WEBHOOK_SECRET
+  const secret = process.env.SABADELL_VISA_WEBHOOK_SECRET
   if (!secret) {
-    console.error('[sabadell] SABADELL_WEBHOOK_SECRET no configurado')
+    console.error('[sabadell-visa] SABADELL_VISA_WEBHOOK_SECRET no configurado')
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     .limit(1)
     .maybeSingle()
   if (userErr || !userRow || !userRow.household_id) {
-    console.error('[sabadell] no user_config/household:', userErr)
+    console.error('[sabadell-visa] no user_config/household:', userErr)
     return NextResponse.json({ error: 'No user configured' }, { status: 500 })
   }
   const userId = userRow.user_id as string
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       .eq('external_id', card.card_id)
       .maybeSingle()
     if (accSelErr) {
-      console.error('[sabadell] select account:', accSelErr)
+      console.error('[sabadell-visa] select account:', accSelErr)
       return NextResponse.json({ error: 'DB error' }, { status: 500 })
     }
 
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
         .update({ balance: card.balance, last_synced: payload.last_synced_at, name: card.name })
         .eq('id', accountId)
       if (updErr) {
-        console.error('[sabadell] update account:', updErr)
+        console.error('[sabadell-visa] update account:', updErr)
         return NextResponse.json({ error: 'DB error' }, { status: 500 })
       }
     } else {
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
         .select('id')
         .single()
       if (insErr || !inserted) {
-        console.error('[sabadell] insert account:', insErr)
+        console.error('[sabadell-visa] insert account:', insErr)
         return NextResponse.json({ error: 'DB error' }, { status: 500 })
       }
       accountId = inserted.id as string
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       .from('transactions')
       .upsert(txRows, { onConflict: 'household_id,external_id', ignoreDuplicates: false })
     if (upsertErr) {
-      console.error('[sabadell] upsert transactions:', upsertErr)
+      console.error('[sabadell-visa] upsert transactions:', upsertErr)
       return NextResponse.json({ error: 'DB error' }, { status: 500 })
     }
     upserted = txRows.length
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
     // Refresca la matview de analítica (CONCURRENTLY) para que los gastos de
     // tarjeta entren en las agregaciones sin esperar a la sync de Enable Banking.
     const { error: refreshError } = await db.rpc('refresh_monthly_summary')
-    if (refreshError) console.error('[sabadell] refresh_monthly_summary:', refreshError)
+    if (refreshError) console.error('[sabadell-visa] refresh_monthly_summary:', refreshError)
   }
 
   return NextResponse.json({ cards: payload.cards.length, created_accounts: createdAccounts, upserted })

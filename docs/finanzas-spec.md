@@ -390,11 +390,16 @@ finanzas-app/
 │   └── workflows/
 │       └── enablebanking-sync.yml → Cron diario 06:00 (Europe/Madrid) → POST /api/sync/enablebanking/cron
 └── scripts/
-    ├── edenred-scrape.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
-    ├── edenred-login.mjs          → Regeneración manual de scripts/storage-state.json
-    ├── edenred-status.mjs         → Estado del último scrape (marker en ~/Library/Logs/fin-app)
-    ├── lib/edenred-config.mjs     → Paths, URLs y validación de storage-state compartidos
-    └── install-edenred-launchd.sh → Instala el agente launchd en ~/Library/LaunchAgents
+    └── scrapers/                  → Un subdirectorio autocontenido por scraper (nombres genéricos; el folder da el contexto)
+        ├── edenred/
+        │   ├── scrape.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
+        │   ├── login.mjs          → Regeneración manual de scripts/scrapers/edenred/storage-state.json
+        │   ├── status.mjs         → Estado del último scrape (marker en ~/Library/Logs/fin-app)
+        │   ├── config.mjs         → Paths, URLs y validación de storage-state compartidos
+        │   ├── parsers.mjs        → Parsers puros de importe/fecha (testeables)
+        │   └── install-launchd.sh → Instala el agente launchd en ~/Library/LaunchAgents
+        └── sabadell-visa/         → Tarjetas de crédito VISA de Banco Sabadell (#147); mismo layout que edenred
+            └── … (scrape/login/status/config/parsers/install-launchd, perfil persistente en .userdata/)
 ```
 
 ### 4.4 Flujo de sincronización bancaria (Enable Banking)
@@ -435,7 +440,7 @@ APP_URL=                        # URL de producción en Vercel
 
 ```
 launchd (StartCalendarInterval: 07:00 hora local)
-  └── pnpm scrape:edenred (Playwright headless, sesión en scripts/storage-state.json)
+  └── pnpm scrape:edenred (Playwright headless, sesión en scripts/scrapers/edenred/storage-state.json)
         ├── Carga storage-state.json y entra en edenred.es
         ├── Extrae saldo actual y últimos movimientos
         └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
@@ -444,7 +449,7 @@ launchd (StartCalendarInterval: 07:00 hora local)
                   y actualiza balance en accounts
 ```
 
-El agente se instala con `./scripts/install-edenred-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
+El agente se instala con `./scripts/scrapers/edenred/install-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
 
 **Variables en `.env.local` del Mac:**
 ```

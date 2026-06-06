@@ -41,14 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 # edenred scraper — sesión Playwright con cookies válidas, nunca commitear
-scripts/storage-state.json
-scripts/storage-state.json.*
+scripts/scrapers/edenred/storage-state.json
+scripts/scrapers/edenred/storage-state.json.*
 
-# sabadell scraper — sesión/perfil Playwright y volcados de investigación
-scripts/sabadell-storage-state.json
-scripts/sabadell-storage-state.json.*
-scripts/.sabadell-userdata/
-scripts/.sabadell-*.local.*
+# sabadell-visa scraper — sesión/perfil Playwright y volcados de investigación
+scripts/scrapers/sabadell-visa/storage-state.json
+scripts/scrapers/sabadell-visa/storage-state.json.*
+scripts/scrapers/sabadell-visa/.userdata/
+scripts/scrapers/sabadell-visa/*.local.*
 
 # serwist — service worker generado en build
 public/sw.js
