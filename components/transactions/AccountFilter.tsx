@@ -2,12 +2,13 @@
 
 import { Box } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { AccountIconBadge } from '@/components/accounts/AccountIconBadge'
 import type { Account } from '@/types'
 
 interface AccountFilterProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
+  accounts: Pick<Account, 'id' | 'name' | 'color' | 'number' | 'type'>[]
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
 }
@@ -69,7 +70,6 @@ export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSel
           {/* Account list */}
           {accounts.map(account => {
             const isSelected = selectedIds.includes(account.id)
-            const color = account.color ?? '#6366f1'
             const maskedNumber = account.number ? `•••• ${account.number.slice(-4)}` : null
 
             return (
@@ -82,12 +82,7 @@ export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSel
                 }}
                 onClick={() => toggleAccount(account.id)}
               >
-                <div
-                  className="flex items-center justify-center rounded-[10px] shrink-0"
-                  style={{ width: 34, height: 34, background: color + '22' }}
-                >
-                  <div className="rounded" style={{ width: 14, height: 14, background: color }} />
-                </div>
+                <AccountIconBadge type={account.type} color={account.color} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{account.name}</p>
                   {maskedNumber && (

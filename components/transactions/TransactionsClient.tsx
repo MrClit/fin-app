@@ -19,7 +19,7 @@ import type { Account, TransactionWithAccount } from '@/types'
 interface TransactionsClientProps {
   initialTransactions: TransactionWithAccount[]
   initialCursor: TransactionCursor | null
-  accounts: Pick<Account, 'id' | 'name' | 'color' | 'number'>[]
+  accounts: Pick<Account, 'id' | 'name' | 'color' | 'number' | 'type'>[]
   manualAccountId: string
   initialAccountIds?: string[]
 }
