@@ -32,8 +32,8 @@ type SabadellPayload = {
 // genéricos ("Sabadell VISA •••• NNNN"); aquí se fija el nombre real del titular.
 // Una tarjeta no listada conserva el nombre que venga del webhook.
 const CARD_DISPLAY_NAMES: Record<string, string> = {
-  '5011': 'Víctor (5011)',
-  '4014': 'Mesalina (4014)',
+  '5011': 'Sabadell VISA Víctor',
+  '4014': 'Sabadell VISA Mesalina',
 }
 
 function resolveCardName(card: SabadellCard): string {

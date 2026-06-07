@@ -243,7 +243,7 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
     expect(insertSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
       household_id: HOUSEHOLD_ID,
       // El nombre se mapea por los últimos 4 dígitos del card_id (4014 → Mesalina)
-      name: 'Mesalina (4014)',
+      name: 'Sabadell VISA Mesalina',
       type: 'card',
       source: 'scraper',
       is_liability: true,
@@ -285,12 +285,12 @@ describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () =>
     expect(updateSpy).toHaveBeenNthCalledWith(1, {
       balance: -156.2,
       last_synced: validPayload.last_synced_at,
-      name: 'Mesalina (4014)',
+      name: 'Sabadell VISA Mesalina',
     })
     expect(updateSpy).toHaveBeenNthCalledWith(2, {
       balance: -14.99,
       last_synced: validPayload.last_synced_at,
-      name: 'Víctor (5011)',
+      name: 'Sabadell VISA Víctor',
     })
   })
 })
