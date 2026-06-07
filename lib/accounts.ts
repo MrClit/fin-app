@@ -1,4 +1,18 @@
-import type { Account } from '@/types'
+import { Landmark, CreditCard, UtensilsCrossed, Banknote } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import type { Account, AccountType } from '@/types'
+
+/**
+ * Icono Lucide que representa cada tipo de cuenta en los badges de la UI.
+ * `Banknote` (no `Wallet`) para `cash`, ya que `Wallet` identifica la sección
+ * "Cuentas" en la barra de navegación.
+ */
+export const accountTypeIcon: Record<AccountType, LucideIcon> = {
+  bank:    Landmark,
+  card:    CreditCard,
+  edenred: UtensilsCrossed,
+  cash:    Banknote,
+}
 
 /**
  * Estado de caducidad del consentimiento PSD2 de una cuenta (spec §9.2).

@@ -48,7 +48,7 @@ async function TransactionsContent({
       .limit(INITIAL_PAGE_SIZE),
     supabase
       .from('accounts')
-      .select('id, name, color, number')
+      .select('id, name, color, number, type')
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
     supabase

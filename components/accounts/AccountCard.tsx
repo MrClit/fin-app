@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Check, AlertTriangle, XCircle } from 'lucide-react'
 import { fmt } from '@/lib/formatting'
 import { getConsentStatus, type ConsentInfo } from '@/lib/accounts'
+import { AccountIconBadge } from './AccountIconBadge'
 import { SyncButton } from './SyncButton'
 import { RenewBankButton } from './RenewBankButton'
 import type { Account } from '@/types'
@@ -66,7 +67,6 @@ function ConsentBadge({ consent }: { consent: ConsentInfo }) {
 }
 
 export function AccountCard({ account }: { account: Account }) {
-  const color = account.color ?? '#6366f1'
   const isNegative = (account.balance ?? 0) < 0
   const { label: syncLabel, color: syncColor, Icon: SyncIcon } = getSyncStatus(account.last_synced)
   const consent =
@@ -78,12 +78,7 @@ export function AccountCard({ account }: { account: Account }) {
     <div className="bg-card rounded-[20px] p-5 border border-border">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div
-            className="size-11 rounded-[14px] flex items-center justify-center"
-            style={{ background: color + '22' }}
-          >
-            <div className="size-4.5 rounded-[5px]" style={{ background: color }} />
-          </div>
+          <AccountIconBadge type={account.type} color={account.color} size="lg" />
           <div>
             <div className="text-[15px] font-bold text-foreground leading-tight">
               {account.name}

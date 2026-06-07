@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { fmt } from '@/lib/formatting'
+import { AccountIconBadge } from '@/components/accounts/AccountIconBadge'
 import type { Account, AccountType } from '@/types'
 
 const typeLabel: Record<AccountType, string> = {
@@ -10,7 +11,6 @@ const typeLabel: Record<AccountType, string> = {
 }
 
 function AccountMiniCard({ account }: { account: Account }) {
-  const color = account.color ?? '#6366f1'
   const balance = account.balance ?? 0
   const isNegative = balance < 0
 
@@ -20,12 +20,7 @@ function AccountMiniCard({ account }: { account: Account }) {
       className="block bg-card rounded-2xl p-3.5 border border-border active:opacity-70 transition-opacity"
     >
       <div className="flex items-center justify-between mb-2.5">
-        <div
-          className="size-8 rounded-[10px] flex items-center justify-center"
-          style={{ background: color + '22' }}
-        >
-          <div className="size-3 rounded-[3px]" style={{ background: color }} />
-        </div>
+        <AccountIconBadge type={account.type} color={account.color} size="sm" />
         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide">
           {typeLabel[account.type]}
         </span>
