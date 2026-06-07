@@ -103,9 +103,14 @@ async function AccountsContent({
           </div>
         </div>
       ) : (
-        (accounts ?? []).map((account: Account) => (
-          <AccountCard key={account.id} account={account} />
-        ))
+        // Lista a ancho completo: -mx-4 cancela el padding lateral del wrapper para
+        // que las filas lleguen a los bordes; divide-y + border-y dan solo líneas
+        // horizontales (sin laterales ni esquinas redondeadas).
+        <div className="-mx-4 flex flex-col border-y border-border divide-y divide-border">
+          {(accounts ?? []).map((account: Account) => (
+            <AccountCard key={account.id} account={account} />
+          ))}
+        </div>
       )}
 
       <ConnectBankButton />
