@@ -242,7 +242,8 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
     expect(insertSpy).toHaveBeenCalledTimes(2)
     expect(insertSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
       household_id: HOUSEHOLD_ID,
-      name: 'Sabadell VISA •••• 4014',
+      // El nombre se mapea por los últimos 4 dígitos del card_id (4014 → Mesalina)
+      name: 'Sabadell VISA Mesalina',
       type: 'card',
       source: 'scraper',
       is_liability: true,
@@ -279,11 +280,47 @@ describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () =>
     expect(await res.json()).toEqual({ cards: 2, created_accounts: 0, upserted: 2 })
     expect(insertSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalledTimes(2)
+    // El nombre se reescribe mapeado en cada sync (4014 → Mesalina), de modo que
+    // se autocorrige sin edición manual en BD.
     expect(updateSpy).toHaveBeenNthCalledWith(1, {
       balance: -156.2,
       last_synced: validPayload.last_synced_at,
-      name: 'Sabadell VISA •••• 4014',
+      name: 'Sabadell VISA Mesalina',
     })
+    expect(updateSpy).toHaveBeenNthCalledWith(2, {
+      balance: -14.99,
+      last_synced: validPayload.last_synced_at,
+      name: 'Sabadell VISA Víctor',
+    })
+  })
+})
+
+describe('POST /api/sabadell-visa — nombre de tarjeta desconocida', () => {
+  it('conserva el nombre del webhook si el card_id no está mapeado', async () => {
+    const { db, insertSpy } = buildMockDb({
+      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      accountSelects: [{ data: null }],
+      accountInserts: [{ data: { id: ACCOUNT_A } }],
+    })
+    vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
+
+    const unknownCard = {
+      last_synced_at: '2026-06-06T10:00:00Z',
+      cards: [
+        {
+          card_id: '4106________9999',
+          name: 'Sabadell VISA •••• 9999',
+          number: '4106 •••• 9999',
+          balance: -10,
+          transactions: [],
+        },
+      ],
+    }
+    const res = await callRoute(unknownCard)
+    expect(res.status).toBe(200)
+    expect(insertSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      name: 'Sabadell VISA •••• 9999',
+    }))
   })
 })
 

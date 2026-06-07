@@ -19,6 +19,7 @@ export async function GET() {
     .select('id, name, type, source, is_liability, balance, number, color, currency, last_synced, consent_expires_at, created_at')
     .eq('household_id', householdId)
     .eq('is_active', true)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
 
   if (error) {

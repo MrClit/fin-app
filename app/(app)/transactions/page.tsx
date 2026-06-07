@@ -50,6 +50,7 @@ async function TransactionsContent({
       .from('accounts')
       .select('id, name, color, number, type')
       .eq('is_active', true)
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
     supabase
       .from('accounts')

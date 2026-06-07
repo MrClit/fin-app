@@ -35,6 +35,7 @@ async function AccountsContent({
     .from('accounts')
     .select('*')
     .eq('is_active', true)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
 
   const params = await searchParams
