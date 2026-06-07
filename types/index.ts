@@ -82,6 +82,7 @@ export interface Account {
   aspsp_country: string | null
   last_synced: string | null
   is_active: boolean
+  sort_order: number
   created_at: string
 }
 

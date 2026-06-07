@@ -27,6 +27,19 @@ type SabadellPayload = {
   cards: SabadellCard[]
 }
 
+// Nombre de presentación por tarjeta (clave = últimos 4 dígitos del card_id).
+// Ambas VISAs comparten descripción en el banco, así que el scraper envía nombres
+// genéricos ("Sabadell VISA •••• NNNN"); aquí se fija el nombre real del titular.
+// Una tarjeta no listada conserva el nombre que venga del webhook.
+const CARD_DISPLAY_NAMES: Record<string, string> = {
+  '5011': 'Víctor (5011)',
+  '4014': 'Mesalina (4014)',
+}
+
+function resolveCardName(card: SabadellCard): string {
+  return CARD_DISPLAY_NAMES[card.card_id.slice(-4)] ?? card.name
+}
+
 function isValidTx(tx: unknown): tx is SabadellTx {
   if (!tx || typeof tx !== 'object') return false
   const t = tx as SabadellTx
@@ -147,7 +160,7 @@ export async function POST(req: Request) {
       accountId = existingAccount.id as string
       const { error: updErr } = await db
         .from('accounts')
-        .update({ balance: card.balance, last_synced: payload.last_synced_at, name: card.name })
+        .update({ balance: card.balance, last_synced: payload.last_synced_at, name: resolveCardName(card) })
         .eq('id', accountId)
       if (updErr) {
         console.error('[sabadell-visa] update account:', updErr)
@@ -159,7 +172,7 @@ export async function POST(req: Request) {
         .insert({
           user_id: userId,
           household_id: householdId,
-          name: card.name,
+          name: resolveCardName(card),
           type: 'card',
           source: 'scraper',
           is_liability: true,

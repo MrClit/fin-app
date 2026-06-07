@@ -33,6 +33,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     .select('id, name, type, is_liability, balance, number, color, currency, source, last_synced, consent_expires_at, created_at, user_id, external_id, session_id, is_active')
     .eq('household_id', householdId)
     .eq('is_active', true)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
 
   if (accError || !accounts) throw new Error('Failed to fetch accounts')
