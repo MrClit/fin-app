@@ -70,16 +70,16 @@ export function TransactionsList({
   const isEmpty = groups.length === 0 && pinnedUnread.length === 0
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="-mx-4 flex flex-col gap-4">
       {pinnedUnread.length > 0 && (
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center justify-between px-3 pb-1">
+          <div className="flex items-center justify-between px-4 pb-1">
             <span className="text-xs font-bold uppercase tracking-wide text-primary">
               No leídos
             </span>
             <span className="text-xs font-bold text-primary">{pinnedUnread.length}</span>
           </div>
-          <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
+          <div className="flex flex-col bg-card border-y border-border divide-y divide-border/40">
             {pinnedUnread.map(tx => (
               <TxRow key={tx.id} {...rowProps(tx)} />
             ))}
@@ -100,7 +100,7 @@ export function TransactionsList({
 
           return (
             <div key={group.date} className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between px-3 pb-1">
+              <div className="flex items-center justify-between px-4 pb-1">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
                   {formatDayLabel(group.date)}
                 </span>
@@ -109,7 +109,7 @@ export function TransactionsList({
                 </span>
               </div>
 
-              <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
+              <div className="flex flex-col bg-card border-y border-border divide-y divide-border/40">
                 {group.transactions.map(tx => (
                   <TxRow key={tx.id} {...rowProps(tx)} />
                 ))}
@@ -124,7 +124,7 @@ export function TransactionsList({
       {loadingMore && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map(i => (
-            <Skeleton key={i} className="h-15.5 rounded-2xl" />
+            <Skeleton key={i} className="h-15.5 rounded-none border-y border-border" />
           ))}
         </div>
       )}

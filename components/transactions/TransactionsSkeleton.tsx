@@ -7,10 +7,10 @@ export function TransactionsSkeleton() {
       <Skeleton className="h-7 w-40" />
       {/* Toolbar (búsqueda + filtros) */}
       <Skeleton className="h-10 rounded-xl" />
-      {/* 5 filas con la misma altura que TxRow */}
-      <div className="flex flex-col gap-2">
+      {/* 5 filas a ancho completo con la misma altura que TxRow (coincide con la lista real) */}
+      <div className="-mx-4 flex flex-col gap-2">
         {[0, 1, 2, 3, 4].map(i => (
-          <Skeleton key={i} className="h-15.5 rounded-2xl" />
+          <Skeleton key={i} className="h-15.5 rounded-none border-y border-border" />
         ))}
       </div>
     </div>

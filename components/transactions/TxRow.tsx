@@ -68,17 +68,22 @@ export function TxRow({ tx, openSide, onOpenSwipe, onCloseSwipe, onRecategorize,
 
         {/* Contenido principal de la fila */}
         <div
-          className="flex flex-1 min-w-0 items-center gap-3 px-3 py-2.5 bg-card"
+          className="relative flex flex-1 min-w-0 items-center gap-3 px-4 py-2.5 bg-card"
           onClick={() => {
             if (didMoveRef.current) { didMoveRef.current = false; return }
             if (openSide) onCloseSwipe()
             else onTap(tx)
           }}
         >
-          {/* Dot de no leído (gutter reservado para que las filas no se descuadren) */}
-          <span className="flex w-2 shrink-0 items-center justify-center">
-            {!tx.is_read && <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leído" />}
-          </span>
+          {/* Dot de no leído: posición absoluta dentro del padding izquierdo, así
+              no desplaza el contenido (las filas no se descuadran haya dot o no) y
+              el icono queda alineado al borde como en el resto de la app. */}
+          {!tx.is_read && (
+            <span
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary"
+              aria-label="No leído"
+            />
+          )}
 
           <div
             className="flex items-center justify-center rounded-[14px] shrink-0 h-10.5 w-10.5"
