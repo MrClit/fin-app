@@ -1,7 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
 function CardSkeleton({ height = 120 }: { height?: number }) {
-  return <Skeleton className="rounded-[20px]" style={{ height }} />
+  return <Skeleton className="-mx-4 rounded-none border-y border-border" style={{ height }} />
 }
 
 /**
@@ -28,12 +28,9 @@ export function AnalyticsSkeleton() {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-4 px-4 py-3">
+      <div className="flex flex-col gap-3 px-4 py-3">
         {/* KPI row */}
-        <div className="flex gap-2.5">
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
+        <CardSkeleton />
         {/* Chart card */}
         <CardSkeleton height={220} />
         {/* Category breakdown */}

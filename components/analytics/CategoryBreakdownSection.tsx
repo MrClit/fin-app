@@ -82,7 +82,7 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
   }
 
   return (
-    <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
+    <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
       {/* Header + toggle */}
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[15px] font-bold text-foreground">Desglose por categoría</span>
