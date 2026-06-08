@@ -14,9 +14,11 @@ const REST_COLOR = '#94a3b8'
 
 interface CategoryBreakdownSectionProps {
   byCategory: CategoryBreakdown[]
+  /** Inicio (ISO) del período activo en Análisis; se propaga al detalle para abrirlo en el mismo período. */
+  periodStart: string
 }
 
-export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdownSectionProps) {
+export default function CategoryBreakdownSection({ byCategory, periodStart }: CategoryBreakdownSectionProps) {
   const router = useRouter()
   const [catView, setCatView] = useState<'gastos' | 'ingresos'>('gastos')
   // Tracked by key instead of index — auto-deselects when byCategory changes and the
@@ -138,7 +140,7 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
                   key={item.key}
                   onClick={() => {
                     if (isNavigable) {
-                      router.push(`/analytics/category/${item.categoryId}`)
+                      router.push(`/analytics/category/${item.categoryId}?period=${periodStart}`)
                     } else {
                       handleSelect(effectiveIdx === i ? null : i)
                     }

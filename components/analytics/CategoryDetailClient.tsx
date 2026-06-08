@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { CATEGORY_META } from '@/lib/theme'
 import { fmt } from '@/lib/formatting'
@@ -46,6 +46,9 @@ interface Props {
 
 export default function CategoryDetailClient({ categoryId }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Período de origen (inicio ISO) al llegar desde Análisis; abrimos el detalle en él.
+  const periodParam = searchParams.get('period')
   const { granularity, setShowPicker } = useAnalytics()
   const meta = CATEGORY_META[categoryId]
   const { Icon, label, color } = meta
@@ -98,13 +101,17 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       .then(r => r.json())
       .then(d => {
         if (!cancelled) {
-          setPeriods(d.periods ?? [])
-          setSelectedBarIdx(5)
+          const ps: CategoryPeriodData[] = d.periods ?? []
+          // Selecciona el período de origen si está en la ventana; si no (más
+          // antiguo que los últimos mostrados) o sin param, el más reciente.
+          const fromParam = periodParam ? ps.findIndex(p => p.start === periodParam) : -1
+          setPeriods(ps)
+          setSelectedBarIdx(fromParam >= 0 ? fromParam : ps.length - 1)
           setLoadingPeriods(false)
         }
       })
     return () => { cancelled = true }
-  }, [granularity, categoryId])
+  }, [granularity, categoryId, periodParam])
 
   const selectedPeriodForKey = periods[selectedBarIdx]
   const txsKey = selectedPeriodForKey
