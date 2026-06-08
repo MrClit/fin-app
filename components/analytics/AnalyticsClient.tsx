@@ -189,7 +189,7 @@ export default function AnalyticsClient() {
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (
-          <CategoryBreakdownSection byCategory={activeBar.byCategory} />
+          <CategoryBreakdownSection byCategory={activeBar.byCategory} periodStart={activeBar.start} />
         )}
 
         {/* Savings card */}
