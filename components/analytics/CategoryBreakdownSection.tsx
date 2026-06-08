@@ -127,7 +127,7 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
           </div>
 
           {/* Category rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {items.map((item, i) => {
               const isSelected = effectiveIdx === i
               const isDimmed = effectiveIdx !== null && !isSelected
@@ -145,32 +145,32 @@ export default function CategoryBreakdownSection({ byCategory }: CategoryBreakdo
                   }}
                   style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
                       <div style={{
-                        width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                        width: 30, height: 30, borderRadius: 9, flexShrink: 0,
                         background: isSelected ? item.color : `${item.color}22`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'background 0.2s',
                       }}>
-                        <Icon size={13} color={isSelected ? 'white' : item.color} />
+                        <Icon size={16} color={isSelected ? 'white' : item.color} />
                       </div>
-                      <span style={{ fontSize: 13, color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
+                      <span style={{ fontSize: 15, color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
                         {item.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
                         {Math.round(item.pct)}%
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
                         {fmt(item.amount)} €
                       </span>
-                      {isNavigable && <span style={{ fontSize: 11, color: accentColor }}>›</span>}
+                      {isNavigable && <span style={{ fontSize: 13, color: accentColor }}>›</span>}
                     </div>
                   </div>
                   <div style={{
-                    height: 6, borderRadius: 3,
+                    height: 7, borderRadius: 3.5,
                     background: 'color-mix(in srgb, currentColor 6%, transparent)',
                     overflow: 'hidden',
                   }}>

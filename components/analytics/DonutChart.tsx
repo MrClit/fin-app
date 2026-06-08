@@ -21,11 +21,11 @@ interface DonutChartProps {
   onSelect: (idx: number | null) => void
 }
 
-const SIZE = 220
-const CX = 110
-const CY = 110
-const R = 72
-const STROKE_W = 22
+const SIZE = 260
+const CX = 130
+const CY = 130
+const R = 86
+const STROKE_W = 26
 const CIRC = 2 * Math.PI * R
 const ICON_R = R + STROKE_W / 2 + 18
 
@@ -88,12 +88,12 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
         })}
 
         {/* Center label */}
-        <text x={CX} y={CY - 8} textAnchor="middle" fontSize={10} fill="currentColor" fillOpacity={0.45}>
+        <text x={CX} y={CY - 10} textAnchor="middle" fontSize={12} fill="currentColor" fillOpacity={0.45}>
           {centerLabel}
         </text>
 
         {/* Center value */}
-        <text x={CX} y={CY + 10} textAnchor="middle" fontSize={15} fontWeight={800} fill={centerColor}>
+        <text x={CX} y={CY + 14} textAnchor="middle" fontSize={22} fontWeight={800} fill={centerColor}>
           {centerValue}
         </text>
       </svg>
@@ -109,10 +109,10 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
             onClick={() => onSelect(selectedIdx === i ? null : i)}
             style={{
               position: 'absolute',
-              left: ix - 11,
-              top: iy - 11,
-              width: 22,
-              height: 22,
+              left: ix - 13,
+              top: iy - 13,
+              width: 26,
+              height: 26,
               borderRadius: '50%',
               background: isSelected ? item.color : `${item.color}33`,
               display: 'flex',
@@ -123,7 +123,7 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
               transition: 'opacity 0.25s, background 0.2s',
             }}
           >
-            <Icon size={12} color={isSelected ? 'white' : item.color} />
+            <Icon size={14} color={isSelected ? 'white' : item.color} />
           </div>
         )
       })}
