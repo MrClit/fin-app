@@ -10,14 +10,14 @@ const typeLabel: Record<AccountType, string> = {
   cash:     'Efectivo',
 }
 
-function AccountCell({ account, className }: { account: Account; className?: string }) {
+function AccountCell({ account }: { account: Account }) {
   const balance = account.balance ?? 0
   const isNegative = balance < 0
 
   return (
     <Link
       href="/accounts"
-      className={`block px-4 py-4 active:opacity-70 transition-opacity ${className ?? ''}`}
+      className="block bg-secondary px-4 py-4 border-r border-b border-border active:opacity-70 transition-opacity"
     >
       <div className="flex items-center justify-between mb-2.5">
         <AccountIconBadge type={account.type} color={account.color} size="sm" />
@@ -46,22 +46,20 @@ interface DashboardAccountGridProps {
 export function DashboardAccountGrid({ accounts }: DashboardAccountGridProps) {
   if (accounts.length === 0) return null
 
+  // Cada celda enmarcada con border-r/border-b y el contenedor aporta border-t/border-l:
+  // así toda card tiene sus 4 lados (también las del borde derecho/inferior) con líneas
+  // uniformes de 1px y sin solapamientos. Si el total es impar, un placeholder completa
+  // la última fila para que el marco no quede roto.
+  const needsPlaceholder = accounts.length % 2 === 1
+
   return (
     <div>
       <div className="text-[13px] font-semibold text-muted-foreground mb-3">Mis cuentas</div>
-      {/* Bloque a ancho completo con divisores internos (sin cajas redondeadas),
-          al estilo de las tarjetas de Ingresos/Gastos de Análisis. */}
-      <div className="-mx-4 grid grid-cols-2 bg-secondary border-y border-border">
-        {accounts.map((account, i) => (
-          <AccountCell
-            key={account.id}
-            account={account}
-            className={[
-              i % 2 === 1 ? 'border-l border-border' : '',
-              i >= 2 ? 'border-t border-border' : '',
-            ].join(' ')}
-          />
+      <div className="-mx-4 grid grid-cols-2 border-t border-l border-border">
+        {accounts.map(account => (
+          <AccountCell key={account.id} account={account} />
         ))}
+        {needsPlaceholder && <div className="bg-secondary border-r border-b border-border" aria-hidden />}
       </div>
     </div>
   )

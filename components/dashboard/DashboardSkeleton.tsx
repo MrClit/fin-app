@@ -10,16 +10,9 @@ export function DashboardSkeleton() {
       {/* Bloque de cuentas 2 col con divisores internos (coincide con el real) */}
       <div>
         <Skeleton className="mb-3 h-4 w-24" />
-        <div className="-mx-4 grid grid-cols-2 border-y border-border">
+        <div className="-mx-4 grid grid-cols-2 border-t border-l border-border">
           {[0, 1, 2, 3].map(i => (
-            <div
-              key={i}
-              className={[
-                'px-4 py-4',
-                i % 2 === 1 ? 'border-l border-border' : '',
-                i >= 2 ? 'border-t border-border' : '',
-              ].join(' ')}
-            >
+            <div key={i} className="bg-secondary px-4 py-4 border-r border-b border-border">
               <Skeleton className="mb-2.5 size-8 rounded-[10px]" />
               <Skeleton className="mb-1.5 h-3 w-20" />
               <Skeleton className="h-4 w-16" />

@@ -40,7 +40,7 @@ export function NetWorthChart({ data, annualDelta }: Props) {
           </defs>
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 9, fill: 'rgba(0,0,0,0.35)' }}
+            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
