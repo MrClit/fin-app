@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import { TxRow } from './TxRow'
+import { TxDayGroupCard } from './TxDayGroupCard'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fmt } from '@/lib/formatting'
-import { formatDayLabel, type TxDayGroup } from '@/lib/transactions'
+import { type TxDayGroup } from '@/lib/transactions'
 import type { TransactionWithAccount } from '@/types'
 
 interface TransactionsListProps {
@@ -94,29 +94,18 @@ export function TransactionsList({
           </p>
         </div>
       ) : (
-        groups.map(group => {
-          const netStr = (group.net >= 0 ? '+' : '') + fmt(group.net, 2) + ' €'
-          const netColor = group.net >= 0 ? '#22c55e' : 'var(--foreground)'
-
-          return (
-            <div key={group.date} className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between px-4 pb-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                  {formatDayLabel(group.date)}
-                </span>
-                <span className="text-xs font-bold" style={{ color: netColor }}>
-                  {netStr}
-                </span>
-              </div>
-
-              <div className="flex flex-col bg-card border-y border-border divide-y divide-border/40">
-                {group.transactions.map(tx => (
-                  <TxRow key={tx.id} {...rowProps(tx)} />
-                ))}
-              </div>
-            </div>
-          )
-        })
+        groups.map(group => (
+          <TxDayGroupCard
+            key={group.date}
+            group={group}
+            swiped={swiped}
+            onOpenSwipe={onOpenSwipe}
+            onCloseSwipe={onCloseSwipe}
+            onRecategorize={onRecategorize}
+            onToggleRead={onToggleRead}
+            onTap={onTap}
+          />
+        ))
       )}
 
       <div ref={sentinelRef} aria-hidden="true" />

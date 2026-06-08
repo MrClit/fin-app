@@ -8,26 +8,14 @@ import { fmt } from '@/lib/formatting'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import type { CategoryId, CategoryPeriodData, TransactionWithAccount } from '@/types'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
-import { TxRow } from '@/components/transactions/TxRow'
 import { TxModal } from '@/components/transactions/TxModal'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
+import { TxDayGroupCard } from '@/components/transactions/TxDayGroupCard'
 import { useUnread } from '@/components/transactions/UnreadProvider'
+import { groupTxByDate } from '@/lib/transactions'
 import GranularityPicker from './GranularityPicker'
 import CategoryBarChart from './CategoryBarChart'
 import { Skeleton } from '@/components/ui/skeleton'
-
-const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-
-function formatDayLabel(dateStr: string): string {
-  const today = new Date().toISOString().slice(0, 10)
-  const yest = new Date()
-  yest.setDate(yest.getDate() - 1)
-  const yesterdayStr = yest.toISOString().slice(0, 10)
-  if (dateStr === today) return 'Hoy'
-  if (dateStr === yesterdayStr) return 'Ayer'
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return `${d} ${MONTHS[m - 1]} ${y}`
-}
 
 function CalendarIcon() {
   return (
@@ -154,18 +142,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
     if (!res.ok) console.error('[handleSelect]', await res.text())
   }
 
-  // Group transactions by date
-  const groups = new Map<string, { transactions: TransactionWithAccount[]; net: number }>()
-  for (const tx of transactions) {
-    const existing = groups.get(tx.date)
-    if (existing) {
-      existing.transactions.push(tx)
-      existing.net += tx.amount
-    } else {
-      groups.set(tx.date, { transactions: [tx], net: tx.amount })
-    }
-  }
-  const sortedDates = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a))
+  // Group transactions by date (helper compartido con la lista de Movimientos)
+  const groups = groupTxByDate(transactions)
 
   const selectedPeriod = periods[selectedBarIdx]
   const periodTotal = selectedPeriod?.amount ?? 0
@@ -236,7 +214,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       {/* Content */}
       <div className="flex flex-col gap-4 px-4 py-4">
         {/* Evolution card */}
-        <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
+        <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[15px] font-bold text-foreground">Evolución</span>
             <span className="text-xs text-muted-foreground capitalize">{PERIOD_LABELS[granularity]}</span>
@@ -279,49 +257,29 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         <span className="text-[15px] font-bold text-foreground">Movimientos</span>
 
         {loadingTxs ? (
-          <div className="flex flex-col gap-2">
+          <div className="-mx-4 flex flex-col gap-2">
             {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-14 rounded-2xl" />
+              <Skeleton key={i} className="h-15.5 rounded-none border-y border-border" />
             ))}
           </div>
-        ) : sortedDates.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="flex items-center justify-center py-10">
             <p className="text-sm text-muted-foreground">No hay movimientos en este período</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {sortedDates.map(date => {
-              const group = groups.get(date)!
-              const net = group.net
-              const netStr = (net >= 0 ? '+' : '') + fmt(net, 2) + ' €'
-              const netColor = net >= 0 ? '#22c55e' : 'var(--foreground)'
-              return (
-                <div key={date} className="flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between px-3 pb-1">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      {formatDayLabel(date)}
-                    </span>
-                    <span className="text-xs font-bold" style={{ color: netColor }}>
-                      {netStr}
-                    </span>
-                  </div>
-                  <div className="flex flex-col bg-card rounded-2xl overflow-clip divide-y divide-border/40">
-                    {group.transactions.map(tx => (
-                      <TxRow
-                        key={tx.id}
-                        tx={tx}
-                        openSide={swiped?.id === tx.id ? swiped.side : null}
-                        onOpenSwipe={(id, side) => setSwiped({ id, side })}
-                        onCloseSwipe={() => setSwiped(null)}
-                        onRecategorize={tx => { setCatPickerTx(tx); setSwiped(null) }}
-                        onToggleRead={tx => { setSwiped(null); setRead(tx, !tx.is_read) }}
-                        onTap={tx => { setSelectedTxId(tx.id); setSwiped(null); if (!tx.is_read) setRead(tx, true) }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+          <div className="-mx-4 flex flex-col gap-4">
+            {groups.map(group => (
+              <TxDayGroupCard
+                key={group.date}
+                group={group}
+                swiped={swiped}
+                onOpenSwipe={(id, side) => setSwiped({ id, side })}
+                onCloseSwipe={() => setSwiped(null)}
+                onRecategorize={tx => { setCatPickerTx(tx); setSwiped(null) }}
+                onToggleRead={tx => { setSwiped(null); setRead(tx, !tx.is_read) }}
+                onTap={tx => { setSelectedTxId(tx.id); setSwiped(null); if (!tx.is_read) setRead(tx, true) }}
+              />
+            ))}
           </div>
         )}
       </div>
