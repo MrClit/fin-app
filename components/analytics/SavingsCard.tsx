@@ -17,12 +17,9 @@ export default function SavingsCard({ income, savings, granularity }: SavingsCar
   const bg = isNegative
     ? 'linear-gradient(135deg, #ef4444, #dc2626)'
     : 'linear-gradient(135deg, #059669, #10b981)'
-  const shadow = isNegative
-    ? '0 10px 40px rgba(239,68,68,0.25)'
-    : '0 10px 40px rgba(16,185,129,0.25)'
 
   return (
-    <div style={{ background: bg, borderRadius: 20, padding: 20, boxShadow: shadow }}>
+    <div className="-mx-4 px-4 py-5" style={{ background: bg }}>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
         Ahorro · {PERIOD_LABELS[granularity]}
       </p>

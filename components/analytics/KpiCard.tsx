@@ -31,10 +31,7 @@ export default function KpiCard({
   const fontSize = value >= 10000 ? 20 : 28
 
   return (
-    <div
-      className="flex flex-1 flex-col"
-      style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}
-    >
+    <div className="flex flex-1 flex-col">
       {/* Header row */}
       <div className="mb-1.5">
         <span className="text-xs text-muted-foreground">{label}</span>

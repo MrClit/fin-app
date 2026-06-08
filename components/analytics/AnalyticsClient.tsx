@@ -41,7 +41,7 @@ function CalendarIcon() {
 }
 
 function CardSkeleton({ height = 120 }: { height?: number }) {
-  return <Skeleton className="rounded-[20px]" style={{ height }} />
+  return <Skeleton className="-mx-4 rounded-none border-y border-border" style={{ height }} />
 }
 
 interface PageState {
@@ -125,29 +125,30 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-4 px-4 py-3">
+      <div className="flex flex-col gap-3 px-4 py-3">
         {/* KPI row */}
         {loading || !activeBar ? (
-          <div className="flex gap-2.5">
-            <CardSkeleton />
-            <CardSkeleton />
-          </div>
+          <CardSkeleton />
         ) : (
-          <div className="flex gap-2.5">
-            <KpiCard
-              type="income"
-              value={activeBar.income}
-              deltaVsPrev={deltaVsPrevIncome}
-              deltaVsYear={deltaVsYearIncome}
-              deltaRef={deltaRef}
-            />
-            <KpiCard
-              type="expense"
-              value={activeBar.expense}
-              deltaVsPrev={deltaVsPrevExpense}
-              deltaVsYear={deltaVsYearExpense}
-              deltaRef={deltaRef}
-            />
+          <div className="-mx-4 flex border-y border-border bg-secondary px-4 py-5">
+            <div className="flex-1 pr-4">
+              <KpiCard
+                type="income"
+                value={activeBar.income}
+                deltaVsPrev={deltaVsPrevIncome}
+                deltaVsYear={deltaVsYearIncome}
+                deltaRef={deltaRef}
+              />
+            </div>
+            <div className="flex-1 border-l border-border pl-4">
+              <KpiCard
+                type="expense"
+                value={activeBar.expense}
+                deltaVsPrev={deltaVsPrevExpense}
+                deltaVsYear={deltaVsYearExpense}
+                deltaRef={deltaRef}
+              />
+            </div>
           </div>
         )}
 
@@ -155,9 +156,9 @@ export default function AnalyticsClient() {
         {loading || !data ? (
           <CardSkeleton height={220} />
         ) : (
-          <div style={{ background: 'var(--secondary)', borderRadius: 20, padding: 20 }}>
+          <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15px] font-bold text-foreground">Evolución de gastos</span>
+              <span className="text-[15px] font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
                 className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
