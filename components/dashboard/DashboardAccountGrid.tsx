@@ -10,14 +10,14 @@ const typeLabel: Record<AccountType, string> = {
   cash:     'Efectivo',
 }
 
-function AccountMiniCard({ account }: { account: Account }) {
+function AccountCell({ account, className }: { account: Account; className?: string }) {
   const balance = account.balance ?? 0
   const isNegative = balance < 0
 
   return (
     <Link
       href="/accounts"
-      className="block bg-card rounded-2xl p-3.5 border border-border active:opacity-70 transition-opacity"
+      className={`block px-4 py-4 active:opacity-70 transition-opacity ${className ?? ''}`}
     >
       <div className="flex items-center justify-between mb-2.5">
         <AccountIconBadge type={account.type} color={account.color} size="sm" />
@@ -49,9 +49,18 @@ export function DashboardAccountGrid({ accounts }: DashboardAccountGridProps) {
   return (
     <div>
       <div className="text-[13px] font-semibold text-muted-foreground mb-3">Mis cuentas</div>
-      <div className="grid grid-cols-2 gap-3">
-        {accounts.map(account => (
-          <AccountMiniCard key={account.id} account={account} />
+      {/* Bloque a ancho completo con divisores internos (sin cajas redondeadas),
+          al estilo de las tarjetas de Ingresos/Gastos de Análisis. */}
+      <div className="-mx-4 grid grid-cols-2 bg-secondary border-y border-border">
+        {accounts.map((account, i) => (
+          <AccountCell
+            key={account.id}
+            account={account}
+            className={[
+              i % 2 === 1 ? 'border-l border-border' : '',
+              i >= 2 ? 'border-t border-border' : '',
+            ].join(' ')}
+          />
         ))}
       </div>
     </div>

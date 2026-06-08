@@ -9,7 +9,7 @@ interface Props {
 
 export function NetWorthChart({ data, annualDelta }: Props) {
   return (
-    <div className="bg-card rounded-3xl p-6 border border-border">
+    <div className="bg-secondary -mx-4 px-4 py-5 border-y border-border">
       <div className="flex justify-between items-center mb-1">
         <span className="text-[15px] font-bold">Patrimonio neto</span>
         {annualDelta !== null ? (

@@ -17,10 +17,9 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
 
   return (
     <div
-      className="rounded-3xl overflow-hidden relative"
+      className="-mx-4 overflow-hidden relative"
       style={{
         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
-        boxShadow: '0 20px 60px rgba(99,102,241,0.35)',
       }}
     >
       {/* Decorative bubbles */}
@@ -34,7 +33,7 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
       />
 
       {/* Content */}
-      <div className="relative z-10 px-6 pt-6">
+      <div className="relative z-10 px-4 pt-6">
         <div className="text-[12px] font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
           Balance total
         </div>

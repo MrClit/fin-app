@@ -3,16 +3,27 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-4 px-4 pt-3 pb-6">
-      {/* Balance card */}
-      <Skeleton className="h-47.5 rounded-3xl" />
-      {/* Patrimonio chart */}
-      <Skeleton className="h-45 rounded-3xl" />
-      {/* Account grid */}
+      {/* Balance banner a sangre completa */}
+      <Skeleton className="-mx-4 h-47.5 rounded-none" />
+      {/* Patrimonio chart full-width */}
+      <Skeleton className="-mx-4 h-45 rounded-none border-y border-border" />
+      {/* Bloque de cuentas 2 col con divisores internos (coincide con el real) */}
       <div>
         <Skeleton className="mb-3 h-4 w-24" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="-mx-4 grid grid-cols-2 border-y border-border">
           {[0, 1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-26.25 rounded-2xl" />
+            <div
+              key={i}
+              className={[
+                'px-4 py-4',
+                i % 2 === 1 ? 'border-l border-border' : '',
+                i >= 2 ? 'border-t border-border' : '',
+              ].join(' ')}
+            >
+              <Skeleton className="mb-2.5 size-8 rounded-[10px]" />
+              <Skeleton className="mb-1.5 h-3 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
           ))}
         </div>
       </div>
