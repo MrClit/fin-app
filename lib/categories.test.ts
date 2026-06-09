@@ -31,7 +31,9 @@ const positiveCases: ReadonlyArray<readonly [string, CategoryId]> = [
   ['Pago Netflix.com', 'subscriptions'],
   ['Booking.com reserva hotel', 'travel'],
   ['Udemy curso online', 'education'],
-  ['Recibo seguro Mapfre', 'insurance'],
+  ['Recibo Sanitas cuota salud', 'insurance_health'],
+  ['Seguro hogar Mapfre anual', 'insurance_home'],
+  ['Seguro auto Linea Directa', 'insurance_auto'],
   ['Recibo varios 23/05', 'fees'],
   ['Pago hacienda IRPF', 'taxes'],
   ['Nomina mayo empresa', 'income'],
@@ -40,6 +42,11 @@ const positiveCases: ReadonlyArray<readonly [string, CategoryId]> = [
   ['Cajero ATM Banco', 'cash'],
   ['Bizum a Juan', 'other'],
   ['MyInvestor compra fondo', 'investment'],
+  ['Prestamos adeudo cuota N.123', 'loans'],
+  ['Aportacion periodica plan ahorro', 'savings'],
+  ['Donacion Cruz Roja', 'charity'],
+  ['Cuota asociacion de vecinos', 'memberships'],
+  ['Tarjeta credito Victor Sales Barbera', 'card_payment'],
 ]
 
 describe('categorize', () => {
@@ -110,8 +117,24 @@ describe('categorize', () => {
   })
 
   describe('prioridad de orden', () => {
-    it('"Recibo seguro Mapfre" → insurance (precede a fees)', () => {
-      expect(categorize('Recibo seguro Mapfre')).toBe('insurance')
+    it('"ADEUDO RECIBO AJ. EL PRAT" → taxes (las específicas preceden al recibo genérico)', () => {
+      expect(categorize('ADEUDO RECIBO AJ. EL PRAT DE LLOBREGAT')).toBe('taxes')
+    })
+
+    it('"ADEUDO RECIBO CDAD GENERAL Y PARQUING" → community_fees (precede al recibo genérico)', () => {
+      expect(categorize('ADEUDO RECIBO CDAD GENERAL Y PARQUING')).toBe('community_fees')
+    })
+
+    it('"REINTEGRO CAJERO AUTOMATICO" → cash (precede al reembolso por "reintegro")', () => {
+      expect(categorize('REINTEGRO CAJERO AUTOMATICO 5402XXXXXXXX2017')).toBe('cash')
+    })
+
+    it('"Recibo Gas Natural" → gas (precede a electricidad por "naturgy")', () => {
+      expect(categorize('Recibo Gas Natural distribucion')).toBe('gas')
+    })
+
+    it('"Prime Video" → subscriptions (precede al amazon genérico de Compras)', () => {
+      expect(categorize('Prime Video *LV9MI3ZH5')).toBe('subscriptions')
     })
 
     it('"El Corte Ingles hogar muebles" → home (precede a shopping)', () => {

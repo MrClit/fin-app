@@ -27,7 +27,10 @@ export type CategoryId =
   | 'subscriptions'
   | 'travel'
   | 'education'
-  | 'insurance'
+  | 'insurance_health'
+  | 'insurance_home'
+  | 'insurance_auto'
+  | 'domestic_help'
   | 'beauty'
   | 'gifts'
   | 'charity'
@@ -47,6 +50,7 @@ export type CategoryId =
   | 'savings'
   | 'transfer'
   | 'loan_payment'
+  | 'card_payment'
 
 export interface Household {
   id: string
