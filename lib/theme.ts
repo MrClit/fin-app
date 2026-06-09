@@ -2,10 +2,10 @@ import {
   ShoppingCart, UtensilsCrossed, Home, Gamepad2, ShoppingBag,
   TrendingUp, MoreHorizontal, CircleHelp, Fuel, ParkingCircle, Wrench,
   Building2, Users, Zap, Flame, Droplets, Wifi, Shirt, Laptop,
-  Stethoscope, Pill, Dumbbell, Repeat2, Plane, BookOpen, Shield,
+  Stethoscope, Pill, Dumbbell, Repeat2, Plane, BookOpen,
   Sparkles, Gift, Heart, Users2, Receipt, CreditCard, Banknote,
   Landmark, BarChart3, RotateCcw, CirclePlus, PiggyBank, ArrowLeftRight,
-  Wallet, Bus,
+  Wallet, Bus, SprayCan, ShieldPlus, Umbrella, Car, WalletCards,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { CategoryId, CategoryType } from '@/types'
@@ -77,7 +77,10 @@ export const CATEGORY_COLORS: Record<CategoryId, string> = {
   subscriptions:  '#f97316',
   travel:         '#0ea5e9',
   education:      '#a855f7',
-  insurance:      '#84cc16',
+  insurance_health: '#84cc16',
+  insurance_home: '#0d9488',
+  insurance_auto: '#65a30d',
+  domestic_help:  '#14b8a6',
   beauty:         '#f472b6',
   gifts:          '#fb7185',
   charity:        '#4ade80',
@@ -97,6 +100,7 @@ export const CATEGORY_COLORS: Record<CategoryId, string> = {
   savings:        '#0d9488',
   transfer:       '#78716c',
   loan_payment:   '#b45309',
+  card_payment:   '#a8a29e',
 }
 
 interface CategoryMeta {
@@ -131,7 +135,10 @@ export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
   subscriptions:  { label: 'Suscripciones',         color: '#f97316', type: 'expense',         Icon: Repeat2         },
   travel:         { label: 'Viajes',                color: '#0ea5e9', type: 'expense',         Icon: Plane           },
   education:      { label: 'Educación',             color: '#a855f7', type: 'expense',         Icon: BookOpen        },
-  insurance:      { label: 'Seguros',               color: '#84cc16', type: 'expense',         Icon: Shield          },
+  insurance_health: { label: 'Seguro salud',        color: '#84cc16', type: 'expense',         Icon: ShieldPlus      },
+  insurance_home: { label: 'Seguro hogar',          color: '#0d9488', type: 'expense',         Icon: Umbrella        },
+  insurance_auto: { label: 'Seguro auto',           color: '#65a30d', type: 'expense',         Icon: Car             },
+  domestic_help:  { label: 'Servicio doméstico',    color: '#14b8a6', type: 'expense',         Icon: SprayCan        },
   beauty:         { label: 'Cuidado personal',      color: '#f472b6', type: 'expense',         Icon: Sparkles        },
   gifts:          { label: 'Regalos',               color: '#fb7185', type: 'expense',         Icon: Gift            },
   charity:        { label: 'Solidaridad',           color: '#4ade80', type: 'expense',         Icon: Heart           },
@@ -151,6 +158,7 @@ export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
   savings:        { label: 'Ahorro',                color: '#0d9488', type: 'non_computable',  Icon: PiggyBank       },
   transfer:       { label: 'Transferencia interna', color: '#78716c', type: 'non_computable',  Icon: ArrowLeftRight  },
   loan_payment:   { label: 'Amortización',          color: '#b45309', type: 'non_computable',  Icon: Wallet          },
+  card_payment:   { label: 'Pago tarjeta crédito',  color: '#a8a29e', type: 'non_computable',  Icon: WalletCards     },
 }
 
 export const UNCATEGORIZED = {

@@ -53,3 +53,6 @@ scripts/scrapers/sabadell-visa/*.local.*
 # serwist — service worker generado en build
 public/sw.js
 public/sw.js.map
+
+# historical data
+historical_data

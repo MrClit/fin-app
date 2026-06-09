@@ -8,13 +8,14 @@ const VALID_CATEGORIES: CategoryId[] = [
   'groceries', 'restaurant', 'transport', 'fuel', 'parking', 'vehicle',
   'mortgage', 'community_fees', 'electricity', 'gas', 'water', 'internet',
   'home', 'clothing', 'shopping', 'electronics', 'health', 'pharmacy',
-  'leisure', 'sports', 'subscriptions', 'travel', 'education', 'insurance',
+  'leisure', 'sports', 'subscriptions', 'travel', 'education',
+  'insurance_health', 'insurance_home', 'insurance_auto', 'domestic_help',
   'beauty', 'gifts', 'charity', 'memberships', 'taxes', 'loans', 'cash',
   'fees', 'other',
   // Ingresos
   'income', 'returns', 'reimbursement', 'other_income',
   // No Computable
-  'investment', 'savings', 'transfer', 'loan_payment',
+  'investment', 'savings', 'transfer', 'loan_payment', 'card_payment',
 ]
 
 export async function PATCH(
