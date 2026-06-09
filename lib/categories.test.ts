@@ -63,7 +63,16 @@ describe('categorize', () => {
       ['Carrefour', 'groceries'],
       ['Dia 23/05', 'groceries'],
       ['Eroski', 'groceries'],
+      ['Panet Av.Montserrat', 'groceries'],
     ] as const)('groceries matchea %j', (description, expected) => {
+      expect(categorize(description)).toBe(expected)
+    })
+
+    it.each([
+      ['McDonalds', 'restaurant'],
+      ['Bar Stadium', 'restaurant'],
+      ['Gumen Catering', 'restaurant'],
+    ] as const)('restaurant matchea %j', (description, expected) => {
       expect(categorize(description)).toBe(expected)
     })
 

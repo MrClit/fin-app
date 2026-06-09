@@ -6,9 +6,9 @@ type RuleField = 'description' | 'merchant'
 // específicas van primero y los catch-all genéricos (`recibo`, `bizum`) van al FINAL.
 export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleField }[] = [
   // Supermercado (incluye cadenas locales catalanas, panaderías y carnicerías)
-  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|pastisseri|carniceri|cooperativa agricola/i, category: 'groceries' },
+  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|panet|pastisseri|carniceri|cooperativa agricola/i, category: 'groceries' },
   // Restaurantes, bares y cafeterías
-  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo/i, category: 'restaurant' },
+  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering/i, category: 'restaurant' },
   // Comida a domicilio
   { pattern: /glovo|deliveroo|just.?eat|uber.?eats/i, category: 'restaurant' },
   // Gasolina (E.S. = estación de servicio)
