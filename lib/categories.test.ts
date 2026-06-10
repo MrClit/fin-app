@@ -64,6 +64,12 @@ describe('categorize', () => {
       ['Dia 23/05', 'groceries'],
       ['Eroski', 'groceries'],
       ['Panet Av.Montserrat', 'groceries'],
+      ['BON AREA Prat', 'groceries'],
+      ['CARREF PRAT', 'groceries'],
+      ['XARCOBEL-BARCELONA', 'groceries'],
+      ['J.M.PEROY-PRAT DE LLOBR', 'groceries'],
+      ['VICSONI GESTION', 'groceries'],
+      ['VERGE MONTSERRAT-BARCELONA', 'groceries'],
     ] as const)('groceries matchea %j', (description, expected) => {
       expect(categorize(description)).toBe(expected)
     })
@@ -72,7 +78,29 @@ describe('categorize', () => {
       ['McDonalds', 'restaurant'],
       ['Bar Stadium', 'restaurant'],
       ['Gumen Catering', 'restaurant'],
+      ['SODEXO EDIFICIO GREEN CAF', 'restaurant'],
+      ['EQUILIBRIUM PRAT', 'restaurant'],
     ] as const)('restaurant matchea %j', (description, expected) => {
+      expect(categorize(description)).toBe(expected)
+    })
+
+    it.each([
+      ['AIGUES DEL PRAT', 'water'],
+      ['CINES CAPRI', 'leisure'],
+      ['EURO DISNEY ASSOCIES', 'leisure'],
+      ['INTERESES Y/O COMISIONES CUENTA', 'fees'],
+      ['BONIFIC. COMISION MANT. CUENTA', 'fees'],
+      ['PRIVALIA', 'shopping'],
+      ['AMZN Mktp ES*RU72J4404', 'shopping'],
+      ['CLAUDE.AI SUBSCRIPTION', 'subscriptions'],
+      ['HELP.TWITCH.TV', 'subscriptions'],
+      ['DELTAPRAT', 'vehicle'],
+      ['FLAMINGO MODA', 'clothing'],
+      ['COLEX UNIFORMES SL', 'clothing'],
+      ['CHARTER AV DEL CANAL', 'groceries'],
+      ['FREENOW* CT99OM-2', 'transport'],
+      ['GENCAT SCT SANCIONS', 'taxes'],
+    ] as const)('reglas nuevas del histórico: %j', (description, expected) => {
       expect(categorize(description)).toBe(expected)
     })
 

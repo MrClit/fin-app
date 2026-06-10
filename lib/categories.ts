@@ -6,19 +6,19 @@ type RuleField = 'description' | 'merchant'
 // específicas van primero y los catch-all genéricos (`recibo`, `bizum`) van al FINAL.
 export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleField }[] = [
   // Supermercado (incluye cadenas locales catalanas, panaderías y carnicerías)
-  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|panet|pastisseri|carniceri|cooperativa agricola/i, category: 'groceries' },
+  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|panet|turris|pastisseri|carniceri|xarcuteri|xarcobel|cooperativa agricola|bon area|bonarea|\bcarref|peroy|vicsoni|verge montserrat|charter/i, category: 'groceries' },
   // Restaurantes, bares y cafeterías
-  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering/i, category: 'restaurant' },
+  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering|sodexo|green pay|green caf|boncafe|equilibrium/i, category: 'restaurant' },
   // Comida a domicilio
   { pattern: /glovo|deliveroo|just.?eat|uber.?eats/i, category: 'restaurant' },
   // Gasolina (E.S. = estación de servicio)
   { pattern: /repsol|cepsa|bp\b|galp|campsa|shell\b|gasolinera|carburante|e\.s\.|cedipsa|estacion de servicio/i, category: 'fuel' },
   // Transporte público
-  { pattern: /renfe|metro|emt\b|avlo|ouigo|blablacar|cabify|uber\b|bolt\b|transporte|\btaxi\b|t.?mobilitat/i, category: 'transport' },
+  { pattern: /renfe|metro|emt\b|avlo|ouigo|blablacar|cabify|uber\b|bolt\b|transporte|\btaxi\b|t.?mobilitat|freenow|free.?now/i, category: 'transport' },
   // Parking y Peaje
   { pattern: /parking|aparcamiento|peaje|autopista|via\.t|telepeaje/i, category: 'parking' },
   // Vehículo (taller, ITV…)
-  { pattern: /taller|itv\b|neumatico|concesionario|midas|norauto/i, category: 'vehicle' },
+  { pattern: /taller|itv\b|neumatico|concesionario|midas|norauto|deltaprat/i, category: 'vehicle' },
   // Hipoteca / Alquiler
   { pattern: /hipoteca|prestamo hipotecario|alquiler|arrendamiento/i, category: 'mortgage' },
   // Amortización de préstamo
@@ -32,7 +32,7 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Electricidad
   { pattern: /endesa|iberdrola|naturgy|holaluz|octopus energy|luz\b|electricidad/i, category: 'electricity' },
   // Agua
-  { pattern: /canal de isabel|aguas de|abastecimiento|suministro agua/i, category: 'water' },
+  { pattern: /canal de isabel|aguas de|abastecimiento|suministro agua|aigues|aigües/i, category: 'water' },
   // Internet / Telefonía
   { pattern: /movistar|vodafone|orange\b|jazztel|masmovil|pepephone|digi\b|yoigo|simyo|telefonica|internet/i, category: 'internet' },
   // Seguro salud
@@ -44,13 +44,13 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Hogar (reformas, muebles)
   { pattern: /ikea|leroy merlin|brico|amazon home|el corte ingles hogar|zara home|reformes|reforma/i, category: 'home' },
   // Ropa
-  { pattern: /zara\b|mango\b|h&m|pull.and.bear|bershka|stradivarius|primark|lefties|el corte ingles moda|zeeman/i, category: 'clothing' },
+  { pattern: /zara\b|mango\b|h&m|pull.and.bear|bershka|stradivarius|primark|lefties|el corte ingles moda|zeeman|\bmoda\b|uniformes/i, category: 'clothing' },
   // Electrónica
   { pattern: /apple store|fnac|mediamarkt|pccomponentes|worten|samsung store|vadeaudio/i, category: 'electronics' },
   // Suscripciones (antes que el "amazon" genérico de Compras)
-  { pattern: /netflix|spotify|apple\.com\/bill|amzn\.com\/bill|google one|microsoft 365|adobe|youtube premium|hbo max|paramount|prime video|primevideo|amazon prime|filmin|dazn|disney\+/i, category: 'subscriptions' },
+  { pattern: /netflix|spotify|apple\.com\/bill|amzn\.com\/bill|google one|microsoft 365|adobe|youtube premium|hbo max|paramount|prime video|primevideo|amazon prime|filmin|dazn|disney\+|claude|twitch/i, category: 'subscriptions' },
   // Ocio (cine, espectáculos, loterías, parques temáticos)
-  { pattern: /\bcine\b|cinesa|multicines|teatro|concierto|entradas|ticketmaster|eventbrite|port.?aventura|tibidabo|loteri|tulotero|espectacul/i, category: 'leisure' },
+  { pattern: /\bcines?\b|cinesa|multicines|teatro|concierto|entradas|ticketmaster|eventbrite|port.?aventura|euro disney|disneyland|tibidabo|loteri|tulotero|espectacul/i, category: 'leisure' },
   // Deporte (esports = deportes en catalán)
   { pattern: /gimnasio|gym\b|decathlon|intersport|padel|tenis|natacion|esports\b/i, category: 'sports' },
   // Viajes
@@ -74,17 +74,19 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Reembolso / Devolución (antes que impuestos: "devoluciones tributarias" es una devolución)
   { pattern: /devolucion|reembolso|devoluciones tributarias/i, category: 'reimbursement' },
   // Impuestos y tasas (ayuntamiento / organisme tributari)
-  { pattern: /hacienda|agencia tributaria|aeat\b|impuesto|ivtm|ibi\b|tasa\b|ajuntament|ayuntamiento|organisme tributari|\baj\.\s/i, category: 'taxes' },
+  { pattern: /hacienda|agencia tributaria|aeat\b|impuesto|ivtm|ibi\b|tasa\b|ajuntament|ayuntamiento|organisme tributari|\baj\.\s|sancion/i, category: 'taxes' },
   // Transferencia entre cuentas propias
   { pattern: /transferencia propia|traspaso propio|traspaso entre cuentas/i, category: 'transfer' },
   // Retirada de efectivo (captura "reintegro cajero" antes que el reembolso genérico)
   { pattern: /cajero|reintegro efectivo|reintegro cajero|retirada efectivo|withdrawal/i, category: 'cash' },
   // Compras generales (Amazon, El Corte Inglés, paquetería) — genérico, tras lo específico
-  { pattern: /amazon\b|el corte ingles|correos\b|mrw\b|seur\b|ups\b|dhl\b|aliexpress|temu|shein|pandora/i, category: 'shopping' },
+  { pattern: /amazon\b|amzn\b|el corte ingles|correos\b|mrw\b|seur\b|ups\b|dhl\b|aliexpress|temu|shein|pandora|privalia/i, category: 'shopping' },
   // Solidaridad (ONG y donaciones; antes que "asociacion" genérico)
   { pattern: /cruz roja|unicef|oxfam|intermon|\baecc\b|asociacion espanola contra|\bong\b|parroquia|donacion|esplai/i, category: 'charity' },
   // Asociaciones (cuotas de socio)
   { pattern: /asociacion\b|federacion/i, category: 'memberships' },
+  // Comisiones e intereses bancarios (antes del recibo genérico)
+  { pattern: /comision|intereses/i, category: 'fees' },
   // ── FALLBACKS genéricos (deben ir al final) ──
   // Recibo genérico (domiciliaciones sin emisor reconocido)
   { pattern: /recibo\b/i, category: 'fees' },
