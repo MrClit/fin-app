@@ -41,7 +41,7 @@ export type CategoryId =
   | 'fees'
   | 'other'
   // Ingresos
-  | 'income'
+  | 'payroll'
   | 'returns'
   | 'reimbursement'
   | 'other_income'

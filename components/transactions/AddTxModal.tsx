@@ -87,7 +87,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
   const isValid = !isNaN(parsedAmount) && parsedAmount > 0
 
   const categoryEntries = (Object.entries(CATEGORY_META) as [CategoryId, typeof CATEGORY_META[CategoryId]][]).filter(([id]) =>
-    type === 'ingreso' ? id === 'income' || id === 'other' : id !== 'income'
+    type === 'ingreso' ? id === 'payroll' || id === 'other' : id !== 'payroll'
   )
 
   const currentMeta = CATEGORY_META[category] ?? CATEGORY_META.other
@@ -145,10 +145,10 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                 key={tp}
                 onClick={() => {
                   setType(tp)
-                  if (tp === 'ingreso' && category !== 'income' && category !== 'other') {
+                  if (tp === 'ingreso' && category !== 'payroll' && category !== 'other') {
                     setCategory('other')
                   }
-                  if (tp === 'gasto' && category === 'income') {
+                  if (tp === 'gasto' && category === 'payroll') {
                     setCategory('other')
                   }
                 }}

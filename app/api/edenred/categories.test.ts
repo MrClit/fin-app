@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
 // `transactions_monthly_summary` hace INNER JOIN sobre `categories`: un `id`
 // desconocido excluiría la tx de las agregaciones SIN error. Ver issue #101.
 // - 'restaurant': consumo (fallback del webhook en route.ts)
-// - 'income':     recarga / top-up (RECARGA en scripts/scrapers/edenred/scrape.mjs)
-const EDENRED_CATEGORIES = ['restaurant', 'income'] as const
+// - 'payroll':    recarga / top-up (RECARGA en scripts/scrapers/edenred/scrape.mjs)
+const EDENRED_CATEGORIES = ['restaurant', 'payroll'] as const
 
 const SEED_PATH = fileURLToPath(
   new URL(

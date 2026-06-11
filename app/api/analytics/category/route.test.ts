@@ -210,7 +210,7 @@ describe('GET /api/analytics/category — drilldown por categoría', () => {
             income: 2000,
             expense: 0,
             savings: 2000,
-            by_category: [{ category: 'income', amount: 2000 }],
+            by_category: [{ category: 'payroll', amount: 2000 }],
           },
         ],
         error: null,
@@ -220,7 +220,7 @@ describe('GET /api/analytics/category — drilldown por categoría', () => {
       supabase as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
-    const body = await (await GET(req({ granularity: 'month', id: 'income' }))).json()
+    const body = await (await GET(req({ granularity: 'month', id: 'payroll' }))).json()
     for (const p of body.periods) {
       expect(p.amount).toBe(2000)
     }

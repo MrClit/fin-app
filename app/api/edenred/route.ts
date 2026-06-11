@@ -136,7 +136,7 @@ export async function POST(req: Request) {
     // supabase/migrations/20260509000000_categories_type.sql). La matview
     // `transactions_monthly_summary` hace INNER JOIN sobre `categories`, así que
     // un `id` desconocido excluiría la tx de las agregaciones SIN error. El
-    // scraper sólo emite 'restaurant' e 'income', y el fallback de aquí es
+    // scraper sólo emite 'restaurant' y 'payroll', y el fallback de aquí es
     // 'restaurant'; ambos están garantizados por ese seed. Ver issue #101.
     // `is_read` se omite a propósito (issue #149): los inserts nuevos toman el
     // DEFAULT false (nacen "no leídos"), y como el upsert usa

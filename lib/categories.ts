@@ -70,7 +70,7 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Inversión
   { pattern: /degiro|myinvestor|indexa capital|openbroker|interactive brokers|trading212|etf\b|fondo de inversion|gvc gaesco|gaesco/i, category: 'investment' },
   // Nómina e ingresos laborales
-  { pattern: /nomina|salario|payroll|haberes|retribucion/i, category: 'income' },
+  { pattern: /nomina|salario|payroll|haberes|retribucion/i, category: 'payroll' },
   // Reembolso / Devolución (antes que impuestos: "devoluciones tributarias" es una devolución)
   { pattern: /devolucion|reembolso|devoluciones tributarias/i, category: 'reimbursement' },
   // Impuestos y tasas (ayuntamiento / organisme tributari)

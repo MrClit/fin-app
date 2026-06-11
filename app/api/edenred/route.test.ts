@@ -350,7 +350,7 @@ describe('POST /api/edenred — mapeo de category', () => {
     expect(rows[0].category).toBe('restaurant')
   })
 
-  it('respeta la category provista por el scraper (p. ej. "income" en una recarga)', async () => {
+  it('respeta la category provista por el scraper (p. ej. "payroll" en una recarga)', async () => {
     const { db, upsertSpy } = buildMockDb({
       userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
@@ -367,7 +367,7 @@ describe('POST /api/edenred — mapeo de category', () => {
           amount: 50,
           description: 'Recarga mensual',
           transaction_date: '2026-05-01',
-          category: 'income',
+          category: 'payroll',
         },
         {
           external_id: 'gasto-1',
@@ -380,7 +380,7 @@ describe('POST /api/edenred — mapeo de category', () => {
 
     const [rows] = upsertSpy.mock.calls[0]
     expect(rows).toHaveLength(2)
-    expect(rows[0].category).toBe('income')
+    expect(rows[0].category).toBe('payroll')
     expect(rows[1].category).toBe('restaurant')
   })
 })

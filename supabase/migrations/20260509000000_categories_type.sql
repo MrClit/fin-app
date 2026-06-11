@@ -48,7 +48,7 @@ INSERT INTO categories (id, name, color, type, sort_order) VALUES
   ('other',          'Otros gastos',           '#64748b', 'expense',        33),
 
 -- ─── INGRESOS ────────────────────────────────────────────────────────────────
-  ('income',         'Nómina',                 '#3b82f6', 'income',         34),
+  ('payroll',        'Nómina',                 '#3b82f6', 'income',         34),
   ('returns',        'Rendimientos',           '#0284c7', 'income',         35),
   ('reimbursement',  'Reembolso',              '#16a34a', 'income',         36),
   ('other_income',   'Otros ingresos',         '#6366f1', 'income',         37),
