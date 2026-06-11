@@ -13,7 +13,7 @@ const VALID_CATEGORIES: CategoryId[] = [
   'beauty', 'gifts', 'charity', 'memberships', 'taxes', 'loans', 'cash',
   'fees', 'other',
   // Ingresos
-  'income', 'returns', 'reimbursement', 'other_income',
+  'payroll', 'returns', 'reimbursement', 'other_income',
   // No Computable
   'investment', 'savings', 'transfer', 'loan_payment', 'card_payment',
 ]

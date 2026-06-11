@@ -201,10 +201,10 @@ async function extractTransactions(page) {
     // nómina), todo lo demás es consumo en restaurante.
     // Las categorías deben coincidir con un `id` del seed de la tabla
     // `categories` (supabase/migrations/20260509000000_categories_type.sql):
-    // 'income' (Nómina) para la recarga y 'restaurant' (expense) para el consumo.
+    // 'payroll' (Nómina) para la recarga y 'restaurant' (expense) para el consumo.
     const isRecarga = description.toUpperCase() === 'RECARGA'
     const amount = isRecarga ? parseAmount(rawAmount) : -parseAmount(rawAmount)
-    const category = isRecarga ? 'income' : 'restaurant'
+    const category = isRecarga ? 'payroll' : 'restaurant'
 
     // external_id estable: fecha + hora (resolución de segundos). Si dos
     // movimientos colisionasen en el mismo segundo, el upsert los trataría

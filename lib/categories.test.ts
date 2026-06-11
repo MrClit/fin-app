@@ -36,7 +36,7 @@ const positiveCases: ReadonlyArray<readonly [string, CategoryId]> = [
   ['Seguro auto Linea Directa', 'insurance_auto'],
   ['Recibo varios 23/05', 'fees'],
   ['Pago hacienda IRPF', 'taxes'],
-  ['Nomina mayo empresa', 'income'],
+  ['Nomina mayo empresa', 'payroll'],
   ['Devolucion compra online', 'reimbursement'],
   ['Transferencia propia entre cuentas', 'transfer'],
   ['Cajero ATM Banco', 'cash'],

@@ -91,7 +91,7 @@ export const CATEGORY_COLORS: Record<CategoryId, string> = {
   fees:           '#94a3b8',
   other:          '#64748b',
   // Ingresos
-  income:         '#3b82f6',
+  payroll:        '#3b82f6',
   returns:        '#0284c7',
   reimbursement:  '#16a34a',
   other_income:   '#6366f1',
@@ -149,7 +149,7 @@ export const CATEGORY_META: Record<CategoryId, CategoryMeta> = {
   fees:           { label: 'Comisiones',            color: '#94a3b8', type: 'expense',         Icon: Landmark        },
   other:          { label: 'Otros gastos',          color: '#64748b', type: 'expense',         Icon: MoreHorizontal  },
   // ── Ingresos ────────────────────────────────────────────────────────────────
-  income:         { label: 'Nómina',                color: '#3b82f6', type: 'income',          Icon: TrendingUp      },
+  payroll:        { label: 'Nómina',                color: '#3b82f6', type: 'income',          Icon: TrendingUp      },
   returns:        { label: 'Rendimientos',          color: '#0284c7', type: 'income',          Icon: BarChart3       },
   reimbursement:  { label: 'Reembolso',             color: '#16a34a', type: 'income',          Icon: RotateCcw       },
   other_income:   { label: 'Otros ingresos',        color: '#6366f1', type: 'income',          Icon: CirclePlus      },
