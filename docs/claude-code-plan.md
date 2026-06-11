@@ -67,7 +67,7 @@ export const fmt = (n: number, decimals = 0): string => {
 ## Base de datos
 - Todas las tablas tienen `user_id` con RLS activada
 - `is_liability` en `accounts` para distinguir activos de pasivos
-- `is_internal_transfer` en `transactions` para evitar duplicados tarjeta/cuenta
+- La clasificación ingreso/gasto/no-computable viene de `categories.type`, no del signo del `amount`
 - Vista materializada `transactions_monthly_summary` para agregaciones
 
 ## Lo que NO hacer
@@ -152,7 +152,7 @@ Una issue está **Ready** cuando:
 #6  [chore] Utilidades compartidas: fmt(), theme tokens, tipos TypeScript
     Ref: §13 nota 6. Crear lib/formatting.ts, lib/theme.ts y types/index.ts.
     El tipo Account debe incluir is_liability. El tipo Transaction debe incluir
-    is_internal_transfer y category_manual.
+    category_manual.
 ```
 
 ### Issues de la Fase 2 — Conexión bancaria
@@ -211,7 +211,8 @@ valores para light y dark mode."
 
 ## 7. Fases de desarrollo completas
 
-Referencia rápida del plan de implementación (ver §11 del spec para el detalle):
+Referencia rápida del plan de implementación (ver §11 del spec para el detalle).  
+**Nota:** la planificación se ajusta sobre la marcha; las issues de GitHub son la fuente de verdad.
 
 | Fase | Contenido | Semana |
 |------|-----------|--------|
@@ -219,8 +220,9 @@ Referencia rápida del plan de implementación (ver §11 del spec para el detall
 | 2 | Enable Banking, sync transacciones, Cuentas, Movimientos básico | 2 |
 | 3 | Dashboard completo, modales detalle/nuevo, swipe, patrimonio | 3 |
 | 4 | Análisis completo: barras, donut, KPIs, drilldown categoría | 4 |
-| 5 | Edenred scraper, GitHub Actions, Onboarding real, PWA | 5 |
+| 5 | Edenred scraper, GitHub Actions, Onboarding real | 5 |
 | 6 | Estados carga/error, renovación PSD2, tests unitarios | 6 |
+| 7 | PWA: manifest, service worker, iconos, offline | 7 |
 
 ---
 

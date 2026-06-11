@@ -39,7 +39,7 @@ export const fmt = (n: number, decimals = 0): string => {
 ## Base de datos
 - Todas las tablas tienen `user_id` con RLS activada
 - `is_liability` en `accounts` para distinguir activos de pasivos
-- `is_internal_transfer` en `transactions` para evitar duplicados tarjeta/cuenta
+- La clasificación de una transacción (`income` / `expense` / `non_computable`) viene determinada por `categories.type` de su categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo, sólo para presentación visual.
 - Vista materializada `transactions_monthly_summary` para agregaciones
 
 ## Lo que NO hacer
@@ -86,11 +86,15 @@ gh project field-list 2 --owner MrClit --format json  # → field-id y option-id
 | Al aceptar el plan e iniciar implementación | Si el plan difiere significativamente de la descripción original de la issue, actualizarla con `mcp__github__update_issue` antes de empezar |
 | Al aceptar el plan e iniciar implementación | Mover a **In progress** |
 | Al aceptar el plan e iniciar implementación | Crear rama `feature/<issue-slug>` o `fix/<issue-slug>` desde `develop` y trabajar en ella |
+| Antes de abrir PR | Ejecutar **siempre** `pnpm test`, `pnpm lint` y `pnpm build`. Si alguno falla, arreglarlo antes de pushear. No usar `--no-verify` ni saltarse hooks. |
 | Al terminar implementación y validaciones | Hacer push de la rama y abrir PR hacia `develop` con `mcp__github__create_pull_request` |
 | Al terminar implementación y validaciones | Mover a **Review** |
 | Al cerrar la issue | Mover a **Done** + comentar resumen con `mcp__github__add_issue_comment` |
 
-Si el usuario pide mergear la PR, hacerlo directamente con `mcp__github__merge_pull_request` (sin aprobación previa — GitHub no permite que el autor apruebe su propia PR).
+Si el usuario pide mergear la PR, usar **siempre** `gh pr merge` — el MCP devuelve error de permisos:
+```bash
+gh pr merge <número> --squash --subject "título del commit"
+```
 
 Nunca trabajar directamente en `develop` ni en `main` durante la implementación.
 

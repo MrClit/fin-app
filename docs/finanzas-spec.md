@@ -59,7 +59,9 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 
 **Filtros de tipo**
 - Pills horizontales: Todos / Ingresos / Gastos / No Computable
-- "No Computable" = Edenred/tickets restaurante
+- El filtro usa `CATEGORY_META[effectiveCategory].type` — no el signo del importe
+- "No Computable" incluye las transacciones cuya categoría efectiva tiene `type = 'non_computable'` (inversión, ahorro, transferencias, amortizaciones)
+- Las transacciones sin categoría sólo aparecen en "Todos" hasta que el usuario las categorice
 
 **Lista agrupada por día**
 - Encabezado de día: "Hoy", "Ayer" o fecha formateada + neto del día
@@ -94,23 +96,24 @@ Aplicación web personal de gestión y análisis de finanzas que agrega automát
 
 **Selector de período** (bottom sheet — sticky en el header)
 - Opciones: **Semana / Mes / Trimestre / Año**
+- El botón del header muestra la granularidad activa sin prefijo: "Mes", "Semana", "Trimestre", "Año"
 - Siempre muestra el período actual, sin selección manual de fechas concretas
 - El header que contiene el título "Análisis" y el selector **es sticky** — permanece visible al hacer scroll
+- Debajo del título "Análisis" se muestra el rango de fechas del período / barra activa en formato `1 may. - 31 may. 2026`; se actualiza al seleccionar una barra distinta
 - El estado de período es **compartido** entre Análisis y la pantalla de Detalle de categoría: cambiar en una actualiza la otra
 - El mismo selector aparece en la pantalla de Detalle de categoría (arriba a la derecha del header)
 
 **KPIs — Ingresos y Gastos**
-- Importe del período / barra seleccionada
-- Badge con % vs período anterior
-- Badge con % vs mismo período año anterior
-- Badge con el label de la barra cuando no es el período actual
-- Color inteligente: para Gastos, + es malo (rojo), − es bueno (verde)
+- Importe del período / barra seleccionada (tipografía 28px weight 800; 20px si el importe ≥ 10.000 €)
+- Badge con % vs período anterior: color neutro siempre
+- Badge con % vs mismo período año anterior: color inteligente — para Gastos, + es malo (rojo), − es bueno (verde); invertido para Ingresos
+- Mostrar `—` cuando no hay datos YoY suficientes (§5.7)
 
-**Gráfica de barras dobles** (ingresos verde / gastos morado)
-- Ventana de 6 períodos con navegación ← Anteriores / Siguientes →
+**Gráfica de barras dobles** (ingresos verde `#22c55e` / gastos morado `#6366f1`)
+- Ventana deslizante de 6 períodos con navegación ‹ Anteriores / Siguientes › (flechas desaparecen cuando no hay más períodos en esa dirección)
 - Barra seleccionada: opacidad plena + gradiente + sombra glow
 - Barras no seleccionadas: 45% de opacidad
-- Al seleccionar una barra: actualiza KPIs, categorías y ahorro
+- Al seleccionar una barra (tap en barra o en su etiqueta de fecha): actualiza KPIs, categorías y ahorro
 - Toggle "vs año ant.": muestra una **línea horizontal** dentro de cada barra indicando el nivel del año anterior
   - Línea verde con ticks verticales en los extremos para ingresos
   - Línea morada con ticks verticales en los extremos para gastos
@@ -181,14 +184,12 @@ transactions (
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   account_id      UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   date            DATE NOT NULL,
-  amount          DECIMAL(12,2) NOT NULL,  -- negativo = gasto, positivo = ingreso
+  amount          DECIMAL(12,2) NOT NULL,  -- el signo no clasifica tipo; sólo dirección del dinero
   description     TEXT NOT NULL,
-  category        TEXT,                    -- categoría asignada automáticamente
+  category        TEXT,                    -- categoría asignada automáticamente (FK lógica a categories.id)
   category_manual TEXT,                    -- categoría editada por el usuario (override)
   source          TEXT NOT NULL,           -- 'enablebanking' | 'scraper' | 'manual'
-  external_id     TEXT,                    -- ID de transacción en Enable Banking para evitar duplicados
-  is_computable   BOOLEAN DEFAULT true,    -- false = No Computable (Edenred)
-  is_internal_transfer BOOLEAN DEFAULT false, -- traspaso entre cuentas propias
+  external_id     TEXT,                    -- ID de transacción externo para evitar duplicados
   notes           TEXT,
   created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, external_id)             -- evita duplicados solo dentro del mismo user
@@ -228,25 +229,26 @@ CREATE POLICY "Users access own config" ON user_config
 
 ### 3.2 Categorías predefinidas
 
-```typescript
-const CATEGORIES = [
-  { id: 'supermercado', name: 'Supermercado', color: '#22c55e' },
-  { id: 'restaurante',  name: 'Restaurante',  color: '#f59e0b' },
-  { id: 'transporte',   name: 'Transporte',   color: '#8b5cf6' },
-  { id: 'hogar',        name: 'Hogar',        color: '#06b6d4' },
-  { id: 'ocio',         name: 'Ocio',         color: '#ef4444' },
-  { id: 'compras',      name: 'Compras',      color: '#ec4899' },
-  { id: 'salud',        name: 'Salud',        color: '#10b981' },
-  { id: 'ingresos',     name: 'Ingresos',     color: '#3b82f6' },
-  { id: 'otros',        name: 'Otros',        color: '#64748b' },
-]
-```
+**41 categorías** con tres tipos (`CategoryType`): `expense`, `income`, `non_computable`.  
+Definidas en `lib/theme.ts` (`CATEGORY_META`) y en la tabla `categories` de Supabase (para JOINs en queries de Análisis).
 
-La categoría `category_manual` en la tabla `transactions` sobreescribe `category` en la UI. Si `category_manual` tiene valor, se muestra con badge "EDITADA".
+| Tipo | Categorías (IDs) |
+|---|---|
+| `expense` (33) | `groceries`, `restaurant`, `transport`, `fuel`, `parking`, `vehicle`, `mortgage`, `community_fees`, `electricity`, `gas`, `water`, `internet`, `home`, `clothing`, `shopping`, `electronics`, `health`, `pharmacy`, `leisure`, `sports`, `subscriptions`, `travel`, `education`, `insurance`, `beauty`, `gifts`, `charity`, `memberships`, `taxes`, `loans`, `cash`, `fees`, `other` |
+| `income` (4) | `income`, `returns`, `reimbursement`, `other_income` |
+| `non_computable` (4) | `investment`, `savings`, `transfer`, `loan_payment` |
+
+La categoría efectiva se obtiene como `COALESCE(category_manual, category)`. Si `category_manual` tiene valor, se muestra con badge "EDITADA".
+
+El `CategoryPicker` agrupa las categorías por tipo con un selector de 3 tabs (Gastos / Ingresos / No Computable) y abre automáticamente en la sección de la categoría actual.
 
 ### 3.3 Lógica de "No Computable"
 
-Las transacciones de Edenred tienen `is_computable = false`. En el filtro de Movimientos se llaman "No Computable" y se excluyen de los totales de Gastos en Análisis.
+La única vía para que una transacción quede fuera de los totales de Análisis es **categorizarla con una categoría cuyo `type = 'non_computable'`** (`investment`, `savings`, `transfer`, `loan_payment`). Esas transacciones se excluyen de los KPIs y donuts de Ingresos/Gastos, y aparecen en la pill "No Computable" de Movimientos.
+
+Las transacciones sin categoría tampoco computan en los totales de Análisis ni aparecen en sus donuts; sólo se ven en la pill "Todos" de Movimientos hasta que el usuario las categorice.
+
+El signo del `amount` no determina nunca el tipo (income / expense / non_computable); sólo se usa para presentación visual del importe.
 
 ---
 
@@ -260,7 +262,7 @@ Las transacciones de Edenred tienen `is_computable = false`. En el filtro de Mov
 | Base de datos | **Supabase** (PostgreSQL) | Auth incluida, tiempo real, SDK TypeScript |
 | Agregación bancaria | **Enable Banking** | PSD2, tier gratuito para developers, buena cobertura España |
 | Scraping Edenred | **Playwright + Node.js** | Headless Chromium para la web de Edenred |
-| Automatización | **GitHub Actions** | Cron job gratuito para el scraper diario |
+| Automatización | **GitHub Actions** (Enable Banking) + **launchd local** (Edenred) | EB es API PSD2 → cron en GitHub. Edenred bindea la sesión por IP residencial → cron local en el Mac del usuario. |
 | Deploy | **Vercel** | Free tier, integración Next.js nativa |
 | Estilos | **Tailwind CSS v4** | Consistencia con el sistema de diseño del prototipo |
 
@@ -384,9 +386,20 @@ finanzas-app/
 │   ├── useTransactions.ts          → SWR/React Query para transacciones
 │   ├── useAccounts.ts              → SWR para cuentas y saldos
 │   └── useAnalytics.ts             → Datos agregados para la pantalla de análisis
-└── .github/
-    └── workflows/
-        └── edenred-scraper.yml     → Cron job diario 07:00 (Europe/Madrid)
+├── .github/
+│   └── workflows/
+│       └── enablebanking-sync.yml → Cron diario 06:00 (Europe/Madrid) → POST /api/sync/enablebanking/cron
+└── scripts/
+    └── scrapers/                  → Un subdirectorio autocontenido por scraper (nombres genéricos; el folder da el contexto)
+        ├── edenred/
+        │   ├── scrape.mjs         → Scraper Edenred (lanzado por launchd local 07:00)
+        │   ├── login.mjs          → Regeneración manual de scripts/scrapers/edenred/storage-state.json
+        │   ├── status.mjs         → Estado del último scrape (marker en ~/Library/Logs/fin-app)
+        │   ├── config.mjs         → Paths, URLs y validación de storage-state compartidos
+        │   ├── parsers.mjs        → Parsers puros de importe/fecha (testeables)
+        │   └── install-launchd.sh → Instala el agente launchd en ~/Library/LaunchAgents
+        └── sabadell-visa/         → Tarjetas de crédito VISA de Banco Sabadell (#147); mismo layout que edenred
+            └── … (scrape/login/status/config/parsers/install-launchd, perfil persistente en .userdata/)
 ```
 
 ### 4.4 Flujo de sincronización bancaria (Enable Banking)
@@ -397,66 +410,56 @@ finanzas-app/
 3. Enable Banking redirige al usuario al banco (OAuth/PSD2 del banco)
 4. Usuario autoriza en su banco y vuelve a la app
 5. Enable Banking callback → Next.js guarda el session_id en Supabase
-6. Cron semanal (o manual) llama a GET /accounts/{id}/transactions
-7. Se normalizan y guardan en tabla transactions (external_id evita duplicados)
+6. Cron diario (o manual) llama a POST /api/sync/enablebanking/cron
+7. El endpoint itera todas las cuentas EB activas y normaliza/guarda transacciones (external_id evita duplicados)
 8. Se actualiza el saldo en tabla accounts
 ```
+
+El cron se dispara desde GitHub Actions (`.github/workflows/enablebanking-sync.yml`, cron `0 5 * * *` UTC = 06:00 Europe/Madrid) haciendo un `curl -H "Authorization: Bearer $ENABLEBANKING_WEBHOOK_SECRET"` contra el endpoint. El endpoint **cookie** (`POST /api/sync/enablebanking`) se mantiene para el botón "Sincronizar ahora" desde la UI. Los errores parciales por cuenta (consentimiento caducado, token expirado) loguean pero no abortan el cron.
 
 **Variables de entorno necesarias:**
 ```
 ENABLEBANKING_APP_ID=
 ENABLEBANKING_SECRET_KEY=
+ENABLEBANKING_WEBHOOK_SECRET=   # autentica al cron contra /api/sync/enablebanking/cron
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-EDENRED_WEBHOOK_SECRET=      # para autenticar llamadas del scraper
+EDENRED_WEBHOOK_SECRET=         # autentica al scraper de Edenred contra /api/edenred
 ```
 
-### 4.5 Flujo Edenred (scraping vía GitHub Actions)
+**GitHub Secrets necesarios para el workflow EB:**
+```
+ENABLEBANKING_WEBHOOK_SECRET=   # mismo valor que en Vercel
+APP_URL=                        # URL de producción en Vercel
+```
+
+### 4.5 Flujo Edenred (scraping vía launchd local)
+
+> **Por qué no GitHub Actions:** Edenred valida la IP de origen de la sesión. Una sesión generada desde una IP residencial española queda invalidada al usarla desde el datacenter de GitHub. Probado y descartado. El cron pasa a ejecutarse en el Mac del usuario, donde la IP coincide con la que generó la sesión.
 
 ```
-GitHub Actions (cron: 0 7 * * * Europe/Madrid)
-  └── Node.js script con Playwright
-        ├── Login en edenred.es con credenciales (GitHub Secrets)
+launchd (StartCalendarInterval: 07:00 hora local)
+  └── pnpm scrape:edenred (Playwright headless, sesión en scripts/scrapers/edenred/storage-state.json)
+        ├── Carga storage-state.json y entra en edenred.es
         ├── Extrae saldo actual y últimos movimientos
         └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
-              └── Next.js guarda en transactions con source='scraper', is_computable=false
+              └── Next.js guarda en transactions con source='scraper'
+                  (RECARGA → category='income', consumos → category='restaurant')
                   y actualiza balance en accounts
 ```
 
-**GitHub Secrets necesarios para el workflow:**
+El agente se instala con `./scripts/scrapers/edenred/install-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
+
+**Variables en `.env.local` del Mac:**
 ```
 EDENRED_USER=
 EDENRED_PASS=
-APP_URL=                     # URL de producción en Vercel
+APP_URL=                        # URL de producción en Vercel
 EDENRED_WEBHOOK_SECRET=
 ```
 
-**Archivo `.github/workflows/edenred-scraper.yml`:**
-```yaml
-name: Edenred Scraper
-on:
-  schedule:
-    - cron: '0 6 * * *'   # 07:00 Europe/Madrid (UTC+1)
-  workflow_dispatch:         # Permite ejecución manual
-
-jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx playwright install chromium --with-deps
-      - run: node scripts/scrape-edenred.js
-        env:
-          EDENRED_USER: ${{ secrets.EDENRED_USER }}
-          EDENRED_PASS: ${{ secrets.EDENRED_PASS }}
-          APP_URL: ${{ secrets.APP_URL }}
-          EDENRED_WEBHOOK_SECRET: ${{ secrets.EDENRED_WEBHOOK_SECRET }}
-```
+**Instalación del agente launchd:** detalles operativos en el README (sección "Cron de Edenred").
 
 ---
 
@@ -497,27 +500,30 @@ En lugar de barras fantasma adicionales (que añaden ruido visual), se usa una *
 
 ### 5.3 Categorización automática
 
-Al importar transacciones de Enable Banking, aplicar reglas de categorización basadas en la descripción:
+Al importar transacciones de Enable Banking se aplica una cadena de reglas en dos capas:
+
+1. **Reglas de usuario** (`categorization_rules` en DB) — evaluadas por orden de `priority DESC`; la primera que coincide gana.
+2. **Reglas estáticas** (`AUTO_RULES` en `lib/categories.ts`) — fallback si ninguna regla de usuario coincide.
+
+Cada regla tiene un campo `field` que indica qué parte de la transacción evalúa: `description` (remittance_information), `merchant` (creditor/debtor name de EnableBanking) o `iban` (para reglas de usuario con IBANs conocidos).
 
 ```typescript
-const AUTO_RULES = [
-  { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski/i, category: 'Supermercado' },
-  { pattern: /netflix|spotify|hbo|disney|amazon prime/i,    category: 'Ocio' },
-  { pattern: /repsol|cepsa|bp\b|galp|campsa/i,              category: 'Transporte' },
-  { pattern: /farmacia|clinica|hospital|sanitas|adeslas/i,  category: 'Salud' },
-  { pattern: /nomina|salario|payroll/i,                     category: 'Ingresos' },
-  // ...añadir más según uso real
-]
+// Función principal usada en el sync route
+categorizeWithRules(dbRules, description, merchant?) → CategoryId | null
 
-const categorize = (description: string): string => {
-  for (const rule of AUTO_RULES) {
-    if (rule.pattern.test(description)) return rule.category
-  }
-  return 'Otros'
-}
+// Fallback estático — ver lib/categories.ts para las ~35 reglas completas
+categorize(description, merchant?) → CategoryId | null
+// Cubre: supermercados, restaurantes, delivery, transporte, gasolina, parking,
+// vehículo, hipoteca, préstamos, suministros, telefonía, hogar, ropa,
+// electrónica, compras generales (Amazon, El Corte Inglés), salud, farmacia,
+// belleza, ocio, deporte, suscripciones, viajes, educación, seguros,
+// recibos, impuestos/AEAT, nómina, reembolsos, transferencias propias,
+// retiradas de cajero, Bizum, inversión
 ```
 
-Si el usuario ha establecido `category_manual`, esa tiene prioridad sobre la automática.
+Si ninguna regla coincide → `category = null` (se muestra como "Sin categorizar" en la UI).
+
+Si el usuario ha establecido `category_manual`, esa tiene prioridad sobre la automática (`COALESCE(category_manual, category)`).
 
 ### 5.4 Estrategia de agregación SQL
 
@@ -528,19 +534,25 @@ Las agregaciones por período (KPIs, donut, barras) son consultas frecuentes y p
 ```sql
 CREATE MATERIALIZED VIEW transactions_monthly_summary AS
 SELECT
-  user_id,
-  account_id,
-  DATE_TRUNC('month', date)::date AS month,
-  COALESCE(category_manual, category) AS effective_category,
-  SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS ingresos,
-  SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS gastos,
+  t.user_id,
+  t.account_id,
+  DATE_TRUNC('month', t.date)::date AS month,
+  COALESCE(t.category_manual, t.category) AS effective_category,
+  SUM(CASE WHEN c.type = 'income'  THEN t.amount ELSE 0 END) AS ingresos,
+  SUM(CASE WHEN c.type = 'expense' THEN t.amount ELSE 0 END) AS gastos,
   COUNT(*) AS tx_count
-FROM transactions
-WHERE is_computable = true AND is_internal_transfer = false
-GROUP BY user_id, account_id, DATE_TRUNC('month', date), effective_category;
+FROM transactions t
+JOIN categories c ON c.id = COALESCE(t.category_manual, t.category)
+WHERE c.type IN ('income', 'expense')
+GROUP BY t.user_id, t.account_id, DATE_TRUNC('month', t.date), effective_category;
 
 CREATE INDEX idx_monthly_user_month ON transactions_monthly_summary(user_id, month DESC);
 ```
+
+Notas:
+- `INNER JOIN categories` excluye transacciones sin categoría.
+- Las categorías `non_computable` quedan fuera de la vista (no aportan a `ingresos`/`gastos`).
+- Los importes se clasifican por `c.type`, **no por el signo del `amount`**: una devolución de nómina (`type='income'`, amount<0) suma al total de ingresos como negativa (resta correctamente).
 
 Esta vista se refresca tras cada sincronización con:
 ```sql
@@ -560,7 +572,11 @@ CREATE OR REPLACE FUNCTION get_period_data(
   ahorro DECIMAL,
   by_category JSONB
 ) AS $$
-  -- Implementación: agrega desde transactions filtrando por user_id, fecha y is_computable
+  -- Implementación: LEFT JOIN con categories sobre COALESCE(category_manual, category).
+  -- ingresos = SUM(amount) FILTER (WHERE c.type = 'income')
+  -- gastos   = ABS(SUM(amount) FILTER (WHERE c.type = 'expense'))
+  -- by_category sólo incluye categorías con type IN ('income','expense').
+  -- Las transacciones sin categoría o con type='non_computable' se excluyen de totales y breakdown.
 $$ LANGUAGE plpgsql STABLE;
 ```
 
@@ -582,30 +598,16 @@ El **Balance total** del Dashboard muestra el patrimonio neto, no la suma bruta 
 
 ### 5.6 Conciliación entre tarjeta y cuenta corriente
 
-Problema: cuando Enable Banking sincroniza tanto la cuenta como la tarjeta, una compra de 50€ con la tarjeta aparece dos veces:
-- En la tarjeta: el día de la compra (50€)
-- En la cuenta corriente: el día del cargo mensual de la tarjeta (cargo agregado)
+Actualmente Enable Banking sólo devuelve transacciones de cuentas bancarias (no tarjetas de crédito), por lo que no hay doble conteo.
 
-**Solución:** detectar el cargo agregado de la tarjeta y marcarlo como `is_internal_transfer = true` para que no compute en gastos:
-
-```typescript
-const RECONCILIATION_RULES = [
-  // Patrón típico: "LIQUIDACION TARJETA", "CARGO TARJETA VISA"
-  { pattern: /liquidacion\s+tarjeta|cargo\s+tarjeta/i, mark: 'internal_transfer' },
-  // Bizum o transferencia entre cuentas propias del mismo titular
-  { pattern: /traspaso\s+entre\s+cuentas/i, mark: 'internal_transfer' },
-]
-```
-
-Idealmente el usuario debería poder confirmar/rechazar la conciliación en la UI (futura mejora).
+Si en el futuro entra en juego una tarjeta cuyo cargo mensual aparece liquidado en la cuenta bancaria, la transacción de liquidación se categorizará como `loan_payment` o `transfer` (ambas con `type='non_computable'`). Esto la excluye de los totales de Análisis sin necesidad de un flag dedicado.
 
 ### 5.7 Comparativa YoY con histórico insuficiente
 
 Enable Banking provee por defecto el histórico que permite el banco bajo PSD2 (habitualmente 90 días). La comparativa "vs año anterior" simplemente no tiene datos durante el primer año.
 
 **Comportamiento esperado:**
-- Si no hay transacciones del período del año anterior → mostrar `—` en lugar del %
-- Si hay menos del 80% de los días con datos → mostrar el % con badge "datos parciales"
+- Si no hay transacciones del período del año anterior → mostrar `—` en lugar del % (tanto en badges de KpiCard como en las líneas YoY de la gráfica)
 - En la primera conexión, solicitar el máximo histórico disponible (algunos bancos permiten hasta 24 meses según sus condiciones PSD2)
 
 ---
@@ -938,7 +940,7 @@ Al trabajar con este proyecto:
 
 9. **Patrimonio neto vs balance bruto.** Las cuentas con `is_liability = true` (tarjetas de crédito) deben restarse del patrimonio neto, no sumarse. La pantalla de Cuentas las muestra agrupadas separando "Activos" de "Deudas".
 
-10. **Conciliación.** Antes de mostrar gastos en Análisis, filtrar `is_internal_transfer = true`. Las reglas de conciliación se aplican al sincronizar, no al renderizar.
+10. **Clasificación por categoría, no por signo.** La fuente única de verdad para si una transacción es ingreso/gasto/no-computable es `categories.type` de la categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo: una devolución de nómina (amount<0, `type='income'`) sigue siendo ingreso. Las transacciones sin categoría quedan fuera de los totales de Análisis hasta que el usuario las categorice.
 
 11. **`overflow: clip` obligatorio.** El contenedor raíz de la app debe usar `overflow: clip`, no `overflow: hidden`. Ver §6.5 para la explicación completa. Sin esto, los headers sticky no funcionan.
 
@@ -952,25 +954,28 @@ Al trabajar con este proyecto:
 
 Funcionalidades fuera del MVP pero documentadas para no perderlas. Cada una es independiente y puede implementarse en orden de prioridad según el uso real de la app.
 
-### 14.1 Categorización inteligente
+### 14.1 Categorización inteligente — UI de reglas de usuario
 
-**Reglas persistentes en base de datos.** Cuando el usuario recategoriza un movimiento, la app pregunta:
-> "¿Quieres aplicar 'Restaurante' a todas las transacciones futuras que contengan 'Bizum a Juan'?"
-
-Si acepta, se crea una regla en una nueva tabla:
+**Infraestructura ya implementada (issue #34).** La tabla `categorization_rules` existe en producción y el sync route ya la consulta y aplica con prioridad sobre las reglas estáticas:
 
 ```sql
 categorization_rules (
-  id          UUID PRIMARY KEY,
-  user_id     UUID REFERENCES auth.users(id),
-  pattern     TEXT NOT NULL,           -- texto a buscar en description
-  category    TEXT NOT NULL,
-  priority    INTEGER DEFAULT 0,        -- mayor prioridad sobreescribe a menor
-  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  pattern     TEXT NOT NULL,
+  field       TEXT NOT NULL CHECK (field IN ('description', 'merchant', 'iban')),
+  category_id TEXT NOT NULL REFERENCES categories(id),
+  priority    INTEGER NOT NULL DEFAULT 0,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )
 ```
 
-Las reglas del usuario se aplican antes que las hardcodeadas y se gestionan desde Settings.
+**Pendiente:** la UI que permita crear y gestionar estas reglas. El flujo previsto es:
+> Al recategorizar un movimiento, la app pregunta: "¿Quieres aplicar 'Restaurante' a todas las transacciones futuras que contengan 'Glovo'?"
+> Si acepta → inserta fila en `categorization_rules`.
+
+La gestión completa de reglas (editar, desactivar, ver listado) va en §14.2 Settings.
 
 ### 14.2 Pantalla de Settings
 
@@ -1074,3 +1079,15 @@ Fue implementado y retirado por resultar confuso en UX. La idea: un toggle en Me
 - **Trimestre YTD:** acumulado creciente (Q2 = Ene–Jun, Q3 = Ene–Sep…)
 
 Para reimplementarlo, ver el historial del prototipo. Requiere datos mock separados por granularidad y un toggle claramente explicado al usuario con el rango de fechas exacto visible en todo momento.
+
+### 14.16 Filtros server-side en Movimientos
+
+Con la paginación cursor introducida en #109, los filtros de Movimientos (búsqueda por descripción/categoría, tipo, cuenta) siguen ejecutándose en cliente sobre el subconjunto cargado. El sentinel de infinite scroll auto-pagina cuando la lista filtrada queda corta, así que el comportamiento es funcionalmente correcto, pero:
+
+- Una búsqueda con matches sólo en histórico antiguo provoca N peticiones encadenadas para llegar a verlos.
+- Con dataset grande (10k+ tx en memoria), filtrar en JS empieza a notarse — converge con §14.9.
+
+Cuando moleste, mover los tres filtros a query params del endpoint `/api/transactions` (`?accounts=` ya existe). Cambios necesarios:
+- Endpoint: aplicar filtros en SQL (búsqueda con `ilike` o `websearch_to_tsquery` sobre `description`; tipo vía join con `categories.type`).
+- Cliente: `useMovimientosFilters` deja de filtrar localmente y dispara fetch con reset del cursor al cambiar filtros; añadir debounce al input de búsqueda.
+- Tests: del endpoint con cada combinación.

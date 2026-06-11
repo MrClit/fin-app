@@ -495,7 +495,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
 
         {/* Balance total card */}
         <div style={{
@@ -797,7 +797,7 @@ export default function App() {
             <Icon d={Icons.plus} size={18} stroke="white" />
           </button>
         </div>
-        <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* Buscador */}
           <div style={{
@@ -917,7 +917,7 @@ export default function App() {
           <Icon d={Icons.plus} size={18} stroke="white" />
         </button>
       </div>
-      <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12 }}>
         {mockAccounts.map(acc => (
           <div key={acc.id} style={{
             background: t.surface, borderRadius: 20, padding: "20px",
@@ -1390,7 +1390,7 @@ export default function App() {
           position: "sticky", top: 0, zIndex: 50,
           background: dark ? "rgba(15,15,20,0.92)" : "rgba(245,245,247,0.92)",
           backdropFilter: "blur(16px)",
-          padding: "52px 20px 14px",
+          padding: "52px 16px 14px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           borderBottom: `1px solid ${t.border}`,
           marginBottom: 4,
@@ -1399,7 +1399,7 @@ export default function App() {
           <PeriodButton />
         </div>
 
-        <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
 
           <div style={{ display: "flex", gap: 10 }}>
             {[
@@ -2114,7 +2114,7 @@ export default function App() {
           position: "sticky", top: 0, zIndex: 50,
           background: dark ? "rgba(15,15,20,0.92)" : "rgba(245,245,247,0.92)",
           backdropFilter: "blur(16px)",
-          padding: "52px 20px 14px",
+          padding: "52px 16px 14px",
           borderBottom: `1px solid ${t.border}`,
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -2156,7 +2156,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ ...styles.card }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Evolución</div>
