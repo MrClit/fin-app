@@ -1,4 +1,4 @@
-import type { CategoryId } from '@/types'
+import type { CategoryId } from './catalog'
 
 type RuleField = 'description' | 'merchant'
 
