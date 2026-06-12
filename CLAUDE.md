@@ -41,6 +41,7 @@ export const fmt = (n: number, decimals = 0): string => {
 - `is_liability` en `accounts` para distinguir activos de pasivos
 - La clasificación de una transacción (`income` / `expense` / `non_computable`) viene determinada por `categories.type` de su categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo, sólo para presentación visual.
 - Vista materializada `transactions_monthly_summary` para agregaciones
+- **Categorías**: la fuente única de verdad es `lib/categories/catalog.ts` (#175). `CategoryId`, `CATEGORY_META`, `CATEGORY_COLORS` y `VALID_CATEGORIES` se derivan de ahí. La tabla `categories` es una réplica: tras cambiar el catálogo, regenerar con `pnpm seed:categories` y ejecutar `supabase/seed/categories.sql` en el SQL Editor (un test de drift falla si se olvida). `transactions.category`/`category_manual` tienen FK a `categories.id` con `ON DELETE NO ACTION`: retirar o renombrar un id requiere migración de repunte (patrón alta→repunte→baja, ver #151/#174).
 
 ## Lo que NO hacer
 - No reimplementar YTD sin discutirlo (fue retirado por UX — ver §14.15 del spec)
