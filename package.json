@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "seed:categories": "node scripts/generate-categories-seed.mts",
     "scrape:edenred": "node --env-file-if-exists=.env.local scripts/scrapers/edenred/scrape.mjs",
     "scrape:edenred:force": "EDENRED_SKIP_MARKER=1 pnpm scrape:edenred",
     "scrape:edenred:login": "node --env-file=.env.local scripts/scrapers/edenred/login.mjs",
