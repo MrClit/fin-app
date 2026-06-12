@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { categorize } from './categories'
-import type { CategoryId } from '@/types'
+import { categorize } from './rules'
+import type { CategoryId } from './catalog'
 
 // Casos positivos: una fila por cada categoría cubierta por AUTO_RULES.
 // Añadir una regla nueva ⇒ añadir una fila aquí.

@@ -2,21 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
 import type { CategoryId } from '@/types'
-
-const VALID_CATEGORIES: CategoryId[] = [
-  // Gastos
-  'groceries', 'restaurant', 'transport', 'fuel', 'parking', 'vehicle',
-  'mortgage', 'community_fees', 'electricity', 'gas', 'water', 'internet',
-  'home', 'clothing', 'shopping', 'electronics', 'health', 'pharmacy',
-  'leisure', 'sports', 'subscriptions', 'travel', 'education',
-  'insurance_health', 'insurance_home', 'insurance_auto', 'domestic_help',
-  'beauty', 'gifts', 'charity', 'memberships', 'taxes', 'loans', 'cash',
-  'fees', 'other',
-  // Ingresos
-  'payroll', 'returns', 'reimbursement', 'other_income',
-  // No Computable
-  'investment', 'savings', 'transfer', 'loan_payment', 'card_payment',
-]
+import { VALID_CATEGORIES } from '@/lib/categories'
 
 export async function PATCH(
   request: NextRequest,
