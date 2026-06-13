@@ -100,6 +100,78 @@ export interface DbCategorizationRule {
   category_id: string
 }
 
+// Longitud máxima de un patrón de regla. Debe mantenerse sincronizada con el
+// CHECK de la tabla `categorization_rules` (migración pattern_length).
+export const MAX_PATTERN_LENGTH = 200
+// Las descripciones bancarias son cortas; acotamos la cadena objetivo como cota
+// defensiva extra para el peor caso de backtracking.
+const MAX_TARGET_LENGTH = 500
+
+export type PatternValidation = { ok: true } | { ok: false; reason: string }
+
+// ¿hay un cuantificador no acotado (`+`, `*`, `{n,}`) "vivo" en el texto?
+// Ignora los escapados (`\+`, `\*`) y los que están dentro de una clase `[...]`.
+function containsUnboundedQuantifier(s: string): boolean {
+  let inClass = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (ch === '\\') { i++; continue }
+    if (inClass) { if (ch === ']') inClass = false; continue }
+    if (ch === '[') { inClass = true; continue }
+    if (ch === '+' || ch === '*') return true
+    if (ch === '{') {
+      const close = s.indexOf('}', i)
+      if (close !== -1 && /^\d+,$/.test(s.slice(i + 1, close))) return true
+    }
+  }
+  return false
+}
+
+// Detecta repetición anidada no acotada (star-height > 1), el patrón canónico del
+// backtracking exponencial: un grupo `(...)` seguido de un cuantificador no acotado
+// (`+`, `*`, `{n,}`) cuyo contenido contiene a su vez otro cuantificador no acotado.
+// P.ej. (a+)+, (a*)*, (a+)*, ((a)+)+ … Escanea con una pila respetando escapes y
+// clases de caracteres. Heurística conservadora: el cap de longitud es el backstop
+// duro si esto tiene un falso negativo; un falso positivo solo omite una regla.
+function hasNestedUnboundedQuantifier(pattern: string): boolean {
+  const stack: number[] = []
+  let inClass = false
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i]
+    if (ch === '\\') { i++; continue }
+    if (inClass) { if (ch === ']') inClass = false; continue }
+    if (ch === '[') { inClass = true; continue }
+    if (ch === '(') {
+      stack.push(i)
+    } else if (ch === ')') {
+      const open = stack.pop()
+      if (open === undefined) continue
+      const next = pattern[i + 1]
+      let unbounded = next === '+' || next === '*'
+      if (next === '{') {
+        const close = pattern.indexOf('}', i + 1)
+        if (close !== -1 && /^\d+,$/.test(pattern.slice(i + 2, close))) unbounded = true
+      }
+      if (unbounded && containsUnboundedQuantifier(pattern.slice(open + 1, i))) return true
+    }
+  }
+  return false
+}
+
+// Valida un patrón de regla antes de compilarlo/ejecutarlo. Fuente única de verdad,
+// reutilizable por la futura UI de gestión de reglas (§14.1/§14.2 del spec).
+export function validateRulePattern(pattern: string): PatternValidation {
+  if (!pattern) return { ok: false, reason: 'empty' }
+  if (pattern.length > MAX_PATTERN_LENGTH) return { ok: false, reason: 'too_long' }
+  try {
+    new RegExp(pattern, 'i')
+  } catch {
+    return { ok: false, reason: 'invalid_syntax' }
+  }
+  if (hasNestedUnboundedQuantifier(pattern)) return { ok: false, reason: 'unsafe_complexity' }
+  return { ok: true }
+}
+
 export function categorize(description: string, merchant?: string): CategoryId | null {
   for (const rule of AUTO_RULES) {
     const target = rule.field === 'merchant' ? (merchant ?? '') : description
@@ -114,7 +186,16 @@ export function categorizeWithRules(
   merchant?: string
 ): CategoryId | null {
   for (const rule of dbRules) {
-    const target = rule.field === 'merchant' ? (merchant ?? '') : description
+    // Tolerante a fallo: una regla inválida o con riesgo de ReDoS se OMITE en vez
+    // de colgar el sync (ver issue #182). La validez/complejidad se comprueba con el
+    // mismo validador que usará la UI de gestión de reglas.
+    const validation = validateRulePattern(rule.pattern)
+    if (!validation.ok) {
+      console.warn(`[categorizeWithRules] regla omitida (${validation.reason})`)
+      continue
+    }
+    const rawTarget = rule.field === 'merchant' ? (merchant ?? '') : description
+    const target = rawTarget.slice(0, MAX_TARGET_LENGTH)
     if (target && new RegExp(rule.pattern, 'i').test(target)) {
       return rule.category_id as CategoryId
     }
