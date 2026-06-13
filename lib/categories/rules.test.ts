@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { categorize } from './rules'
+import {
+  categorize,
+  categorizeWithRules,
+  validateRulePattern,
+  MAX_PATTERN_LENGTH,
+  type DbCategorizationRule,
+} from './rules'
 import type { CategoryId } from './catalog'
 
 // Casos positivos: una fila por cada categoría cubierta por AUTO_RULES.
@@ -207,5 +213,82 @@ describe('categorize', () => {
     it('devuelve null para descripción vacía', () => {
       expect(categorize('')).toBeNull()
     })
+  })
+})
+
+describe('validateRulePattern (issue #182)', () => {
+  it.each([
+    'glovo',
+    'mercadona|carrefour|lidl',
+    'amazon\\b',
+    'cafeter[ií]a',
+    'cuota \\d{1,4}',
+  ])('acepta patrones legítimos: %j', pattern => {
+    expect(validateRulePattern(pattern)).toEqual({ ok: true })
+  })
+
+  it('rechaza patrón vacío', () => {
+    expect(validateRulePattern('')).toEqual({ ok: false, reason: 'empty' })
+  })
+
+  it('rechaza patrón demasiado largo', () => {
+    const pattern = 'a'.repeat(MAX_PATTERN_LENGTH + 1)
+    expect(validateRulePattern(pattern)).toEqual({ ok: false, reason: 'too_long' })
+  })
+
+  it('acepta un patrón justo en el límite de longitud', () => {
+    const pattern = 'a'.repeat(MAX_PATTERN_LENGTH)
+    expect(validateRulePattern(pattern)).toEqual({ ok: true })
+  })
+
+  it('rechaza regex con sintaxis inválida', () => {
+    expect(validateRulePattern('(')).toEqual({ ok: false, reason: 'invalid_syntax' })
+    expect(validateRulePattern('[a-')).toEqual({ ok: false, reason: 'invalid_syntax' })
+  })
+
+  it.each([
+    '(a+)+$',
+    '(a*)*',
+    '(a+)*',
+    '((a)+)+',
+    '(\\d+){2,}',
+  ])('rechaza ReDoS por cuantificadores anidados: %j', pattern => {
+    expect(validateRulePattern(pattern)).toEqual({ ok: false, reason: 'unsafe_complexity' })
+  })
+})
+
+describe('categorizeWithRules (issue #182)', () => {
+  it('omite una regla con riesgo de ReDoS y resuelve rápido', () => {
+    const dbRules: DbCategorizationRule[] = [
+      { pattern: '(a+)+$', field: 'description', category_id: 'shopping' },
+    ]
+    const malicious = 'a'.repeat(40) + '!'
+    const start = performance.now()
+    // La regla peligrosa se omite; cae al fallback estático (sin match aquí).
+    expect(categorizeWithRules(dbRules, malicious)).toBeNull()
+    expect(performance.now() - start).toBeLessThan(1000)
+  })
+
+  it('omite la regla inválida pero aplica el resto de reglas válidas', () => {
+    const dbRules: DbCategorizationRule[] = [
+      { pattern: '(', field: 'description', category_id: 'shopping' },
+      { pattern: 'cafe-club', field: 'description', category_id: 'leisure' },
+    ]
+    expect(categorizeWithRules(dbRules, 'pago en cafe-club')).toBe('leisure')
+  })
+
+  it('una dbRule válida gana al fallback estático (regresión)', () => {
+    const dbRules: DbCategorizationRule[] = [
+      { pattern: 'mercadona', field: 'description', category_id: 'restaurant' },
+    ]
+    // Sin reglas, "Mercadona" sería groceries; la regla del hogar lo reasigna.
+    expect(categorizeWithRules(dbRules, 'Compra Mercadona')).toBe('restaurant')
+  })
+
+  it('cae al fallback estático cuando ninguna dbRule casa', () => {
+    const dbRules: DbCategorizationRule[] = [
+      { pattern: 'inexistente', field: 'description', category_id: 'shopping' },
+    ]
+    expect(categorizeWithRules(dbRules, 'Compra Mercadona')).toBe('groceries')
   })
 })
