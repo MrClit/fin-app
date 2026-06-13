@@ -1,0 +1,12 @@
+-- Issue #179 (seguridad): refresh_monthly_summary() (SECURITY DEFINER) era ejecutable
+-- por anon/authenticated por defecto. Como las funciones de `public` quedan ejecutables
+-- por esos roles en Supabase y no había REVOKE, cualquier usuario con sesión válida podía
+-- invocar el RPC (POST /rest/v1/rpc/refresh_monthly_summary) y forzar repetidamente un
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY transactions_monthly_summary, operación cara
+-- (DoS barato sobre la BBDD).
+--
+-- Mitigación: revocar EXECUTE a anon/authenticated. La función solo se invoca desde las
+-- syncs (sabadell-visa, enablebanking, cron) con el service role, que no se ve afectado
+-- por este REVOKE. A diferencia de #178 (get_period_data, llamada por /api/analytics con
+-- rol authenticated), aquí revocar no rompe ningún flujo de la app.
+REVOKE EXECUTE ON FUNCTION refresh_monthly_summary() FROM anon, authenticated;
