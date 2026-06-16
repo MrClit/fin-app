@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
+import { logError } from '@/lib/error-log'
 import { getWindowPeriods, getYoYRange, toISODate } from '@/lib/analytics'
 import type { Granularity, PeriodData, AnalyticsResponse } from '@/types'
 
@@ -67,6 +68,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ granularity, periods } satisfies AnalyticsResponse)
   } catch (e) {
     console.error('[GET /api/analytics]', e)
+    await logError({
+      source: 'server',
+      message: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : null,
+      route: '/api/analytics',
+      context: { granularity, offset },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }
