@@ -451,11 +451,12 @@ launchd (StartCalendarInterval: 07:00 hora local)
 
 El agente se instala con `./scripts/scrapers/edenred/install-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
 
-**Variables en `.env.local` del Mac:**
+**Variables en `.env.scrapers` del Mac** (fichero de producción de scrapers, separado de
+`.env.local` que es solo para la app de desarrollo — issue #201):
 ```
 EDENRED_USER=
 EDENRED_PASS=
-APP_URL=                        # URL de producción en Vercel
+APP_URL=                        # URL de producción en Vercel (sin barra final)
 EDENRED_WEBHOOK_SECRET=
 ```
 
