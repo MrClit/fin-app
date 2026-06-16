@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
+import { logError } from '@/lib/error-log'
 import { getWindowPeriods, toISODate } from '@/lib/analytics'
 import type { Granularity, CategoryId, CategoryAnalyticsResponse } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
@@ -58,6 +59,15 @@ export async function GET(request: NextRequest) {
     } satisfies CategoryAnalyticsResponse)
   } catch (e) {
     console.error('[GET /api/analytics/category]', e)
+    await logError({
+      source: 'server',
+      message: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : null,
+      route: '/api/analytics/category',
+      context: { granularity, id },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }
