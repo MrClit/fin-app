@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...salvo las plantillas documentadas, que sí se commitean
+!.env.example
+!.env.scrapers.example
 
 # vercel
 .vercel

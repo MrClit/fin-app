@@ -10,7 +10,7 @@ El scraper de Edenred (`scripts/scrapers/edenred/scrape.mjs`) se ejecuta **cada 
 
 ### Requisitos previos
 
-- `.env.local` con los secrets que necesita el scraper:
+- `.env.scrapers` con los secrets que necesita el scraper (fichero de producción de scrapers, separado de `.env.local` que es solo para la app de desarrollo — issue #201):
   | Variable | Valor |
   |---|---|
   | `EDENRED_WEBHOOK_SECRET` | mismo valor que en Vercel (generado con `openssl rand -hex 32`) |
@@ -80,7 +80,7 @@ El sync de Enable Banking se ejecuta **cada día a las 06:00 Europe/Madrid** med
 | GitHub Secret | Valor |
 |---|---|
 | `ENABLEBANKING_WEBHOOK_SECRET` | mismo valor que en Vercel (generado con `openssl rand -hex 32`) |
-| `APP_URL` | URL del deploy donde vive el endpoint (`https://<...>.vercel.app`, sin barra final). Reutilizable con el de Edenred. |
+| `APP_URL` | URL del deploy donde vive el endpoint (`https://<...>.vercel.app`, sin barra final). Es la misma URL de producción que usan los scrapers, pero aquí es un GitHub Secret del workflow EB (los scrapers la leen de `.env.scrapers`). |
 
 Además, el endpoint vive en Vercel y necesita `ENABLEBANKING_WEBHOOK_SECRET` configurado como env var en Vercel (mismo valor que en GitHub).
 
