@@ -6,7 +6,7 @@
 // A diferencia de config.mjs (puro, sin dependencias), este módulo tiene
 // efectos: toca el DOM vía Playwright y el sistema de ficheros.
 
-import { existsSync, copyFileSync, readFileSync, closeSync, openSync, unlinkSync, mkdirSync } from 'node:fs'
+import { existsSync, copyFileSync, readFileSync, writeFileSync, closeSync, openSync, unlinkSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -85,7 +85,10 @@ export async function saveStorageStateWithBackup(context) {
 // no reintenta el auto-relogin (no reenvía credenciales) para no disparar un
 // email de código nuevo en cada slot del cron (~6/día).
 const CRON_LOG_DIR = join(homedir(), 'Library/Logs/fin-app')
+// Nombres compartidos con status.mjs (mismos literales allí) para reportar el
+// estado del auto-relogin sin tener que rebuscar en el out.log.
 const TWO_FA_PENDING_PATH = join(CRON_LOG_DIR, 'edenred-2fa-pending')
+const LAST_RELOGIN_PATH = join(CRON_LOG_DIR, 'edenred-last-relogin')
 
 export function twoFaPendingExists() {
   return existsSync(TWO_FA_PENDING_PATH)
@@ -101,5 +104,15 @@ export function setTwoFaPending() {
 export function clearTwoFaPending() {
   try {
     unlinkSync(TWO_FA_PENDING_PATH)
+  } catch {}
+}
+
+// Registra el instante del último auto-relogin exitoso (timestamp ISO como
+// contenido) para que `pnpm cron:edenred:status` lo muestre. Persistente:
+// señala "última vez que el scrape se re-logueó solo".
+export function markLastRelogin() {
+  try {
+    mkdirSync(CRON_LOG_DIR, { recursive: true })
+    writeFileSync(LAST_RELOGIN_PATH, new Date().toISOString())
   } catch {}
 }

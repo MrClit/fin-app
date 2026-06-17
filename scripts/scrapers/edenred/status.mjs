@@ -12,6 +12,9 @@ const OUT_LOG = join(LOG_DIR, 'edenred-scraper.out.log')
 const ERR_LOG = join(LOG_DIR, 'edenred-scraper.err.log')
 const MARKER_PREFIX = 'edenred-last-success.'
 const FAILURE_PREFIX = 'edenred-failure-'
+// Markers del auto-relogin (mismos literales que en auth.mjs).
+const RELOGIN_MARKER = 'edenred-last-relogin'
+const TWO_FA_PENDING_MARKER = 'edenred-2fa-pending'
 const AGENT_LABEL = 'com.fin-app.edenred-scraper'
 
 const fmtDate = (d) =>
@@ -38,6 +41,23 @@ function lastMarker() {
     date: name.slice(MARKER_PREFIX.length),
     mtime: statSync(path).mtime,
   }
+}
+
+// Último auto-relogin exitoso: el marker guarda un timestamp ISO como
+// contenido; si no parsea, caemos a la mtime del fichero.
+function lastRelogin() {
+  const path = join(LOG_DIR, RELOGIN_MARKER)
+  if (!existsSync(path)) return null
+  const raw = readFileSync(path, 'utf8').trim()
+  const parsed = new Date(raw)
+  return Number.isNaN(parsed.getTime()) ? statSync(path).mtime : parsed
+}
+
+// Marker persistente de "2FA pendiente": mientras existe, el auto-relogin no
+// reintenta y hace falta `pnpm scrape:edenred:login`.
+function twoFaPending() {
+  const path = join(LOG_DIR, TWO_FA_PENDING_MARKER)
+  return existsSync(path) ? statSync(path).mtime : null
 }
 
 function lastFailureDump() {
@@ -97,6 +117,21 @@ if (!marker) {
 } else {
   console.log(
     `\nÚltimo éxito: ${marker.date} · ${fmtDate(marker.mtime)} (${ageSince(marker.mtime)})`,
+  )
+}
+
+const relogin = lastRelogin()
+if (relogin) {
+  console.log(
+    `\nÚltimo auto-relogin: ${fmtDate(relogin)} (${ageSince(relogin)})`,
+  )
+}
+
+const pending2fa = twoFaPending()
+if (pending2fa) {
+  console.log(
+    `\n⚠ 2FA pendiente desde ${fmtDate(pending2fa)} (${ageSince(pending2fa)})` +
+      ` — el auto-relogin está suspendido. Ejecuta: pnpm scrape:edenred:login`,
   )
 }
 

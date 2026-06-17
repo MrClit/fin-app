@@ -37,11 +37,14 @@ El script:
 ### Verificar y operar
 
 ```bash
+pnpm cron:edenred:status                    # resumen: último éxito, último auto-relogin, 2FA pendiente, logs y estado del agente
 launchctl list | grep edenred-scraper      # confirma que está cargado
 launchctl start com.fin-app.edenred-scraper # dispararlo a mano (no-op si ya hubo éxito hoy)
 tail -f ~/Library/Logs/fin-app/edenred-scraper.out.log
 tail -f ~/Library/Logs/fin-app/edenred-scraper.err.log
 ```
+
+`pnpm cron:edenred:status` muestra **"Último auto-relogin: …"** cuando el scrape se re-logueó solo, y un aviso **"⚠ 2FA pendiente"** si el auto-relogin está suspendido a la espera de un `scrape:edenred:login` manual. En el `out.log`, una ejecución que se re-logueó termina con `OK (via auto-relogin)`.
 
 Para **forzar** un re-scrape aunque ya exista el marker del día (sin borrar ficheros ni desexportar `EDENRED_CRON`):
 

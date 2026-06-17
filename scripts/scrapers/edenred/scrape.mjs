@@ -27,6 +27,7 @@ import {
   saveStorageStateWithBackup,
   twoFaPendingExists,
   setTwoFaPending,
+  markLastRelogin,
 } from './auth.mjs'
 import { parseAmount, parseDate } from './parsers.mjs'
 
@@ -201,6 +202,7 @@ async function tryAutoRelogin(context, page) {
   const state = await isSessionInvalid(page)
   if (state === null) {
     await saveStorageStateWithBackup(context)
+    markLastRelogin()
     console.log('[edenred-scrape] auto-relogin OK, continúo el scrape.')
     return true
   }
@@ -307,6 +309,7 @@ async function main() {
     // Pequeña espera para que la SPA hidrate antes de inspeccionar el DOM.
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 
+    let didRelogin = false
     const invalid = await isSessionInvalid(page)
     if (invalid === 'login') {
       // Caso mayoritario: sesión caducada sin 2FA → intentar auto-relogin y
@@ -315,6 +318,7 @@ async function main() {
         await dumpFailure(page)
         die(2, `Auto-relogin no completado. Regenera con: pnpm scrape:edenred:login`)
       }
+      didRelogin = true
       // Tras el relogin la SPA queda en su landing; recargamos la cuenta para
       // que la extracción corra contra la misma página que el flujo normal.
       await page.goto(EDENRED_ACCOUNT_URL, { waitUntil: 'domcontentloaded' })
@@ -330,7 +334,7 @@ async function main() {
     console.log(`[edenred-scrape] saldo=${balance} EUR, txs=${transactions.length}`)
 
     const result = await postToWebhook({ balance, transactions })
-    console.log(`[edenred-scrape] OK: ${JSON.stringify(result)}`)
+    console.log(`[edenred-scrape] OK${didRelogin ? ' (via auto-relogin)' : ''}: ${JSON.stringify(result)}`)
     if (CRON_MODE) writeCronMarker()
   } finally {
     await browser.close()
