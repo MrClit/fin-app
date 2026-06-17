@@ -15,8 +15,8 @@ El scraper de Edenred (`scripts/scrapers/edenred/scrape.mjs`) se ejecuta **cada 
   |---|---|
   | `EDENRED_WEBHOOK_SECRET` | mismo valor que en Vercel (generado con `openssl rand -hex 32`) |
   | `APP_URL` | URL del deploy donde vive el webhook (`https://<...>.vercel.app`, sin barra final) |
-  | `EDENRED_USER` | email de edenred.es (solo para `scrape:edenred:login`) |
-  | `EDENRED_PASS` | contraseña de edenred.es (solo para `scrape:edenred:login`) |
+  | `EDENRED_USER` | email de edenred.es (para `scrape:edenred:login` y el auto-relogin de `scrape:edenred`) |
+  | `EDENRED_PASS` | contraseña de edenred.es (para `scrape:edenred:login` y el auto-relogin de `scrape:edenred`) |
 - Sesión válida en `scripts/scrapers/edenred/storage-state.json` — la generas con `pnpm scrape:edenred:login`.
 - `pnpm` instalado y en el `PATH`.
 
@@ -55,13 +55,17 @@ Tras una ejecución exitosa:
 
 ### Regenerar la sesión cuando caduca
 
-El scraper sale con **exit code 2** si Edenred pide login o 2FA. En ese caso:
+Cuando la sesión `storage-state.json` caduca, el scraper se recupera **solo** en el caso mayoritario: si Edenred solo pide usuario/contraseña (sin 2FA), `scrape:edenred` reenvía `EDENRED_USER`/`EDENRED_PASS` en la misma ejecución headless, guarda la sesión nueva (con backup del state anterior) y continúa el scrape sin abortar. No hay que intervenir.
+
+Solo se requiere intervención humana cuando Edenred pide **2FA** (código por email). En ese caso el scraper sale con **exit code 2** y hay que regenerar la sesión a mano:
 
 ```bash
 pnpm scrape:edenred:login   # abre Chromium, completas 2FA, ENTER al final
 ```
 
 `scripts/scrapers/edenred/storage-state.json` se actualiza y el siguiente run del cron volverá a funcionar. No hay que reinstalar el agente.
+
+> **Guard anti-spam de 2FA.** Si el auto-relogin desemboca en 2FA, el scraper crea el marker `~/Library/Logs/fin-app/edenred-2fa-pending` y deja de reintentar el auto-login en los siguientes slots del cron — así no reenvía credenciales una y otra vez disparando un email de código nuevo cada vez. Un `pnpm scrape:edenred:login` exitoso borra el marker y re-arma el auto-relogin.
 
 ### Desinstalar
 
