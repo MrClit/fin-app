@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server'
-import { timingSafeEqual } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { getConsentStatus } from '@/lib/accounts'
 import { sendPushToUser, selectAccountsToNotify, type NotifiableAccount } from '@/lib/push'
-
-function safeBearerMatch(header: string | null, secret: string): boolean {
-  if (!header) return false
-  const expected = `Bearer ${secret}`
-  const a = Buffer.from(header)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
-}
+import { safeBearerMatch } from '@/lib/http/bearer'
 
 export async function POST(req: Request) {
   const secret = process.env.ENABLEBANKING_WEBHOOK_SECRET
