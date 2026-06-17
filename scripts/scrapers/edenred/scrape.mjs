@@ -73,6 +73,43 @@ function writeCronMarker() {
   }
 }
 
+// Push accionable "Edenred requiere 2FA" (issue #204). A diferencia de la
+// notificación macOS (local al Mac), este push llega al móvil aunque estés fuera.
+// El servidor firma el push con VAPID; aquí sólo hacemos POST al webhook (mismo
+// secreto que /api/edenred). Best-effort: nunca debe romper el exit del script.
+// La dedup ("un aviso por episodio") la hace enterTwoFaPending vía el marker.
+async function notify2faPending() {
+  try {
+    const appUrl = process.env.APP_URL?.replace(/\/$/, '')
+    const secret = process.env.EDENRED_WEBHOOK_SECRET
+    if (!appUrl || !secret) {
+      console.error('[edenred-scrape] falta APP_URL/EDENRED_WEBHOOK_SECRET — sin push de 2FA.')
+      return
+    }
+    const res = await fetch(`${appUrl}/api/edenred/notify-2fa`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}` },
+    })
+    if (!res.ok) {
+      console.error(`[edenred-scrape] push de 2FA respondió ${res.status}`)
+    } else {
+      console.log('[edenred-scrape] push de 2FA enviado.')
+    }
+  } catch (err) {
+    console.error(`[edenred-scrape] push de 2FA falló (${err.message}).`)
+  }
+}
+
+// Entra al estado "2FA pendiente": marca el guard anti-spam (siempre, para no
+// reenviar credenciales en los próximos slots) y, sólo en la transición y bajo
+// cron, dispara el push una única vez por episodio. El marker lo limpia un login
+// manual exitoso (login.mjs), re-armando el aviso para el siguiente episodio.
+async function enterTwoFaPending() {
+  const firstTime = !twoFaPendingExists()
+  setTwoFaPending()
+  if (firstTime && CRON_MODE) await notify2faPending()
+}
+
 // Notificación nativa de macOS cuando la sesión Edenred caduca (exit 2). Sólo
 // se dispara desde el cron (CRON_MODE): en ejecuciones manuales el error ya se
 // ve por pantalla. Throttle de 1/día vía marker. Nunca debe romper el exit del
@@ -207,7 +244,7 @@ async function tryAutoRelogin(context, page) {
     return true
   }
   if (state === '2fa') {
-    setTwoFaPending()
+    await enterTwoFaPending()
     console.error('[edenred-scrape] auto-relogin desembocó en 2FA — marcado pendiente.')
     return false
   }
@@ -324,6 +361,10 @@ async function main() {
       await page.goto(EDENRED_ACCOUNT_URL, { waitUntil: 'domcontentloaded' })
       await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
     } else if (invalid === '2fa') {
+      // 2FA visible ya en la carga (p. ej. tras un episodio que sigue pendiente, o
+      // un 2FA forzado por Edenred). enterTwoFaPending marca el guard y avisa una
+      // sola vez: en slots posteriores el marker ya existe y no se re-notifica.
+      await enterTwoFaPending()
       await dumpFailure(page)
       die(2, `Sesión Edenred no válida (2fa). Regenera con: pnpm scrape:edenred:login`)
     }
