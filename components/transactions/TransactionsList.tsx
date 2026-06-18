@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { TxRow } from './TxRow'
+import { TxRow, type TxRowPhase } from './TxRow'
 import { TxDayGroupCard } from './TxDayGroupCard'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,6 +13,8 @@ interface TransactionsListProps {
   /** Movimientos no leídos fijados arriba (lista plana por fecha desc). */
   pinnedUnread: TransactionWithAccount[]
   swiped: { id: string; side: SwipeSide } | null
+  /** Fase de animación de reorganización por id de movimiento (#220). */
+  phaseOf: (id: string) => TxRowPhase
   onOpenSwipe: (id: string, side: SwipeSide) => void
   onCloseSwipe: () => void
   onRecategorize: (tx: TransactionWithAccount) => void
@@ -28,6 +30,7 @@ export function TransactionsList({
   groups,
   pinnedUnread,
   swiped,
+  phaseOf,
   onOpenSwipe,
   onCloseSwipe,
   onRecategorize,
@@ -43,6 +46,7 @@ export function TransactionsList({
   const rowProps = (tx: TransactionWithAccount) => ({
     tx,
     openSide: swiped?.id === tx.id ? swiped.side : null,
+    phase: phaseOf(tx.id),
     onOpenSwipe,
     onCloseSwipe,
     onRecategorize,
@@ -99,6 +103,7 @@ export function TransactionsList({
             key={group.date}
             group={group}
             swiped={swiped}
+            phaseOf={phaseOf}
             onOpenSwipe={onOpenSwipe}
             onCloseSwipe={onCloseSwipe}
             onRecategorize={onRecategorize}

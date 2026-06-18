@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import type { TxRowPhase } from './TxRow'
 import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
@@ -16,6 +18,10 @@ import { groupTxByDate } from '@/lib/transactions'
 import type { TransactionCursor } from '@/lib/pagination'
 import type { Account, TransactionWithAccount } from '@/types'
 
+// Debe coincidir con la duración de `.animate-row-in` y la transición de colapso
+// de `TxRow` (#220), en ms.
+const REORG_ANIM_MS = 200
+
 interface TransactionsClientProps {
   initialTransactions: TransactionWithAccount[]
   initialCursor: TransactionCursor | null
@@ -28,26 +34,6 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
   const { transactions, addTx, appendTxs, deleteTx, recategorize, markRead, markUnread } = useTxMutations(initialTransactions)
   const pagination = useTxPagination({ initialCursor, appendTxs })
   const filters = useTransactionsFilters(transactions, initialAccountIds)
-
-  // Membresía CONGELADA de la sección «No leídos»: un movimiento entra en la
-  // sección si era no leído la primera vez que apareció en la lista (snapshot
-  // inicial o página paginada), y permanece aunque luego se marque leído. Así el
-  // dot se apaga al instante pero la fila no salta. Al volver/recargar el
-  // componente se remonta y la membresía se recalcula desde datos frescos.
-  //
-  // Se modela con estado (no refs) y se actualiza durante el render —patrón
-  // recomendado por React— al detectar ids nuevos respecto a los ya vistos.
-  const [seenIds, setSeenIds] = useState<Set<string>>(
-    () => new Set(initialTransactions.map(t => t.id))
-  )
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(
-    () => new Set(initialTransactions.filter(t => !t.is_read).map(t => t.id))
-  )
-  const freshIds = transactions.filter(t => !seenIds.has(t.id))
-  if (freshIds.length > 0) {
-    setSeenIds(prev => new Set([...prev, ...freshIds.map(t => t.id)]))
-    setPinnedIds(prev => new Set([...prev, ...freshIds.filter(t => !t.is_read).map(t => t.id)]))
-  }
 
   // `?account=` solo actúa como deep-link de entrada: lo consumimos en el server
   // para inicializar el filtro y aquí limpiamos la URL para evitar que mienta
@@ -65,17 +51,35 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
 
+  // Animación de reorganización de «No leídos» (#220). Confirmación en dos fases:
+  // la fila colapsa en su sitio (`leavingIds`) antes de cambiar `is_read`, y al
+  // recolocarse entra expandiéndose (`enteringIds`). Con reduced-motion se omite.
+  const reducedMotion = useReducedMotion()
+  const [leavingIds, setLeavingIds] = useState<Set<string>>(() => new Set())
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => { timeoutsRef.current.forEach(clearTimeout) }, [])
+
+  const phaseOf = useCallback(
+    (id: string): TxRowPhase =>
+      leavingIds.has(id) ? 'leaving' : enteringIds.has(id) ? 'entering' : 'idle',
+    [leavingIds, enteringIds]
+  )
+
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
-  // Partición de la vista filtrada: arriba los «No leídos» (membresía congelada,
-  // lista plana por fecha desc) y debajo el resto agrupado por día como siempre.
+  // Partición de la vista filtrada: arriba los «No leídos» (lista plana por fecha
+  // desc) y debajo el resto agrupado por día. La membresía es VIVA: depende de
+  // `is_read` en cada render, así que marcar leído/no leído reorganiza la fila al
+  // instante (baja a su día o sube a la sección) y el contador del encabezado
+  // refleja siempre los no leídos reales de la vista cargada.
   const pinnedUnread = useMemo(
-    () => filters.filtered.filter(t => pinnedIds.has(t.id)),
-    [filters.filtered, pinnedIds]
+    () => filters.filtered.filter(t => !t.is_read),
+    [filters.filtered]
   )
   const groups = useMemo(
-    () => groupTxByDate(filters.filtered.filter(t => !pinnedIds.has(t.id))),
-    [filters.filtered, pinnedIds]
+    () => groupTxByDate(filters.filtered.filter(t => t.is_read)),
+    [filters.filtered]
   )
 
   function handleTxTap(tx: TransactionWithAccount) {
@@ -92,8 +96,29 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
 
   function handleToggleRead(tx: TransactionWithAccount) {
     setSwiped(null)
-    if (tx.is_read) void markUnread(tx.id)
-    else void markRead(tx.id)
+    const apply = () => {
+      if (tx.is_read) void markUnread(tx.id)
+      else void markRead(tx.id)
+    }
+    // Con reduced-motion (o sin animación) se cambia el estado al instante.
+    if (reducedMotion) {
+      apply()
+      return
+    }
+    const id = tx.id
+    // Fase 1: colapsar la fila en su posición actual sin tocar `is_read`.
+    setLeavingIds(prev => new Set(prev).add(id))
+    const tLeave = setTimeout(() => {
+      // Fase 2: commit del cambio (la fila se recoloca) + entrada animada.
+      setLeavingIds(prev => { const next = new Set(prev); next.delete(id); return next })
+      apply()
+      setEnteringIds(prev => new Set(prev).add(id))
+      const tEnter = setTimeout(() => {
+        setEnteringIds(prev => { const next = new Set(prev); next.delete(id); return next })
+      }, REORG_ANIM_MS)
+      timeoutsRef.current.push(tEnter)
+    }, REORG_ANIM_MS)
+    timeoutsRef.current.push(tLeave)
   }
 
   async function handleDelete(txId: string) {
@@ -119,6 +144,7 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
         groups={groups}
         pinnedUnread={pinnedUnread}
         swiped={swiped}
+        phaseOf={phaseOf}
         onOpenSwipe={(id, side) => setSwiped({ id, side })}
         onCloseSwipe={() => setSwiped(null)}
         onRecategorize={handleRecategorize}

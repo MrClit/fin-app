@@ -98,5 +98,6 @@ git checkout develop
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
+| `v0.3.0` | 2026-06-18 | Sección «No leídos» de transacciones: reorganización en vivo (#219) con animación de entrada/salida (#221) y revalidación del badge al volver a primer plano (#214, #217). |
 | `v0.2.0` | 2026-06-17 | Observabilidad (error_log #200) y mejoras del scraper Edenred: auto-relogin (#208) y push accionable ante 2FA (#204). |
 | `v0.1.1` | 2026-06-13 | Primer release con versionado SemVer. 5 fixes de seguridad (#178, #179, #180, #182, #191). |
