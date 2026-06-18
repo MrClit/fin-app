@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
+import { logError } from '@/lib/error-log'
 import type { CategoryId } from '@/types'
 import { VALID_CATEGORIES } from '@/lib/categories'
 
@@ -55,6 +56,14 @@ export async function PATCH(
 
   if (error) {
     console.error('[PATCH /api/transactions/[id]]', error)
+    await logError({
+      source: 'server',
+      message: error.message,
+      route: '/api/transactions/[id]',
+      context: { op: 'update', id, code: error.code },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
@@ -98,6 +107,14 @@ export async function DELETE(
 
   if (error) {
     console.error('[DELETE /api/transactions/[id]]', error)
+    await logError({
+      source: 'server',
+      message: error.message,
+      route: '/api/transactions/[id]',
+      context: { op: 'delete', id, code: error.code },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 

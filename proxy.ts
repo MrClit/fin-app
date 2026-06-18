@@ -13,6 +13,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Ingesta de errores (issue #200): debe ser alcanzable sin sesión para poder
+  // registrar fallos ocurridos en pantallas públicas (login, callback). El
+  // handler adjunta user/household sólo si hay cookies; la inserción usa service
+  // role. Sin esta excepción, el POST de los error boundaries se redirige a /login.
+  if (pathname === '/api/error-log') {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

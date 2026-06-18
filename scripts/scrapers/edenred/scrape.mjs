@@ -21,7 +21,14 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
-import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL } from './config.mjs'
+import { LOCAL_STORAGE_PATH, EDENRED_ACCOUNT_URL, EDENRED_LOGIN_URL } from './config.mjs'
+import {
+  tryAutofill,
+  saveStorageStateWithBackup,
+  twoFaPendingExists,
+  setTwoFaPending,
+  markLastRelogin,
+} from './auth.mjs'
 import { parseAmount, parseDate } from './parsers.mjs'
 
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
@@ -64,6 +71,43 @@ function writeCronMarker() {
       try { unlinkSync(join(CRON_LOG_DIR, name)) } catch {}
     }
   }
+}
+
+// Push accionable "Edenred requiere 2FA" (issue #204). A diferencia de la
+// notificación macOS (local al Mac), este push llega al móvil aunque estés fuera.
+// El servidor firma el push con VAPID; aquí sólo hacemos POST al webhook (mismo
+// secreto que /api/edenred). Best-effort: nunca debe romper el exit del script.
+// La dedup ("un aviso por episodio") la hace enterTwoFaPending vía el marker.
+async function notify2faPending() {
+  try {
+    const appUrl = process.env.APP_URL?.replace(/\/$/, '')
+    const secret = process.env.EDENRED_WEBHOOK_SECRET
+    if (!appUrl || !secret) {
+      console.error('[edenred-scrape] falta APP_URL/EDENRED_WEBHOOK_SECRET — sin push de 2FA.')
+      return
+    }
+    const res = await fetch(`${appUrl}/api/edenred/notify-2fa`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}` },
+    })
+    if (!res.ok) {
+      console.error(`[edenred-scrape] push de 2FA respondió ${res.status}`)
+    } else {
+      console.log('[edenred-scrape] push de 2FA enviado.')
+    }
+  } catch (err) {
+    console.error(`[edenred-scrape] push de 2FA falló (${err.message}).`)
+  }
+}
+
+// Entra al estado "2FA pendiente": marca el guard anti-spam (siempre, para no
+// reenviar credenciales en los próximos slots) y, sólo en la transición y bajo
+// cron, dispara el push una única vez por episodio. El marker lo limpia un login
+// manual exitoso (login.mjs), re-armando el aviso para el siguiente episodio.
+async function enterTwoFaPending() {
+  const firstTime = !twoFaPendingExists()
+  setTwoFaPending()
+  if (firstTime && CRON_MODE) await notify2faPending()
 }
 
 // Notificación nativa de macOS cuando la sesión Edenred caduca (exit 2). Sólo
@@ -166,6 +210,48 @@ async function isSessionInvalid(page) {
   return null
 }
 
+// Auto-relogin desatendido para el caso mayoritario (sesión caducada sin 2FA).
+// Reenvía EDENRED_USER/EDENRED_PASS en el mismo navegador headless y re-evalúa
+// la sesión. Devuelve true si quedó dentro (state ya guardado) y el scrape puede
+// continuar; false si hay que abortar (el caller decide el exit).
+//
+// Guard anti-spam: si hay un marker de "2FA pendiente" no reintenta (no reenvía
+// credenciales → no dispara un email de código nuevo en cada slot del cron).
+async function tryAutoRelogin(context, page) {
+  if (twoFaPendingExists()) {
+    console.error('[edenred-scrape] 2FA pendiente: no se reintenta auto-login. Ejecuta: pnpm scrape:edenred:login')
+    return false
+  }
+
+  const user = process.env.EDENRED_USER
+  const pass = process.env.EDENRED_PASS
+  if (!user || !pass) {
+    console.error('[edenred-scrape] faltan EDENRED_USER/EDENRED_PASS — no se puede auto-relogin.')
+    return false
+  }
+
+  console.log('[edenred-scrape] sesión caducada (login): intentando auto-relogin…')
+  await page.goto(EDENRED_LOGIN_URL, { waitUntil: 'domcontentloaded' })
+
+  if (!(await tryAutofill(page, user, pass))) return false
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+
+  const state = await isSessionInvalid(page)
+  if (state === null) {
+    await saveStorageStateWithBackup(context)
+    markLastRelogin()
+    console.log('[edenred-scrape] auto-relogin OK, continúo el scrape.')
+    return true
+  }
+  if (state === '2fa') {
+    await enterTwoFaPending()
+    console.error('[edenred-scrape] auto-relogin desembocó en 2FA — marcado pendiente.')
+    return false
+  }
+  console.error('[edenred-scrape] auto-relogin falló (sigue en login).')
+  return false
+}
+
 async function extractBalance(page) {
   const el = page.locator(SELECTORS.balance).first()
   if (!(await el.isVisible().catch(() => false))) {
@@ -260,10 +346,27 @@ async function main() {
     // Pequeña espera para que la SPA hidrate antes de inspeccionar el DOM.
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 
+    let didRelogin = false
     const invalid = await isSessionInvalid(page)
-    if (invalid) {
+    if (invalid === 'login') {
+      // Caso mayoritario: sesión caducada sin 2FA → intentar auto-relogin y
+      // continuar en la misma ejecución si funciona.
+      if (!(await tryAutoRelogin(context, page))) {
+        await dumpFailure(page)
+        die(2, `Auto-relogin no completado. Regenera con: pnpm scrape:edenred:login`)
+      }
+      didRelogin = true
+      // Tras el relogin la SPA queda en su landing; recargamos la cuenta para
+      // que la extracción corra contra la misma página que el flujo normal.
+      await page.goto(EDENRED_ACCOUNT_URL, { waitUntil: 'domcontentloaded' })
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+    } else if (invalid === '2fa') {
+      // 2FA visible ya en la carga (p. ej. tras un episodio que sigue pendiente, o
+      // un 2FA forzado por Edenred). enterTwoFaPending marca el guard y avisa una
+      // sola vez: en slots posteriores el marker ya existe y no se re-notifica.
+      await enterTwoFaPending()
       await dumpFailure(page)
-      die(2, `Sesión Edenred no válida (${invalid}). Regenera con: pnpm scrape:edenred:login`)
+      die(2, `Sesión Edenred no válida (2fa). Regenera con: pnpm scrape:edenred:login`)
     }
 
     const balance = await extractBalance(page)
@@ -272,7 +375,7 @@ async function main() {
     console.log(`[edenred-scrape] saldo=${balance} EUR, txs=${transactions.length}`)
 
     const result = await postToWebhook({ balance, transactions })
-    console.log(`[edenred-scrape] OK: ${JSON.stringify(result)}`)
+    console.log(`[edenred-scrape] OK${didRelogin ? ' (via auto-relogin)' : ''}: ${JSON.stringify(result)}`)
     if (CRON_MODE) writeCronMarker()
   } finally {
     await browser.close()

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { timingSafeEqual } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { safeBearerMatch } from '@/lib/http/bearer'
 
 type SabadellTx = {
   external_id: string
@@ -65,15 +65,6 @@ function isValidPayload(data: unknown): data is SabadellPayload {
     if (!Array.isArray(c.transactions)) return false
     return c.transactions.every(isValidTx)
   })
-}
-
-function safeBearerMatch(header: string | null, secret: string): boolean {
-  if (!header) return false
-  const expected = `Bearer ${secret}`
-  const a = Buffer.from(header)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
 }
 
 export async function POST(req: Request) {

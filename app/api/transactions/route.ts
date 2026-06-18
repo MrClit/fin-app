@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getHouseholdId } from '@/lib/household'
+import { logError } from '@/lib/error-log'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error('[POST /api/transactions]', error)
+    await logError({
+      source: 'server',
+      message: error.message,
+      route: '/api/transactions',
+      context: { op: 'insert', code: error.code },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
@@ -109,6 +118,14 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[GET /api/transactions]', error)
+    await logError({
+      source: 'server',
+      message: error.message,
+      route: '/api/transactions',
+      context: { op: 'list', code: error.code },
+      userId: user.id,
+      householdId,
+    })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 

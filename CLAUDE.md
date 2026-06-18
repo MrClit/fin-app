@@ -99,4 +99,8 @@ gh pr merge <número> --squash --subject "título del commit"
 
 Nunca trabajar directamente en `develop` ni en `main` durante la implementación.
 
+### Release a producción
+
+El despliegue a producción (Vercel, rama `main`) sigue el flujo versionado descrito en `docs/release.md`: bump SemVer en rama `release/vX.Y.Z` → PR a `develop` (squash) → PR `develop` → `main` (merge commit, **no** squash) → tag anotado `vX.Y.Z` en `main`. El merge a `main` dispara el deploy automático.
+
 El análisis y la planificación deben tener siempre en cuenta: `CLAUDE.md`, `docs/finanzas-spec.md` y el prototipo `docs/finanzas-app.jsx`.

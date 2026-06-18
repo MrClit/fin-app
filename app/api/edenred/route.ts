@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { timingSafeEqual } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
+import { safeBearerMatch } from '@/lib/http/bearer'
 
 type EdenredTx = {
   external_id: string
@@ -32,15 +32,6 @@ function isValidPayload(data: unknown): data is EdenredPayload {
     if (t.category !== undefined && typeof t.category !== 'string') return false
     return true
   })
-}
-
-function safeBearerMatch(header: string | null, secret: string): boolean {
-  if (!header) return false
-  const expected = `Bearer ${secret}`
-  const a = Buffer.from(header)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
 }
 
 export async function POST(req: Request) {
