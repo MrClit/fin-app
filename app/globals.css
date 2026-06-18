@@ -158,3 +158,16 @@
 .animate-fade-in {
   animation: fadeIn 0.2s ease forwards;
 }
+
+/* Entrada de una fila que se recoloca entre «No leídos» y su grupo de día
+   (issue #220): se monta colapsada y se expande con fade. La salida se hace por
+   transición inline en la propia fila; aquí solo la entrada, que necesita un
+   keyframe para garantizar el frame inicial al montar ya en estado final. */
+@keyframes rowIn {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to   { grid-template-rows: 1fr; opacity: 1; }
+}
+
+.animate-row-in {
+  animation: rowIn 0.2s ease-out forwards;
+}

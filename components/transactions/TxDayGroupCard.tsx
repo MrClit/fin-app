@@ -1,6 +1,6 @@
 'use client'
 
-import { TxRow } from './TxRow'
+import { TxRow, type TxRowPhase } from './TxRow'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { fmt } from '@/lib/formatting'
 import { formatDayLabel, type TxDayGroup } from '@/lib/transactions'
@@ -9,6 +9,8 @@ import type { TransactionWithAccount } from '@/types'
 interface TxDayGroupCardProps {
   group: TxDayGroup
   swiped: { id: string; side: SwipeSide } | null
+  /** Fase de animación de reorganización por id (#220). Sin animación si se omite. */
+  phaseOf?: (id: string) => TxRowPhase
   onOpenSwipe: (id: string, side: SwipeSide) => void
   onCloseSwipe: () => void
   onRecategorize: (tx: TransactionWithAccount) => void
@@ -25,6 +27,7 @@ interface TxDayGroupCardProps {
 export function TxDayGroupCard({
   group,
   swiped,
+  phaseOf = () => 'idle',
   onOpenSwipe,
   onCloseSwipe,
   onRecategorize,
@@ -51,6 +54,7 @@ export function TxDayGroupCard({
             key={tx.id}
             tx={tx}
             openSide={swiped?.id === tx.id ? swiped.side : null}
+            phase={phaseOf(tx.id)}
             onOpenSwipe={onOpenSwipe}
             onCloseSwipe={onCloseSwipe}
             onRecategorize={onRecategorize}
