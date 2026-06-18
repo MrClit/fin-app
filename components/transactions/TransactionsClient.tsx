@@ -29,26 +29,6 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
   const pagination = useTxPagination({ initialCursor, appendTxs })
   const filters = useTransactionsFilters(transactions, initialAccountIds)
 
-  // Membresía CONGELADA de la sección «No leídos»: un movimiento entra en la
-  // sección si era no leído la primera vez que apareció en la lista (snapshot
-  // inicial o página paginada), y permanece aunque luego se marque leído. Así el
-  // dot se apaga al instante pero la fila no salta. Al volver/recargar el
-  // componente se remonta y la membresía se recalcula desde datos frescos.
-  //
-  // Se modela con estado (no refs) y se actualiza durante el render —patrón
-  // recomendado por React— al detectar ids nuevos respecto a los ya vistos.
-  const [seenIds, setSeenIds] = useState<Set<string>>(
-    () => new Set(initialTransactions.map(t => t.id))
-  )
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(
-    () => new Set(initialTransactions.filter(t => !t.is_read).map(t => t.id))
-  )
-  const freshIds = transactions.filter(t => !seenIds.has(t.id))
-  if (freshIds.length > 0) {
-    setSeenIds(prev => new Set([...prev, ...freshIds.map(t => t.id)]))
-    setPinnedIds(prev => new Set([...prev, ...freshIds.filter(t => !t.is_read).map(t => t.id)]))
-  }
-
   // `?account=` solo actúa como deep-link de entrada: lo consumimos en el server
   // para inicializar el filtro y aquí limpiamos la URL para evitar que mienta
   // cuando el usuario cambia el filtro desde el selector. `replaceState` no
@@ -67,15 +47,18 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
-  // Partición de la vista filtrada: arriba los «No leídos» (membresía congelada,
-  // lista plana por fecha desc) y debajo el resto agrupado por día como siempre.
+  // Partición de la vista filtrada: arriba los «No leídos» (lista plana por fecha
+  // desc) y debajo el resto agrupado por día. La membresía es VIVA: depende de
+  // `is_read` en cada render, así que marcar leído/no leído reorganiza la fila al
+  // instante (baja a su día o sube a la sección) y el contador del encabezado
+  // refleja siempre los no leídos reales de la vista cargada.
   const pinnedUnread = useMemo(
-    () => filters.filtered.filter(t => pinnedIds.has(t.id)),
-    [filters.filtered, pinnedIds]
+    () => filters.filtered.filter(t => !t.is_read),
+    [filters.filtered]
   )
   const groups = useMemo(
-    () => groupTxByDate(filters.filtered.filter(t => !pinnedIds.has(t.id))),
-    [filters.filtered, pinnedIds]
+    () => groupTxByDate(filters.filtered.filter(t => t.is_read)),
+    [filters.filtered]
   )
 
   function handleTxTap(tx: TransactionWithAccount) {
