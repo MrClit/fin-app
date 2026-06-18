@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -53,6 +54,28 @@ export function UnreadProvider({
   const decrement = useCallback(() => setCountState(c => Math.max(0, c - 1)), [])
   const increment = useCallback(() => setCountState(c => c + 1), [])
   const setCount = useCallback((n: number) => setCountState(Math.max(0, n)), [])
+
+  // En una PWA (sobre todo iOS) reabrir la app desde segundo plano no re-ejecuta
+  // el server component del layout, así que el badge se quedaba clavado con el
+  // último valor (p.ej. seguía marcando no leídos ya leídos en otra sesión o en
+  // un sync en background). Al volver a primer plano revalidamos el contador
+  // contra el servidor —consulta barata, solo el conteo— y fijamos el valor
+  // autoritativo. Es independiente de los ajustes optimistas de marcar leído.
+  useEffect(() => {
+    function revalidate() {
+      if (document.visibilityState !== 'visible') return
+      fetch('/api/transactions/unread-count', { cache: 'no-store' })
+        .then(res => (res.ok ? res.json() : null))
+        .then(json => {
+          if (json && typeof json.count === 'number') setCount(json.count)
+        })
+        .catch(() => {
+          // Sin red / offline: conservar el valor actual, no romper el badge.
+        })
+    }
+    document.addEventListener('visibilitychange', revalidate)
+    return () => document.removeEventListener('visibilitychange', revalidate)
+  }, [setCount])
 
   const value = useMemo<UnreadValue>(
     () => ({ count, decrement, increment, setCount }),
