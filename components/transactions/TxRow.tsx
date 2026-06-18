@@ -7,10 +7,18 @@ import { fmt } from '@/lib/formatting'
 import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
+/**
+ * Fase de animación de reorganización entre «No leídos» y el grupo de día (#220):
+ * `leaving` colapsa la fila en su sitio antes de recolocarse; `entering` la expande
+ * al aparecer en su nueva posición; `idle` no anima.
+ */
+export type TxRowPhase = 'leaving' | 'entering' | 'idle'
+
 interface TxRowProps {
   tx: TransactionWithAccount
   /** Lado del panel de acción abierto para ESTA fila (`null` si está cerrada). */
   openSide: SwipeSide | null
+  phase?: TxRowPhase
   onOpenSwipe: (id: string, side: SwipeSide) => void
   onCloseSwipe: () => void
   onRecategorize: (tx: TransactionWithAccount) => void
@@ -20,7 +28,7 @@ interface TxRowProps {
 
 const ACTION_WIDTH = 120
 
-export function TxRow({ tx, openSide, onOpenSwipe, onCloseSwipe, onRecategorize, onToggleRead, onTap }: TxRowProps) {
+export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe, onRecategorize, onToggleRead, onTap }: TxRowProps) {
   const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
   const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
   const Icon = meta.Icon
@@ -35,9 +43,25 @@ export function TxRow({ tx, openSide, onOpenSwipe, onCloseSwipe, onRecategorize,
   const absAmount = fmt(Math.abs(tx.amount), 2)
   const amountStr = (tx.amount > 0 ? '+' : '-') + absAmount + ' €'
 
+  const leaving = phase === 'leaving'
+
   return (
-    // overflow-hidden recorta los paneles de acción cuando están fuera de la fila
-    <div className="overflow-hidden">
+    // Wrapper de colapso (#220): grid-template-rows 1fr→0fr + opacity recoloca la
+    // fila sin saltos. `leaving` transiciona a colapsado; `entering` arranca
+    // colapsado y se expande vía keyframe `animate-row-in`.
+    <div
+      className={cn(
+        'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+        phase === 'entering' && 'animate-row-in'
+      )}
+      style={{
+        gridTemplateRows: leaving ? '0fr' : '1fr',
+        opacity: leaving ? 0 : 1,
+      }}
+    >
+      {/* overflow-hidden recorta los paneles de acción cuando están fuera de la fila
+          y el contenido de la fila mientras el grid colapsa */}
+      <div className="overflow-hidden">
       {/*
        * Slider flex único: [panel izq][contenido][panel der]
        * En reposo: translateX(-ACTION_WIDTH) → ambos paneles fuera, contenido visible
@@ -132,6 +156,7 @@ export function TxRow({ tx, openSide, onOpenSwipe, onCloseSwipe, onRecategorize,
             )}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

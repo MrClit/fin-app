@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import type { TxRowPhase } from './TxRow'
 import { TxModal } from './TxModal'
 import { AccountFilter } from './AccountFilter'
 import { CategoryPicker } from './CategoryPicker'
@@ -15,6 +17,10 @@ import { useTxPagination } from './useTxPagination'
 import { groupTxByDate } from '@/lib/transactions'
 import type { TransactionCursor } from '@/lib/pagination'
 import type { Account, TransactionWithAccount } from '@/types'
+
+// Debe coincidir con la duración de `.animate-row-in` y la transición de colapso
+// de `TxRow` (#220), en ms.
+const REORG_ANIM_MS = 200
 
 interface TransactionsClientProps {
   initialTransactions: TransactionWithAccount[]
@@ -44,6 +50,21 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
   const [swiped, setSwiped] = useState<{ id: string; side: SwipeSide } | null>(null)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
+
+  // Animación de reorganización de «No leídos» (#220). Confirmación en dos fases:
+  // la fila colapsa en su sitio (`leavingIds`) antes de cambiar `is_read`, y al
+  // recolocarse entra expandiéndose (`enteringIds`). Con reduced-motion se omite.
+  const reducedMotion = useReducedMotion()
+  const [leavingIds, setLeavingIds] = useState<Set<string>>(() => new Set())
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => { timeoutsRef.current.forEach(clearTimeout) }, [])
+
+  const phaseOf = useCallback(
+    (id: string): TxRowPhase =>
+      leavingIds.has(id) ? 'leaving' : enteringIds.has(id) ? 'entering' : 'idle',
+    [leavingIds, enteringIds]
+  )
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
@@ -75,8 +96,29 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
 
   function handleToggleRead(tx: TransactionWithAccount) {
     setSwiped(null)
-    if (tx.is_read) void markUnread(tx.id)
-    else void markRead(tx.id)
+    const apply = () => {
+      if (tx.is_read) void markUnread(tx.id)
+      else void markRead(tx.id)
+    }
+    // Con reduced-motion (o sin animación) se cambia el estado al instante.
+    if (reducedMotion) {
+      apply()
+      return
+    }
+    const id = tx.id
+    // Fase 1: colapsar la fila en su posición actual sin tocar `is_read`.
+    setLeavingIds(prev => new Set(prev).add(id))
+    const tLeave = setTimeout(() => {
+      // Fase 2: commit del cambio (la fila se recoloca) + entrada animada.
+      setLeavingIds(prev => { const next = new Set(prev); next.delete(id); return next })
+      apply()
+      setEnteringIds(prev => new Set(prev).add(id))
+      const tEnter = setTimeout(() => {
+        setEnteringIds(prev => { const next = new Set(prev); next.delete(id); return next })
+      }, REORG_ANIM_MS)
+      timeoutsRef.current.push(tEnter)
+    }, REORG_ANIM_MS)
+    timeoutsRef.current.push(tLeave)
   }
 
   async function handleDelete(txId: string) {
@@ -102,6 +144,7 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
         groups={groups}
         pinnedUnread={pinnedUnread}
         swiped={swiped}
+        phaseOf={phaseOf}
         onOpenSwipe={(id, side) => setSwiped({ id, side })}
         onCloseSwipe={() => setSwiped(null)}
         onRecategorize={handleRecategorize}
