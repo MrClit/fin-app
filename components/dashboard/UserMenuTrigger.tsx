@@ -87,6 +87,10 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
             </button>
           </form>
         </div>
+
+        <p className="px-3 pt-1 text-center text-xs text-muted-foreground">
+          v{process.env.NEXT_PUBLIC_APP_VERSION}
+        </p>
       </SheetContent>
     </Sheet>
   )
