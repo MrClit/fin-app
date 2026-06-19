@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 function GoogleIcon() {
@@ -28,9 +27,6 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   // Si el callback OAuth falla (p. ej. el usuario cancela en Google), vuelve
   // aquí con ?error=auth. Lo leemos en el render inicial y limpiamos la URL.
@@ -41,31 +37,12 @@ export default function LoginPage() {
       ? 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.'
       : null
   })
-  const router = useRouter()
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('error')) {
       window.history.replaceState(null, '', window.location.pathname)
     }
   }, [])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    setLoading(false)
-
-    if (error) {
-      setError('Email o contraseña incorrectos.')
-    } else {
-      router.push('/')
-      router.refresh()
-    }
-  }
 
   async function handleGoogle() {
     setGoogleLoading(true)
@@ -85,8 +62,6 @@ export default function LoginPage() {
     }
   }
 
-  const busy = loading || googleLoading
-
   return (
     <main className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
       <div className="w-full max-w-sm">
@@ -99,63 +74,21 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={busy}
+            disabled={googleLoading}
             className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-white hover:bg-neutral-100 disabled:bg-neutral-300 disabled:text-neutral-500 px-4 py-2.5 text-sm font-medium text-neutral-900 transition-colors"
           >
             <GoogleIcon />
             {googleLoading ? 'Conectando…' : 'Continuar con Google'}
           </button>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-neutral-800" />
-            <span className="text-xs text-neutral-500">o</span>
-            <div className="h-px flex-1 bg-neutral-800" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm text-neutral-400 mb-1.5">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
-                className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm text-neutral-400 mb-1.5">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-
-            {error && (
-              <p className="text-sm text-red-400">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy || !email || !password}
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 px-4 py-2.5 text-sm font-medium text-white transition-colors"
-            >
-              {loading ? 'Entrando…' : 'Entrar'}
-            </button>
-          </form>
+          {error && (
+            <p className="mt-4 text-sm text-red-400">{error}</p>
+          )}
         </div>
+
+        <p className="mt-6 text-center text-xs text-neutral-500">
+          v{process.env.NEXT_PUBLIC_APP_VERSION}
+        </p>
       </div>
     </main>
   )

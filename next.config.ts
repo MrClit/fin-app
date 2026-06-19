@@ -2,9 +2,13 @@ import type { NextConfig } from "next";
 import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import withSerwistInit from "@serwist/next";
+import pkg from "./package.json" with { type: "json" };
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev"],
+  // Versión fijada en build-time desde package.json (fuente única). Disponible en
+  // cliente como NEXT_PUBLIC_APP_VERSION; al hacer bump basta el siguiente build.
+  env: { NEXT_PUBLIC_APP_VERSION: pkg.version },
 };
 
 // El service worker (Serwist) solo se genera en el build de producción. En `next dev`
