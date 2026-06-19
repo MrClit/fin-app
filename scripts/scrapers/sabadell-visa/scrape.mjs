@@ -57,12 +57,44 @@ function writeMarker() {
     }
   }
 }
-function notifySessionExpired() {
+// Best-effort: POST al webhook para que el servidor firme un push al iPhone (#213).
+// Las claves VAPID nunca salen de Vercel; aquí sólo hacemos POST con el secreto
+// compartido. Nunca debe romper el exit del script (calco de notify2faPending de
+// Edenred). La dedup ("un aviso por día") la garantiza el marker notifyPath().
+async function notifyError() {
+  try {
+    const appUrl = process.env.APP_URL?.replace(/\/$/, '')
+    const secret = process.env.SABADELL_VISA_WEBHOOK_SECRET
+    if (!appUrl || !secret) {
+      console.error('[sabadell-scrape] falta APP_URL/SABADELL_VISA_WEBHOOK_SECRET — sin push.')
+      return
+    }
+    const res = await fetch(`${appUrl}/api/sabadell-visa/notify-error`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}` },
+    })
+    if (!res.ok) {
+      console.error(`[sabadell-scrape] push respondió ${res.status}`)
+    } else {
+      console.log('[sabadell-scrape] push de sesión caducada enviado.')
+    }
+  } catch (err) {
+    console.error(`[sabadell-scrape] push falló (${err.message}).`)
+  }
+}
+
+// Aviso de sesión caducada (exit 2): notificación nativa de macOS + push al iPhone.
+// Sólo se dispara bajo cron (CRON_MODE) desde login(); throttle 1/día vía el marker
+// notifyPath(), que cubre ambos canales. Todo en try/catch: nunca debe romper el exit.
+async function notifyExpired() {
   try {
     if (existsSync(notifyPath())) return
-    execFileSync('osascript', ['-e',
-      `display notification ${JSON.stringify('Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.')} with title ${JSON.stringify('Sabadell VISA: sesión caducada')}`,
-    ])
+    try {
+      execFileSync('osascript', ['-e',
+        `display notification ${JSON.stringify('Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.')} with title ${JSON.stringify('Sabadell VISA: sesión caducada')}`,
+      ])
+    } catch {}
+    await notifyError()
     mkdirSync(LOG_DIR, { recursive: true })
     closeSync(openSync(notifyPath(), 'a'))
   } catch {}
@@ -87,7 +119,6 @@ async function dump(page, tag) {
 }
 function die(code, msg) {
   console.error(`[sabadell-scrape] ${msg}`)
-  if (code === 2 && CRON_MODE) notifySessionExpired()
   process.exit(code)
 }
 function requireEnv(name) {
@@ -126,10 +157,12 @@ async function login(page) {
 
   if (await page.locator(LOGIN_SELECTORS.otp).first().isVisible().catch(() => false)) {
     await dump(page, 'login-otp')
+    if (CRON_MODE) await notifyExpired()
     die(2, 'Sabadell pide OTP: el dispositivo no está enrolado. Ejecuta pnpm scrape:sabadell:login')
   }
   if (await page.locator(LOGIN_SELECTORS.pass).first().isVisible().catch(() => false)) {
     await dump(page, 'login-failed')
+    if (CRON_MODE) await notifyExpired()
     die(2, 'Login no completado (¿credenciales incorrectas?)')
   }
   if (DEBUG) await dump(page, 'after-login')
