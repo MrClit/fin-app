@@ -56,10 +56,14 @@ export const fmt = (n: number, decimals = 0): string => {
 
 ## Flujos de GitHub
 
+**Skill obligatoria:** ante cualquier operación con GitHub issues invocar primero la skill `github-issues`. Si sus ejemplos genéricos chocan con esta sección, **manda esta sección de CLAUDE.md**.
+
+**Servidor MCP:** se usa el servidor remoto oficial `github/github-mcp-server` (`https://api.githubcopilot.com/mcp/`). Las escrituras de issues van por la tool consolidada `mcp__github__issue_write` (`method: "create"` o `"update"`). Projects V2 **no** está cubierto por el MCP (toolset no activada), así que el tablero sigue por `gh project`.
+
 **Regla general:** usar MCP siempre que sea posible; CLI `gh` solo para lo que el MCP no cubra.
 
 ### Crear issues y añadirlas al proyecto
-1. Crear la issue con MCP `mcp__github__create_issue` (owner: `MrClit`, repo: `fin-app`)
+1. Crear la issue con MCP `mcp__github__issue_write` (`method: "create"`, owner: `MrClit`, repo: `fin-app`)
 2. Vincularla al proyecto FinApp con `gh` (el MCP no soporta la API de Projects):
    ```bash
    gh project item-add 2 --owner MrClit --url "https://github.com/MrClit/fin-app/issues/$N"
@@ -84,7 +88,7 @@ gh project field-list 2 --owner MrClit --format json  # → field-id y option-id
 |---|---|
 | Antes de analizar/planificar una issue | Verificar que la rama activa es `develop` (si no, avisar y parar) |
 | Antes de analizar/planificar una issue | Mover a **Ready** (si no lo está ya) |
-| Al aceptar el plan e iniciar implementación | Si el plan difiere significativamente de la descripción original de la issue, actualizarla con `mcp__github__update_issue` antes de empezar |
+| Al aceptar el plan e iniciar implementación | Si el plan difiere significativamente de la descripción original de la issue, actualizarla con `mcp__github__issue_write` (`method: "update"`) antes de empezar |
 | Al aceptar el plan e iniciar implementación | Mover a **In progress** |
 | Al aceptar el plan e iniciar implementación | Crear rama `feature/<issue-slug>` o `fix/<issue-slug>` desde `develop` y trabajar en ella |
 | Antes de abrir PR | Ejecutar **siempre** `pnpm test`, `pnpm lint` y `pnpm build`. Si alguno falla, arreglarlo antes de pushear. No usar `--no-verify` ni saltarse hooks. |
