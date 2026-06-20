@@ -148,8 +148,5 @@ export async function POST(request: Request) {
       .eq('id', account.id)
   }
 
-  const { error: refreshError } = await db.rpc('refresh_monthly_summary')
-  if (refreshError) console.error('[sync/eb] refresh_monthly_summary:', refreshError)
-
   return NextResponse.json({ synced: totalSynced, accounts: accounts.length })
 }

@@ -124,11 +124,12 @@ export async function POST(req: Request) {
   if (payload.transactions.length > 0) {
     // `category` debe coincidir con un `id` de la tabla `categories` (datos de
     // referencia compartidos, seed en
-    // supabase/migrations/20260509000000_categories_type.sql). La matview
-    // `transactions_monthly_summary` hace INNER JOIN sobre `categories`, así que
-    // un `id` desconocido excluiría la tx de las agregaciones SIN error. El
-    // scraper sólo emite 'restaurant' y 'payroll', y el fallback de aquí es
-    // 'restaurant'; ambos están garantizados por ese seed. Ver issue #101.
+    // supabase/migrations/20260509000000_categories_type.sql). `transactions.category`
+    // tiene FK a `categories.id` (#174), así que un `id` desconocido haría fallar el
+    // insert; además la analítica (`get_period_data`) hace LEFT JOIN sobre `categories`
+    // y dejaría la tx sin metadatos de categoría. El scraper sólo emite 'restaurant' y
+    // 'payroll', y el fallback de aquí es 'restaurant'; ambos están garantizados por
+    // ese seed. Ver issue #101.
     // `is_read` se omite a propósito (issue #149): los inserts nuevos toman el
     // DEFAULT false (nacen "no leídos"), y como el upsert usa
     // `ignoreDuplicates: false` (actualiza filas existentes), NO incluirlo evita

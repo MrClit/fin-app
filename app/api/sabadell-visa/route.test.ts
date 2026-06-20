@@ -28,7 +28,6 @@ function buildMockDb(opts: MockOpts = {}) {
   const insertSpy = vi.fn()
   const updateSpy = vi.fn()
   const upsertSpy = vi.fn()
-  const rpcSpy = vi.fn()
 
   const userConfigBuilder: Record<string, unknown> = {}
   Object.assign(userConfigBuilder, {
@@ -104,13 +103,10 @@ function buildMockDb(opts: MockOpts = {}) {
       if (table === 'transactions') return txBuilder
       throw new Error(`Unmocked table: ${table}`)
     }),
-    rpc: vi.fn((fn: string) => {
-      rpcSpy(fn)
-      return Promise.resolve({ error: null })
-    }),
+    rpc: vi.fn(() => Promise.resolve({ error: null })),
   }
 
-  return { db, insertSpy, updateSpy, upsertSpy, rpcSpy }
+  return { db, insertSpy, updateSpy, upsertSpy }
 }
 
 function callRoute(body: unknown, opts: { auth?: string | null; rawBody?: string } = {}) {
@@ -228,7 +224,7 @@ describe('POST /api/sabadell-visa — user_config', () => {
 
 describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
   it('inserta una cuenta de tarjeta por cada card y upsertea sus txns', async () => {
-    const { db, insertSpy, upsertSpy, rpcSpy } = buildMockDb({
+    const { db, insertSpy, upsertSpy } = buildMockDb({
       userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: null }, { data: null }],
       accountInserts: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
@@ -262,8 +258,6 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
     expect(rows[1].category).toBeNull()
     // is_read no se envía (preserva estado de lectura en re-syncs)
     expect(rows[0]).not.toHaveProperty('is_read')
-    // Refresca la matview
-    expect(rpcSpy).toHaveBeenCalledWith('refresh_monthly_summary')
   })
 })
 
