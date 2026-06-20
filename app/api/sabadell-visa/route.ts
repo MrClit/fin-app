@@ -211,11 +211,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'DB error' }, { status: 500 })
     }
     upserted = txRows.length
-
-    // Refresca la matview de analítica (CONCURRENTLY) para que los gastos de
-    // tarjeta entren en las agregaciones sin esperar a la sync de Enable Banking.
-    const { error: refreshError } = await db.rpc('refresh_monthly_summary')
-    if (refreshError) console.error('[sabadell-visa] refresh_monthly_summary:', refreshError)
   }
 
   return NextResponse.json({ cards: payload.cards.length, created_accounts: createdAccounts, upserted })

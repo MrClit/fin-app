@@ -60,5 +60,3 @@ ON CONFLICT (id) DO UPDATE
 
 DELETE FROM categories
 WHERE id NOT IN ('groceries', 'restaurant', 'transport', 'fuel', 'parking', 'vehicle', 'mortgage', 'community_fees', 'electricity', 'gas', 'water', 'internet', 'home', 'clothing', 'shopping', 'electronics', 'health', 'pharmacy', 'leisure', 'sports', 'subscriptions', 'travel', 'education', 'insurance_health', 'insurance_home', 'insurance_auto', 'domestic_help', 'beauty', 'gifts', 'charity', 'memberships', 'taxes', 'loans', 'cash', 'fees', 'other', 'payroll', 'returns', 'reimbursement', 'other_income', 'investment', 'savings', 'transfer', 'loan_payment', 'card_payment');
-
-REFRESH MATERIALIZED VIEW transactions_monthly_summary;

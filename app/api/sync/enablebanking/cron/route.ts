@@ -150,9 +150,6 @@ export async function POST(req: Request) {
       .eq('id', account.id)
   }
 
-  const { error: refreshError } = await db.rpc('refresh_monthly_summary')
-  if (refreshError) console.error('[sync/eb/cron] refresh_monthly_summary:', refreshError)
-
   // Aviso de caducidad PSD2 (≤7 días, issue #115). Se evalúa sobre todas las
   // cuentas (las críticas siguen siendo sincronizables) y se manda una sola vez
   // por ciclo de caducidad gracias a consent_reminder_sent_for.

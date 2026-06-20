@@ -43,7 +43,5 @@ ON CONFLICT (id) DO UPDATE
 
 DELETE FROM categories
 WHERE id NOT IN (${ids});
-
-REFRESH MATERIALIZED VIEW transactions_monthly_summary;
 `
 }
