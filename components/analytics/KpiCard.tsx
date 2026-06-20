@@ -1,6 +1,6 @@
 'use client'
 
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 
 interface KpiCardProps {
   type: 'income' | 'expense'
@@ -42,7 +42,7 @@ export default function KpiCard({
         className="mb-2 font-extrabold leading-none"
         style={{ fontSize, color: mainColor }}
       >
-        {fmt(value)} €
+        <Amount value={value} />
       </div>
 
       {/* Badge vs período anterior — neutral */}

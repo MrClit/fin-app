@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { AccountIconBadge } from '@/components/accounts/AccountIconBadge'
 import type { Account, AccountType } from '@/types'
 
@@ -30,7 +30,7 @@ function AccountCell({ account }: { account: Account }) {
         className="text-[17px] font-bold leading-tight"
         style={{ color: isNegative ? '#ef4444' : undefined }}
       >
-        {fmt(balance, 2)} €
+        <Amount value={balance} decimals={2} />
       </div>
       {account.number && (
         <div className="text-[10px] text-muted-foreground mt-0.5">{account.number}</div>

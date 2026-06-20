@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MoreHorizontal } from 'lucide-react'
 import type { CategoryBreakdown } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import DonutChart, { type DonutItem } from './DonutChart'
 
 const MIN_PCT = 5
@@ -166,7 +166,7 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
                         {Math.round(item.pct)}%
                       </span>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
-                        {fmt(item.amount)} €
+                        <Amount value={item.amount} />
                       </span>
                       {isNavigable && <span style={{ fontSize: 13, color: accentColor }}>›</span>}
                     </div>
