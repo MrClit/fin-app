@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { CATEGORY_META } from '@/lib/theme'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import type { CategoryId, CategoryPeriodData, TransactionWithAccount } from '@/types'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
@@ -213,7 +213,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           <p className="mt-1 text-xs text-muted-foreground" style={{ paddingLeft: 44 }}>
             {transactions.length} movimiento{transactions.length !== 1 ? 's' : ''}{' '}
             ·{' '}
-            <span style={{ fontWeight: 700, color }}>{fmt(periodTotal, 2)} €</span>
+            <span style={{ fontWeight: 700, color }}><Amount value={periodTotal} decimals={2} /></span>
           </p>
         )}
       </div>
@@ -234,7 +234,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
             ) : (
               <>
                 <span style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: -1 }}>
-                  {fmt(periodTotal, 2)} €
+                  <Amount value={periodTotal} decimals={2} />
                 </span>
                 {selectedPeriod && (
                   <span className="ml-2 text-xs text-muted-foreground">

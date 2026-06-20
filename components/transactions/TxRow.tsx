@@ -3,7 +3,7 @@
 import { Edit3, Check, X } from 'lucide-react'
 import { useHorizontalSwipe, type SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
@@ -39,9 +39,6 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
     onOpen: side => onOpenSwipe(tx.id, side),
     onClose: onCloseSwipe,
   })
-
-  const absAmount = fmt(Math.abs(tx.amount), 2)
-  const amountStr = (tx.amount > 0 ? '+' : '-') + absAmount + ' €'
 
   const leaving = phase === 'leaving'
 
@@ -130,7 +127,7 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
               tx.amount > 0 ? 'text-[#22c55e]' : 'text-destructive'
             )}
           >
-            {amountStr}
+            <Amount value={tx.amount} decimals={2} signed />
           </span>
         </div>
 

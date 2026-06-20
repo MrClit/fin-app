@@ -1,7 +1,7 @@
 'use client'
 
 import type { Granularity } from '@/types'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { PERIOD_LABELS } from '@/lib/analytics'
 
 interface SavingsCardProps {
@@ -24,7 +24,7 @@ export default function SavingsCard({ income, savings, granularity }: SavingsCar
         Ahorro · {PERIOD_LABELS[granularity]}
       </p>
       <p style={{ fontSize: 32, fontWeight: 800, color: 'white', marginBottom: 8 }}>
-        {fmt(savings)} €
+        <Amount value={savings} />
       </p>
       <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }}>
         <div

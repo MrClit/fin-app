@@ -3,8 +3,10 @@ import { CATEGORIES } from '@/lib/categories/catalog'
 
 // Categorías que usa la integración Edenred. Deben existir en el catálogo
 // (lib/categories/catalog.ts, fuente única de la tabla `categories`), porque
-// la matview `transactions_monthly_summary` hace INNER JOIN sobre `categories`:
-// un `id` desconocido excluiría la tx de las agregaciones SIN error. Ver #101.
+// `transactions.category` tiene FK a `categories.id` (#174): un `id` desconocido
+// haría fallar el insert de la tx. Además la analítica (`get_period_data`) hace
+// LEFT JOIN sobre `categories`, así que un id sin fila quedaría sin metadatos de
+// categoría en las agregaciones. Ver #101.
 // El scraper `scripts/scrapers/edenred/scrape.mjs` emite estos ids sin tipado,
 // por eso este test los protege explícitamente.
 // - 'restaurant': consumo (fallback del webhook en route.ts)

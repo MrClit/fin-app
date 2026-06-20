@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Trash2, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
@@ -73,8 +73,6 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
     })
   })()
 
-  const absAmount = fmt(Math.abs(renderTx.amount), 2)
-  const amountStr = (renderTx.amount > 0 ? '+' : '-') + absAmount + ' €'
   const isPositive = renderTx.amount > 0
 
   return (
@@ -102,7 +100,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
               isPositive ? 'text-[#22c55e]' : 'text-foreground'
             )}
           >
-            {amountStr}
+            <Amount value={renderTx.amount} decimals={2} signed />
           </div>
         </div>
 

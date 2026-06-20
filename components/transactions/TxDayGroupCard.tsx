@@ -2,7 +2,7 @@
 
 import { TxRow, type TxRowPhase } from './TxRow'
 import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { formatDayLabel, type TxDayGroup } from '@/lib/transactions'
 import type { TransactionWithAccount } from '@/types'
 
@@ -34,7 +34,6 @@ export function TxDayGroupCard({
   onToggleRead,
   onTap,
 }: TxDayGroupCardProps) {
-  const netStr = (group.net >= 0 ? '+' : '') + fmt(group.net, 2) + ' €'
   const netColor = group.net >= 0 ? '#22c55e' : 'var(--foreground)'
 
   return (
@@ -44,7 +43,7 @@ export function TxDayGroupCard({
           {formatDayLabel(group.date)}
         </span>
         <span className="text-xs font-bold" style={{ color: netColor }}>
-          {netStr}
+          <Amount value={group.net} decimals={2} signed />
         </span>
       </div>
 
