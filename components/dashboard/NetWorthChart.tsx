@@ -1,6 +1,7 @@
 'use client'
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 
 interface Props {
   data: { label: string; value: number }[]
@@ -19,7 +20,7 @@ export function NetWorthChart({ data, annualDelta }: Props) {
               : 'text-red-500 bg-red-500/10'
           }`}>
             {annualDelta >= 0 ? '↑' : '↓'} {annualDelta >= 0 ? '+' : ''}
-            {fmt(annualDelta)} € vs hace 12 meses
+            <Amount value={annualDelta} /> vs hace 12 meses
           </span>
         ) : (
           <span className="text-[11px] text-muted-foreground px-2.5 py-0.5">
@@ -56,7 +57,7 @@ export function NetWorthChart({ data, annualDelta }: Props) {
           />
           <Tooltip
             formatter={(v) => [typeof v === 'number' ? `${fmt(v)} €` : '—', 'Patrimonio']}
-            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)' }}
+            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', fontVariantNumeric: 'tabular-nums' }}
           />
         </AreaChart>
       </ResponsiveContainer>

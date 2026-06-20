@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Check, AlertTriangle, XCircle } from 'lucide-react'
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { getConsentStatus, type ConsentInfo } from '@/lib/accounts'
 import { AccountIconBadge } from './AccountIconBadge'
 import { SyncButton } from './SyncButton'
@@ -108,7 +108,7 @@ export function AccountCard({ account }: { account: Account }) {
                   : undefined,
             }}
           >
-            {account.balance !== null ? `${fmt(account.balance, 2)} €` : '—'}
+            {account.balance !== null ? <Amount value={account.balance} decimals={2} /> : '—'}
           </div>
         </div>
         <Link

@@ -93,7 +93,7 @@ export default function DonutChart({ items, selectedIdx, accentColor, onSelect }
         </text>
 
         {/* Center value */}
-        <text x={CX} y={CY + 14} textAnchor="middle" fontSize={22} fontWeight={800} fill={centerColor}>
+        <text x={CX} y={CY + 14} textAnchor="middle" fontSize={22} fontWeight={800} fill={centerColor} style={{ fontVariantNumeric: 'tabular-nums slashed-zero' }}>
           {centerValue}
         </text>
       </svg>

@@ -1,4 +1,4 @@
-import { fmt } from '@/lib/formatting'
+import { Amount } from '@/components/ui/amount'
 import { Sparkline } from './Sparkline'
 
 interface DashboardBalanceCardProps {
@@ -38,7 +38,7 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
           Balance total
         </div>
         <div className="text-[36px] font-extrabold text-white tracking-tight leading-none mb-1">
-          {fmt(balance, 2)} €
+          <Amount value={balance} decimals={2} />
         </div>
 
         {/* Weekly delta pill */}
@@ -47,7 +47,7 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
             className="text-[12px] font-bold px-2 py-0.5 rounded-full"
             style={{ color: pillColor, background: pillBg }}
           >
-            {deltaArrow} {deltaSign}{fmt(weeklyDelta, 2)} €
+            {deltaArrow} {deltaSign}<Amount value={weeklyDelta} decimals={2} />
           </span>
           <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>esta semana</span>
         </div>
