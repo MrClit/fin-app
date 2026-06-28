@@ -41,6 +41,12 @@ export async function tryAutofill(page, user, pass) {
   try {
     await username.fill(user)
     await password.fill(pass)
+    // El form de Edenred deshabilita el botón "Iniciar sesión" hasta que un campo
+    // pierde el foco (validación on-blur). fill() solo emite 'input', no 'blur',
+    // así que sin esto el botón sigue disabled y submit.click() agota el timeout
+    // de actionability → exit 2 ("Auto-relogin no completado"). Basta con perder
+    // el foco; no hace falta teclear. Arregla el auto-relogin y el login manual.
+    await password.blur()
     await submit.click()
     console.log('[edenred-auth] credenciales auto-rellenadas.')
     return true
