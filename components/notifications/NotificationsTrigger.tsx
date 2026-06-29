@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Bell, BellOff, BellRing, Loader2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import Link from 'next/link'
+import { AlertTriangle, Bell, Loader2 } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -10,54 +11,86 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { usePushSubscription } from '@/hooks/usePushSubscription'
-import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
+import { useNotifications } from '@/components/notifications/NotificationsProvider'
 
 /**
- * Campana del header (issue #115). Abre un Sheet para activar/desactivar las
- * notificaciones push. El permiso se solicita solo al pulsar "Activar".
+ * Campana del header como centro de notificaciones in-app (#177). Muestra un badge
+ * con el nº de no leídas (alimentado por NotificationsProvider) y, al abrir el
+ * Sheet, la lista de avisos. Al abrir se marcan todas como leídas (badge a 0). El
+ * toggle de activar/desactivar push vive ahora en el menú de usuario (PushToggleRow).
  */
+
+interface NotificationItem {
+  id: string
+  source: string | null
+  kind: string | null
+  title: string
+  body: string
+  url: string | null
+  read_at: string | null
+  created_at: string
+}
+
+// Tiempo relativo en castellano, sin dependencias (Intl.RelativeTimeFormat).
+const rtf = new Intl.RelativeTimeFormat('es-ES', { numeric: 'auto' })
+function timeAgo(iso: string): string {
+  const diffMs = new Date(iso).getTime() - Date.now()
+  const min = Math.round(diffMs / 60_000)
+  if (Math.abs(min) < 60) return rtf.format(min, 'minute')
+  const hours = Math.round(min / 60)
+  if (Math.abs(hours) < 24) return rtf.format(hours, 'hour')
+  return rtf.format(Math.round(hours / 24), 'day')
+}
+
 export function NotificationsTrigger() {
   const [open, setOpen] = useState(false)
-  const { support, enabled, busy, denied, subscribe, unsubscribe } = usePushSubscription()
-  const { showToast } = useSyncStatus()
+  const [items, setItems] = useState<NotificationItem[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const { count, setCount } = useNotifications()
 
-  // El hook rechaza la promesa si algo falla; aquí la capturamos para avisar al
-  // usuario en vez de dejar el botón como si «no hubiera pasado nada» (#123).
-  async function handleSubscribe() {
-    try {
-      await subscribe()
-    } catch (err) {
-      console.error('[NotificationsTrigger.subscribe]', err)
-      showToast('No se pudieron activar las notificaciones, inténtalo de nuevo.', handleSubscribe)
-    }
-  }
+  // Al abrir: cargar la lista y marcar todas como leídas (badge optimista a 0).
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      setOpen(next)
+      if (!next) {
+        setItems(null)
+        return
+      }
 
-  async function handleUnsubscribe() {
-    try {
-      await unsubscribe()
-    } catch (err) {
-      console.error('[NotificationsTrigger.unsubscribe]', err)
-      showToast(
-        'No se pudieron desactivar las notificaciones, inténtalo de nuevo.',
-        handleUnsubscribe
-      )
-    }
-  }
+      setLoading(true)
+      fetch('/api/notifications', { cache: 'no-store' })
+        .then(res => (res.ok ? res.json() : null))
+        .then(json => setItems(json?.notifications ?? []))
+        .catch(() => setItems([]))
+        .finally(() => setLoading(false))
+
+      if (count > 0) {
+        setCount(0)
+        fetch('/api/notifications/mark-read', { method: 'POST' }).catch(() => {
+          // Si falla, el provider revalidará el conteo real en el próximo ciclo.
+        })
+      }
+    },
+    [count, setCount]
+  )
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger
         render={
           <button
             type="button"
-            aria-label="Notificaciones"
-            className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={count > 0 ? `Notificaciones (${count} sin leer)` : 'Notificaciones'}
+            className="relative grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            {enabled ? (
-              <BellRing className="size-4.5 text-primary" strokeWidth={2} />
-            ) : (
-              <Bell className="size-4.5" strokeWidth={2} />
+            <Bell className="size-4.5" strokeWidth={2} />
+            {count > 0 && (
+              <span
+                className="absolute -top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center
+                           rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground"
+              >
+                {count > 99 ? '99+' : count}
+              </span>
             )}
           </button>
         }
@@ -72,71 +105,57 @@ export function NotificationsTrigger() {
           </div>
           <div className="flex flex-col gap-0.5 text-left">
             <SheetTitle className="text-sm">Notificaciones</SheetTitle>
-            <SheetDescription className="text-xs">
-              Avisos de caducidad del acceso bancario
-            </SheetDescription>
+            <SheetDescription className="text-xs">Avisos de la app</SheetDescription>
           </div>
         </SheetHeader>
 
-        <div className="flex flex-col gap-3 px-4 pb-2 pt-2">
-          {support === 'loading' && (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto px-4 pb-2 pt-2">
+          {loading && items === null && (
+            <p className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
               <Loader2 className="size-4 animate-spin" strokeWidth={2} />
-              Comprobando compatibilidad…
+              Cargando…
             </p>
           )}
 
-          {support === 'error' && (
-            <p className="text-xs text-muted-foreground">
-              No se pudo cargar el servicio de notificaciones. Recarga la página e inténtalo de
-              nuevo.
+          {items !== null && items.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No tienes notificaciones
             </p>
           )}
 
-          {support === 'unsupported' && (
-            <p className="text-xs text-muted-foreground">
-              Tu navegador no admite notificaciones push. En iPhone, instala antes la app desde
-              «Compartir → Añadir a pantalla de inicio» (requiere iOS 16.4 o superior).
-            </p>
-          )}
-
-          {support === 'supported' && denied && !enabled && (
-            <p className="text-xs text-muted-foreground">
-              Has bloqueado las notificaciones para este sitio. Habilítalas en los ajustes del
-              navegador para poder activarlas.
-            </p>
-          )}
-
-          {support === 'supported' && !denied && (
-            <p className="text-xs text-muted-foreground">
-              {enabled
-                ? 'Recibirás un aviso cuando el acceso a alguno de tus bancos esté a punto de caducar.'
-                : 'Activa los avisos para enterarte antes de que caduque el acceso a tus bancos.'}
-            </p>
-          )}
-
-          {support === 'supported' &&
-            (enabled ? (
-              <button
-                type="button"
-                onClick={handleUnsubscribe}
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          {items?.map(item => {
+            const Inner = (
+              <>
+                <AlertTriangle
+                  className="mt-0.5 size-4.5 shrink-0 text-amber-500"
+                  strokeWidth={2}
+                />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-foreground">{item.title}</span>
+                  <span className="text-xs text-muted-foreground">{item.body}</span>
+                  <span className="text-[11px] text-muted-foreground/70">
+                    {timeAgo(item.created_at)}
+                  </span>
+                </span>
+              </>
+            )
+            const className =
+              'flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3 text-left'
+            return item.url ? (
+              <Link
+                key={item.id}
+                href={item.url}
+                onClick={() => setOpen(false)}
+                className={`${className} transition-colors hover:bg-muted`}
               >
-                <BellOff className="size-4.5" strokeWidth={2} />
-                Desactivar notificaciones
-              </button>
+                {Inner}
+              </Link>
             ) : (
-              <button
-                type="button"
-                onClick={handleSubscribe}
-                disabled={busy || denied}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
-                <BellRing className="size-4.5" strokeWidth={2} />
-                Activar notificaciones
-              </button>
-            ))}
+              <div key={item.id} className={className}>
+                {Inner}
+              </div>
+            )
+          })}
         </div>
       </SheetContent>
     </Sheet>

@@ -16,7 +16,7 @@ const ACCOUNT_B = '00000000-0000-0000-0000-000000000bbb'
 type AccountResult = { data: { id: string } | null; error?: unknown }
 
 type MockOpts = {
-  userConfig?: { data: { user_id: string; household_id?: string } | null; error?: unknown }
+  householdOwner?: { data: { user_id: string; household_id?: string } | null; error?: unknown }
   // Una entrada por tarjeta (el handler itera): select previo e insert posterior.
   accountSelects?: AccountResult[]
   accountInserts?: AccountResult[]
@@ -29,11 +29,15 @@ function buildMockDb(opts: MockOpts = {}) {
   const updateSpy = vi.fn()
   const upsertSpy = vi.fn()
 
-  const userConfigBuilder: Record<string, unknown> = {}
-  Object.assign(userConfigBuilder, {
-    select: vi.fn(() => userConfigBuilder),
-    limit: vi.fn(() => userConfigBuilder),
-    maybeSingle: vi.fn(() => Promise.resolve(opts.userConfig ?? { data: null, error: null })),
+  // Resuelve el owner del hogar (getDefaultHouseholdOwner): cadena
+  // select → eq → order → limit → maybeSingle sobre household_members.
+  const householdMembersBuilder: Record<string, unknown> = {}
+  Object.assign(householdMembersBuilder, {
+    select: vi.fn(() => householdMembersBuilder),
+    eq: vi.fn(() => householdMembersBuilder),
+    order: vi.fn(() => householdMembersBuilder),
+    limit: vi.fn(() => householdMembersBuilder),
+    maybeSingle: vi.fn(() => Promise.resolve(opts.householdOwner ?? { data: null, error: null })),
   })
 
   const rulesBuilder: Record<string, unknown> = {}
@@ -91,7 +95,7 @@ function buildMockDb(opts: MockOpts = {}) {
   let currentAccounts: ReturnType<typeof makeAccountsBuilder> | null = null
   const db = {
     from: vi.fn((table: string) => {
-      if (table === 'user_config') return userConfigBuilder
+      if (table === 'household_members') return householdMembersBuilder
       if (table === 'categorization_rules') return rulesBuilder
       if (table === 'accounts') {
         if (!currentAccounts || currentAccounts._afterInsert || currentAccounts._afterUpdate) {
@@ -212,9 +216,9 @@ describe('POST /api/sabadell-visa — validación de body', () => {
   })
 })
 
-describe('POST /api/sabadell-visa — user_config', () => {
-  it('devuelve 500 si user_config está vacío', async () => {
-    const { db } = buildMockDb({ userConfig: { data: null, error: null } })
+describe('POST /api/sabadell-visa — household owner', () => {
+  it('devuelve 500 si no hay owner de hogar', async () => {
+    const { db } = buildMockDb({ householdOwner: { data: null, error: null } })
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
     const res = await callRoute(validPayload)
     expect(res.status).toBe(500)
@@ -225,7 +229,7 @@ describe('POST /api/sabadell-visa — user_config', () => {
 describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
   it('inserta una cuenta de tarjeta por cada card y upsertea sus txns', async () => {
     const { db, insertSpy, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: null }, { data: null }],
       accountInserts: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
     })
@@ -264,7 +268,7 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
 describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () => {
   it('actualiza balance/last_synced/name de cada cuenta existente sin insertar', async () => {
     const { db, insertSpy, updateSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
     })
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
@@ -292,7 +296,7 @@ describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () =>
 describe('POST /api/sabadell-visa — nombre de tarjeta desconocida', () => {
   it('conserva el nombre del webhook si el card_id no está mapeado', async () => {
     const { db, insertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: null }],
       accountInserts: [{ data: { id: ACCOUNT_A } }],
     })
@@ -321,7 +325,7 @@ describe('POST /api/sabadell-visa — nombre de tarjeta desconocida', () => {
 describe('POST /api/sabadell-visa — idempotencia', () => {
   it('upsert con onConflict="household_id,external_id" e ignoreDuplicates=false', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
     })
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)

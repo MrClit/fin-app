@@ -13,7 +13,7 @@ const HOUSEHOLD_ID = '00000000-0000-0000-0000-0000000000a1'
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000aaa'
 
 type MockOpts = {
-  userConfig?: { data: { user_id: string; household_id?: string } | null; error?: unknown }
+  householdOwner?: { data: { user_id: string; household_id?: string } | null; error?: unknown }
   accountSelect?: { data: { id: string } | null; error?: unknown }
   accountInsert?: { data: { id: string } | null; error?: unknown }
   accountUpdate?: { error?: unknown }
@@ -25,12 +25,16 @@ function buildMockDb(opts: MockOpts = {}) {
   const updateSpy = vi.fn()
   const upsertSpy = vi.fn()
 
-  const userConfigBuilder: Record<string, unknown> = {}
-  Object.assign(userConfigBuilder, {
-    select: vi.fn(() => userConfigBuilder),
-    limit: vi.fn(() => userConfigBuilder),
+  // Resuelve el owner del hogar (getDefaultHouseholdOwner): cadena
+  // select → eq → order → limit → maybeSingle sobre household_members.
+  const householdMembersBuilder: Record<string, unknown> = {}
+  Object.assign(householdMembersBuilder, {
+    select: vi.fn(() => householdMembersBuilder),
+    eq: vi.fn(() => householdMembersBuilder),
+    order: vi.fn(() => householdMembersBuilder),
+    limit: vi.fn(() => householdMembersBuilder),
     maybeSingle: vi.fn(() =>
-      Promise.resolve(opts.userConfig ?? { data: null, error: null })
+      Promise.resolve(opts.householdOwner ?? { data: null, error: null })
     ),
   })
 
@@ -82,7 +86,7 @@ function buildMockDb(opts: MockOpts = {}) {
 
   const db = {
     from: vi.fn((table: string) => {
-      if (table === 'user_config') return userConfigBuilder
+      if (table === 'household_members') return householdMembersBuilder
       if (table === 'accounts') return accountsBuilder
       if (table === 'transactions') return txBuilder
       throw new Error(`Unmocked table: ${table}`)
@@ -221,9 +225,9 @@ describe('POST /api/edenred — validación de body', () => {
   })
 })
 
-describe('POST /api/edenred — user_config', () => {
-  it('devuelve 500 "No user configured" si user_config está vacío', async () => {
-    const { db } = buildMockDb({ userConfig: { data: null, error: null } })
+describe('POST /api/edenred — household owner', () => {
+  it('devuelve 500 "No user configured" si no hay owner de hogar', async () => {
+    const { db } = buildMockDb({ householdOwner: { data: null, error: null } })
     vi.mocked(createServiceClient).mockReturnValue(
       db as unknown as ReturnType<typeof createServiceClient>
     )
@@ -237,7 +241,7 @@ describe('POST /api/edenred — user_config', () => {
 describe('POST /api/edenred — primer POST (crea cuenta)', () => {
   it('inserta la cuenta Edenred con los campos esperados y upsertea las txns', async () => {
     const { db, insertSpy, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: null, error: null },
       accountInsert: { data: { id: ACCOUNT_ID }, error: null },
     })
@@ -278,7 +282,7 @@ describe('POST /api/edenred — primer POST (crea cuenta)', () => {
 describe('POST /api/edenred — POST siguiente (actualiza cuenta)', () => {
   it('actualiza solo balance y last_synced de la cuenta existente', async () => {
     const { db, insertSpy, updateSpy, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -306,7 +310,7 @@ describe('POST /api/edenred — POST siguiente (actualiza cuenta)', () => {
 describe('POST /api/edenred — idempotencia', () => {
   it('llama a upsert con onConflict="household_id,external_id" e ignoreDuplicates=false', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -327,7 +331,7 @@ describe('POST /api/edenred — idempotencia', () => {
 describe('POST /api/edenred — mapeo de category', () => {
   it('aplica "restaurant" cuando la txn no trae category', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
@@ -352,7 +356,7 @@ describe('POST /api/edenred — mapeo de category', () => {
 
   it('respeta la category provista por el scraper (p. ej. "payroll" en una recarga)', async () => {
     const { db, upsertSpy } = buildMockDb({
-      userConfig: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
     })
     vi.mocked(createServiceClient).mockReturnValue(
