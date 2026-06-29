@@ -43,6 +43,11 @@ describe('resolveScraperNotification', () => {
     expect(resolveScraperNotification('sabadell_visa', 'session_expired')?.title).toBe(
       'Sabadell VISA: sesión caducada'
     )
+    // login_failed (#212): aviso distinto del de sesión caducada/2FA.
+    expect(resolveScraperNotification('sabadell_visa', 'login_failed')).toMatchObject({
+      title: 'Sabadell VISA: login fallido',
+      url: '/accounts',
+    })
   })
 
   it('devuelve null para source o kind no soportados', () => {

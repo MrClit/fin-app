@@ -6,6 +6,7 @@ import {
   insertNotification,
   resolveScraperNotification,
   type NotificationSource,
+  type NotificationKind,
 } from '@/lib/notifications'
 
 /**
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
   //    usuario tiene el push desactivado, igualmente verá el aviso en la campana.
   const persisted = await insertNotification(db, userId, {
     source: source as NotificationSource,
-    kind: kind as 'session_expired' | '2fa',
+    kind: kind as NotificationKind,
     ...content,
   })
 
