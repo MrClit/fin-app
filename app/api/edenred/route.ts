@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getDefaultHouseholdOwner } from '@/lib/household'
 import { safeBearerMatch } from '@/lib/http/bearer'
 
 type EdenredTx = {
@@ -58,19 +59,14 @@ export async function POST(req: Request) {
   const db = createServiceClient()
 
   // El webhook no tiene sesión: se resuelve el hogar (y un user_id de
-  // creador/auditoría) leyendo el único registro de user_config. App personal
-  // con un único hogar (decisión documentada en el plan de #53, adaptada a #131).
-  const { data: userRow, error: userErr } = await db
-    .from('user_config')
-    .select('user_id, household_id')
-    .limit(1)
-    .maybeSingle()
-  if (userErr || !userRow || !userRow.household_id) {
-    console.error('[edenred] no user_config/household:', userErr)
+  // creador/auditoría) de forma determinista a partir del owner del hogar
+  // (household_members.role = 'owner', el más antiguo). Issue #196.
+  const owner = await getDefaultHouseholdOwner(db)
+  if (!owner) {
+    console.error('[edenred] no household owner')
     return NextResponse.json({ error: 'No user configured' }, { status: 500 })
   }
-  const userId = userRow.user_id as string
-  const householdId = userRow.household_id as string
+  const { householdId, userId } = owner
 
   const { data: existingAccount, error: accSelErr } = await db
     .from('accounts')
