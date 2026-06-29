@@ -22,7 +22,7 @@ import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 import {
-  USER_DATA_DIR, SABADELL_LOGIN_URL,
+  USER_DATA_DIR, SABADELL_LOGIN_URL, SABADELL_HOME_URL,
   CHROME_CHANNEL, CHROME_ARGS, STEALTH_INIT_SCRIPT, LOGIN_SELECTORS,
 } from './config.mjs'
 import { parseAmount, parseDate } from './parsers.mjs'
@@ -63,7 +63,7 @@ function writeMarker() {
 // aquí sólo el secreto compartido). Sustituye al antiguo /api/sabadell-visa/notify-error.
 // Nunca debe romper el exit del script. La dedup ("un aviso por día") la garantiza
 // el marker notifyPath() (a mayores, el servidor deduplica por 24 h).
-async function notifyError() {
+async function notifyError(kind = 'session_expired') {
   try {
     const appUrl = process.env.APP_URL?.replace(/\/$/, '')
     const secret = process.env.SABADELL_VISA_WEBHOOK_SECRET
@@ -74,7 +74,7 @@ async function notifyError() {
     const res = await fetch(`${appUrl}/api/scrapers/notify`, {
       method: 'POST',
       headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ source: 'sabadell_visa', kind: 'session_expired' }),
+      body: JSON.stringify({ source: 'sabadell_visa', kind }),
     })
     if (!res.ok) {
       console.error(`[sabadell-scrape] aviso in-app respondió ${res.status}`)
@@ -86,18 +86,35 @@ async function notifyError() {
   }
 }
 
-// Aviso de sesión caducada (exit 2): notificación nativa de macOS + push al iPhone.
+// Avisos de fallo de login (exit 2): notificación nativa de macOS + push al iPhone.
 // Sólo se dispara bajo cron (CRON_MODE) desde login(); throttle 1/día vía el marker
 // notifyPath(), que cubre ambos canales. Todo en try/catch: nunca debe romper el exit.
-async function notifyExpired() {
+//
+// Dos variantes (#212), claramente diferenciadas:
+//   - session_expired: el banco pide OTP → el dispositivo no está enrolado, hay que
+//     re-enrolar con scrape:sabadell-visa:login.
+//   - login_failed: el login se rechazó tras varios intentos sin pedir 2FA → posible
+//     bloqueo blando transitorio; no procede re-enrolar.
+const NOTIFY_TEXT = {
+  session_expired: {
+    title: 'Sabadell VISA: sesión caducada',
+    body: 'Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.',
+  },
+  login_failed: {
+    title: 'Sabadell VISA: login fallido',
+    body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde.',
+  },
+}
+async function notifyExpired(kind = 'session_expired') {
   try {
     if (existsSync(notifyPath())) return
+    const text = NOTIFY_TEXT[kind] ?? NOTIFY_TEXT.session_expired
     try {
       execFileSync('osascript', ['-e',
-        `display notification ${JSON.stringify('Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.')} with title ${JSON.stringify('Sabadell VISA: sesión caducada')}`,
+        `display notification ${JSON.stringify(text.body)} with title ${JSON.stringify(text.title)}`,
       ])
     } catch {}
-    await notifyError()
+    await notifyError(kind)
     mkdirSync(LOG_DIR, { recursive: true })
     closeSync(openSync(notifyPath(), 'a'))
   } catch {}
@@ -139,10 +156,15 @@ async function acceptCookies(page) {
   }
 }
 
-async function login(page) {
-  const user = requireEnv('SABADELL_USER')
-  const pass = requireEnv('SABADELL_PASS')
+// Número de intentos de login ante fallo transitorio (#212). Pequeño a propósito:
+// el form lo construye formconstructor.js dinámicamente y puede haber una carrera
+// que deja el PIN sin enviar; un par de reintentos absorbe ese glitch. NUNCA se
+// reintenta ante OTP (reenviar credenciales dispararía SMS y un bloqueo real).
+const LOGIN_MAX_ATTEMPTS = 3
 
+// Rellena el form y lo envía una vez. Devuelve 'ok' | 'otp' | 'retry'.
+// 'retry' = seguimos en el form de password (login no completado, transitorio).
+async function attemptLogin(page, user, pass) {
   await page.goto(SABADELL_LOGIN_URL, { waitUntil: 'domcontentloaded' })
   await acceptCookies(page)
 
@@ -150,25 +172,65 @@ async function login(page) {
   try {
     await userInput.waitFor({ state: 'visible', timeout: 15000 })
   } catch {
+    // El campo no aparece: fallo estructural (front cambiado o banner de cookies),
+    // no transitorio → no tiene sentido reintentar.
     await dump(page, 'login-no-field')
     die(4, 'No apareció el campo de DNI en el login (¿cambió el front o el banner de cookies?)')
   }
   await userInput.fill(user)
-  await page.locator(LOGIN_SELECTORS.pass).first().fill(pass)
+
+  // Verifica que el PIN quedó realmente escrito antes de enviar: el form dinámico
+  // (formconstructor.js) a veces gana la carrera y deja #password vacío → el envío
+  // se resetea y parece "credenciales incorrectas". Re-rellena si hace falta.
+  const passInput = page.locator(LOGIN_SELECTORS.pass).first()
+  await passInput.fill(pass)
+  if (!(await passInput.inputValue().catch(() => ''))) {
+    await page.waitForTimeout(500)
+    await passInput.fill(pass)
+  }
+
   await page.locator(LOGIN_SELECTORS.submit).first().click()
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
 
   if (await page.locator(LOGIN_SELECTORS.otp).first().isVisible().catch(() => false)) {
-    await dump(page, 'login-otp')
-    if (CRON_MODE) await notifyExpired()
-    die(2, 'Sabadell pide OTP: el dispositivo no está enrolado. Ejecuta pnpm scrape:sabadell:login')
+    return 'otp'
   }
   if (await page.locator(LOGIN_SELECTORS.pass).first().isVisible().catch(() => false)) {
-    await dump(page, 'login-failed')
-    if (CRON_MODE) await notifyExpired()
-    die(2, 'Login no completado (¿credenciales incorrectas?)')
+    return 'retry'
   }
-  if (DEBUG) await dump(page, 'after-login')
+  return 'ok'
+}
+
+async function login(page) {
+  const user = requireEnv('SABADELL_USER')
+  const pass = requireEnv('SABADELL_PASS')
+
+  for (let attempt = 1; attempt <= LOGIN_MAX_ATTEMPTS; attempt++) {
+    const result = await attemptLogin(page, user, pass)
+
+    if (result === 'ok') {
+      if (DEBUG) await dump(page, 'after-login')
+      return
+    }
+
+    if (result === 'otp') {
+      // OTP visible: el dispositivo no está enrolado. Cortar de inmediato, NO
+      // reintentar (evita reenviar credenciales y disparar SMS repetidos).
+      await dump(page, 'login-otp')
+      if (CRON_MODE) await notifyExpired('session_expired')
+      die(2, 'Sabadell pide OTP: el dispositivo no está enrolado. Ejecuta pnpm scrape:sabadell-visa:login')
+    }
+
+    // result === 'retry': login no completado (transitorio). Reintentar si quedan.
+    await dump(page, `login-failed-attempt-${attempt}`)
+    console.error(`[sabadell-scrape] login no completado (intento ${attempt}/${LOGIN_MAX_ATTEMPTS})`)
+    if (attempt < LOGIN_MAX_ATTEMPTS) await page.waitForTimeout(1500 * attempt)
+  }
+
+  // Agotados los intentos sin OTP: posible bloqueo blando, no sesión caducada.
+  // Aviso DISTINTO al de 2FA/sesión caducada.
+  if (CRON_MODE) await notifyExpired('login_failed')
+  die(2, `Login no completado tras ${LOGIN_MAX_ATTEMPTS} intentos (posible bloqueo o credenciales incorrectas)`)
 }
 
 // Navega a la lista de tarjetas (#cardAccountTable) clicando el enlace del menú
@@ -177,11 +239,16 @@ async function login(page) {
 // movimientos de una tarjeta (ambas tienen ese enlace en el menú).
 async function gotoCardsList(page) {
   // Reintentos: la navegación de vuelta (tras ver una tarjeta) es sensible a
-  // timing en este webflow legacy; clicar el enlace y esperar la tabla puede
-  // necesitar un segundo intento.
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  // timing en este webflow legacy. El fallo recurrente "no-cards-table" (#212)
+  // viene de clicar el enlace sobre una página a medio cargar o sin el menú; el
+  // remedio robusto es recargar la POSICIÓN GLOBAL (que siempre trae el enlace)
+  // antes de reintentar, en vez de solo esperar.
+  const MAX_ATTEMPTS = 4
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const link = page.locator('a[href*="TJMovementsQueryDebt.init.bs"]').first()
     if (!(await link.count().catch(() => 0))) {
+      // El menú no está: recargar la posición global, que siempre lo trae.
+      await page.goto(SABADELL_HOME_URL, { waitUntil: 'domcontentloaded' }).catch(() => {})
       await page.waitForTimeout(1000)
       continue
     }
@@ -192,7 +259,12 @@ async function gotoCardsList(page) {
       if (DEBUG) await dump(page, 'cards-list')
       return
     } catch {
-      await page.waitForTimeout(1500)
+      // Click hecho pero la tabla no apareció: vuelve a la posición global para
+      // reintentar el clic desde un estado limpio.
+      if (attempt < MAX_ATTEMPTS) {
+        await page.goto(SABADELL_HOME_URL, { waitUntil: 'domcontentloaded' }).catch(() => {})
+        await page.waitForTimeout(1000)
+      }
     }
   }
   await dump(page, 'no-cards-table')
@@ -201,27 +273,37 @@ async function gotoCardsList(page) {
 
 // Selecciona la tarjeta cuyo número contiene `last4` y abre sus movimientos.
 async function openCardMovements(page, last4) {
-  // La fila de la tarjeta en #cardAccountTable muestra el número enmascarado.
-  const row = page.locator(`#cardAccountTable tr`, { hasText: last4 }).first()
-  if (!(await row.isVisible().catch(() => false))) {
-    await dump(page, `card-${last4}-no-row`)
-    die(4, `No se encontró la fila de la tarjeta …${last4} en la lista`)
-  }
-  await row.click().catch(() => {})
-  // Botón de consulta de movimientos.
-  const submit = page.locator('input[name="aceptar"], input[value="Aceptar"]').first()
-  if (await submit.isVisible().catch(() => false)) {
-    await submit.click().catch(() => {})
-  }
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
-  // Espera a que cargue la página de movimientos (input oculto card.number).
-  try {
-    await page.locator('input[name="card.number"]').first().waitFor({ state: 'attached', timeout: 15000 })
-  } catch {
+  // Reintento corto (#212): el click de fila + "Aceptar" también es sensible al
+  // timing del webflow legacy. Si la página de movimientos no carga, volvemos a la
+  // lista de tarjetas y reintentamos una vez antes de morir.
+  const MAX_ATTEMPTS = 2
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // La fila de la tarjeta en #cardAccountTable muestra el número enmascarado.
+    const row = page.locator(`#cardAccountTable tr`, { hasText: last4 }).first()
+    if (!(await row.isVisible().catch(() => false))) {
+      if (attempt < MAX_ATTEMPTS) { await gotoCardsList(page); continue }
+      await dump(page, `card-${last4}-no-row`)
+      die(4, `No se encontró la fila de la tarjeta …${last4} en la lista`)
+    }
+    await row.click().catch(() => {})
+    // Botón de consulta de movimientos.
+    const submit = page.locator('input[name="aceptar"], input[value="Aceptar"]').first()
+    if (await submit.isVisible().catch(() => false)) {
+      await submit.click().catch(() => {})
+    }
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+    // Espera a que cargue la página de movimientos (input oculto card.number).
+    const loaded = await page.locator('input[name="card.number"]').first()
+      .waitFor({ state: 'attached', timeout: 15000 }).then(() => true).catch(() => false)
+    if (loaded) {
+      if (DEBUG) await dump(page, `card-${last4}-movements`)
+      return
+    }
+    // No cargaron: reintentar desde la lista de tarjetas.
+    if (attempt < MAX_ATTEMPTS) { await gotoCardsList(page); continue }
     await dump(page, `card-${last4}-no-movements`)
     die(4, `No cargaron los movimientos de la tarjeta …${last4}`)
   }
-  if (DEBUG) await dump(page, `card-${last4}-movements`)
 }
 
 // Extrae number, saldo y movimientos confirmados de la página de movimientos.

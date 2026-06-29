@@ -14,8 +14,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 /** Scrapers que pueden emitir notificaciones. */
 export type NotificationSource = 'edenred' | 'sabadell_visa'
-/** Tipo de fallo. `session_expired`: sesión caducada; `2fa`: pide segundo factor. */
-export type NotificationKind = 'session_expired' | '2fa'
+/**
+ * Tipo de fallo. `session_expired`: sesión caducada; `2fa`: pide segundo factor;
+ * `login_failed`: el login fue rechazado repetidamente sin pedir 2FA (posible
+ * bloqueo blando anti-bot), distinto de una sesión caducada (#212).
+ */
+export type NotificationKind = 'session_expired' | '2fa' | 'login_failed'
 
 export interface NotificationContent {
   title: string
@@ -47,6 +51,11 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
     session_expired: {
       title: 'Sabadell VISA: sesión caducada',
       body: 'Ejecuta «pnpm scrape:sabadell-visa:login» para re-enrolar el dispositivo.',
+      url: '/accounts',
+    },
+    login_failed: {
+      title: 'Sabadell VISA: login fallido',
+      body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde o revisa las credenciales.',
       url: '/accounts',
     },
   },
