@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/app-header'
 import { BottomNav } from '@/components/bottom-nav'
 import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
 import { UnreadProvider } from '@/components/transactions/UnreadProvider'
+import { NotificationsProvider } from '@/components/notifications/NotificationsProvider'
 import { getConsentBannerData } from '@/lib/accounts'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -33,20 +34,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('*', { count: 'exact', head: true })
     .eq('is_read', false)
 
+  // Conteo de notificaciones in-app no leídas para el badge de la campana (#177).
+  // RLS limita la consulta a las filas propias; `head: true` evita traer filas.
+  const { count: unreadNotifications } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .is('read_at', null)
+
   return (
     <div className="relative mx-auto w-full max-w-105 min-h-screen overflow-clip bg-background">
       <SyncStatusProvider>
         <UnreadProvider initialCount={unreadCount ?? 0}>
-          <AppHeader
-            email={user.email ?? ''}
-            avatarUrl={avatarUrl}
-            fullName={fullName}
-            consentBanner={consentBanner}
-          />
-          <main className="pb-22.5 animate-fade-in">
-            {children}
-          </main>
-          <BottomNav />
+          <NotificationsProvider initialCount={unreadNotifications ?? 0}>
+            <AppHeader
+              email={user.email ?? ''}
+              avatarUrl={avatarUrl}
+              fullName={fullName}
+              consentBanner={consentBanner}
+            />
+            <main className="pb-22.5 animate-fade-in">
+              {children}
+            </main>
+            <BottomNav />
+          </NotificationsProvider>
         </UnreadProvider>
       </SyncStatusProvider>
     </div>
