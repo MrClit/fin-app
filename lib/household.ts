@@ -25,3 +25,24 @@ export async function getHouseholdId(
   if (error || !data) return null
   return data.household_id as string
 }
+
+/**
+ * Resuelve el hogar y el usuario creador para procesos sin sesión (webhooks
+ * de scrapers). Determinista: el owner más antiguo (`role = 'owner'`) frente a
+ * la fila arbitraria que devolvía `user_config.limit(1)` (issue #196).
+ * Requiere un cliente service-role (sin RLS). Devuelve `null` si no hay owner.
+ */
+export async function getDefaultHouseholdOwner(
+  supabase: SupabaseClient
+): Promise<{ householdId: string; userId: string } | null> {
+  const { data, error } = await supabase
+    .from('household_members')
+    .select('household_id, user_id')
+    .eq('role', 'owner')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return { householdId: data.household_id as string, userId: data.user_id as string }
+}
