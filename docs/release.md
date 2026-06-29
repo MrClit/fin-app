@@ -98,6 +98,7 @@ git checkout develop
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
+| `v0.5.0` | 2026-06-30 | Avisos in-app de fallo de scrapers (#177). Fixes: login de Sabadell VISA y navegación post-login (#212), resolución determinista del owner del hogar en webhooks (#257), Edenred blur antes del click de login (#253). |
 | `v0.4.0` | 2026-06-20 | Cifras tabulares para todos los importes (#243), push al iPhone al fallar el scraper de Sabadell VISA (#213), versión de release en login + acceso solo con Google (#226). Seguridad: RLS en `categories` (#232) y retirada de la MV `transactions_monthly_summary` (#231). |
 | `v0.3.0` | 2026-06-18 | Sección «No leídos» de transacciones: reorganización en vivo (#219) con animación de entrada/salida (#221) y revalidación del badge al volver a primer plano (#214, #217). |
 | `v0.2.0` | 2026-06-17 | Observabilidad (error_log #200) y mejoras del scraper Edenred: auto-relogin (#208) y push accionable ante 2FA (#204). |
