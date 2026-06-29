@@ -73,31 +73,41 @@ function writeCronMarker() {
   }
 }
 
-// Push accionable "Edenred requiere 2FA" (issue #204). A diferencia de la
-// notificación macOS (local al Mac), este push llega al móvil aunque estés fuera.
-// El servidor firma el push con VAPID; aquí sólo hacemos POST al webhook (mismo
-// secreto que /api/edenred). Best-effort: nunca debe romper el exit del script.
-// La dedup ("un aviso por episodio") la hace enterTwoFaPending vía el marker.
-async function notify2faPending() {
+// Webhook unificado de fallo de scraper (issue #177). El servidor persiste una
+// notificación in-app (visible en la campana desde cualquier dispositivo aunque el
+// push se pierda) y firma el push con VAPID (las claves nunca salen de Vercel; aquí
+// sólo el secreto compartido, el mismo de /api/edenred). Sustituye al antiguo
+// /api/edenred/notify-2fa. Best-effort: nunca debe romper el exit del script.
+async function postScraperNotify(kind) {
   try {
     const appUrl = process.env.APP_URL?.replace(/\/$/, '')
     const secret = process.env.EDENRED_WEBHOOK_SECRET
     if (!appUrl || !secret) {
-      console.error('[edenred-scrape] falta APP_URL/EDENRED_WEBHOOK_SECRET — sin push de 2FA.')
+      console.error('[edenred-scrape] falta APP_URL/EDENRED_WEBHOOK_SECRET — sin aviso in-app.')
       return
     }
-    const res = await fetch(`${appUrl}/api/edenred/notify-2fa`, {
+    const res = await fetch(`${appUrl}/api/scrapers/notify`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${secret}` },
+      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ source: 'edenred', kind }),
     })
     if (!res.ok) {
-      console.error(`[edenred-scrape] push de 2FA respondió ${res.status}`)
+      console.error(`[edenred-scrape] aviso in-app (${kind}) respondió ${res.status}`)
     } else {
-      console.log('[edenred-scrape] push de 2FA enviado.')
+      console.log(`[edenred-scrape] aviso in-app (${kind}) enviado.`)
     }
   } catch (err) {
-    console.error(`[edenred-scrape] push de 2FA falló (${err.message}).`)
+    console.error(`[edenred-scrape] aviso in-app (${kind}) falló (${err.message}).`)
   }
+}
+
+// Aviso in-app de sesión caducada (exit 2 por login fallido). Comparte el throttle
+// 1/día con la notificación macOS leyendo notifyMarkerPath (que escribe
+// notifySessionExpired desde die() tras este await), de modo que sólo sale un aviso
+// por día por ambos canales. Best-effort.
+async function notifySessionExpiredInApp() {
+  if (existsSync(notifyMarkerPath())) return
+  await postScraperNotify('session_expired')
 }
 
 // Entra al estado "2FA pendiente": marca el guard anti-spam (siempre, para no
@@ -107,7 +117,7 @@ async function notify2faPending() {
 async function enterTwoFaPending() {
   const firstTime = !twoFaPendingExists()
   setTwoFaPending()
-  if (firstTime && CRON_MODE) await notify2faPending()
+  if (firstTime && CRON_MODE) await postScraperNotify('2fa')
 }
 
 // Notificación nativa de macOS cuando la sesión Edenred caduca (exit 2). Sólo
@@ -353,6 +363,9 @@ async function main() {
       // continuar en la misma ejecución si funciona.
       if (!(await tryAutoRelogin(context, page))) {
         await dumpFailure(page)
+        // Aviso in-app de sesión caducada, salvo que sea un episodio de 2FA en
+        // curso (ese ya recibió su propio aviso vía enterTwoFaPending).
+        if (CRON_MODE && !twoFaPendingExists()) await notifySessionExpiredInApp()
         die(2, `Auto-relogin no completado. Regenera con: pnpm scrape:edenred:login`)
       }
       didRelogin = true

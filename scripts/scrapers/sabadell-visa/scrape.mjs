@@ -57,29 +57,32 @@ function writeMarker() {
     }
   }
 }
-// Best-effort: POST al webhook para que el servidor firme un push al iPhone (#213).
-// Las claves VAPID nunca salen de Vercel; aquí sólo hacemos POST con el secreto
-// compartido. Nunca debe romper el exit del script (calco de notify2faPending de
-// Edenred). La dedup ("un aviso por día") la garantiza el marker notifyPath().
+// Best-effort: POST al webhook unificado de fallo de scraper (#177). El servidor
+// persiste una notificación in-app (visible en la campana desde cualquier
+// dispositivo) y firma el push al iPhone (las claves VAPID nunca salen de Vercel;
+// aquí sólo el secreto compartido). Sustituye al antiguo /api/sabadell-visa/notify-error.
+// Nunca debe romper el exit del script. La dedup ("un aviso por día") la garantiza
+// el marker notifyPath() (a mayores, el servidor deduplica por 24 h).
 async function notifyError() {
   try {
     const appUrl = process.env.APP_URL?.replace(/\/$/, '')
     const secret = process.env.SABADELL_VISA_WEBHOOK_SECRET
     if (!appUrl || !secret) {
-      console.error('[sabadell-scrape] falta APP_URL/SABADELL_VISA_WEBHOOK_SECRET — sin push.')
+      console.error('[sabadell-scrape] falta APP_URL/SABADELL_VISA_WEBHOOK_SECRET — sin aviso.')
       return
     }
-    const res = await fetch(`${appUrl}/api/sabadell-visa/notify-error`, {
+    const res = await fetch(`${appUrl}/api/scrapers/notify`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${secret}` },
+      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ source: 'sabadell_visa', kind: 'session_expired' }),
     })
     if (!res.ok) {
-      console.error(`[sabadell-scrape] push respondió ${res.status}`)
+      console.error(`[sabadell-scrape] aviso in-app respondió ${res.status}`)
     } else {
-      console.log('[sabadell-scrape] push de sesión caducada enviado.')
+      console.log('[sabadell-scrape] aviso in-app de sesión caducada enviado.')
     }
   } catch (err) {
-    console.error(`[sabadell-scrape] push falló (${err.message}).`)
+    console.error(`[sabadell-scrape] aviso in-app falló (${err.message}).`)
   }
 }
 
