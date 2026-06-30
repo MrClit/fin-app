@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from 'react'
 import type { Granularity } from '@/types'
+import { DEFAULT_GRANULARITY } from '@/lib/analytics'
 
 interface AnalyticsContextValue {
   granularity: Granularity
@@ -13,7 +14,7 @@ interface AnalyticsContextValue {
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null)
 
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
-  const [granularity, setGranularity] = useState<Granularity>('month')
+  const [granularity, setGranularity] = useState<Granularity>(DEFAULT_GRANULARITY)
   const [showPicker, setShowPicker] = useState(false)
 
   return (
