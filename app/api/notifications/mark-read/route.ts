@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 
 // Marca como leídas todas las notificaciones no leídas del usuario (#177). Lo
@@ -7,11 +7,11 @@ import { logError } from '@/lib/error-log'
 // las filas propias; añadimos el filtro explícito read_at IS NULL para no reescribir
 // las ya leídas.
 export async function POST() {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const supabase = await getRequestClient()
 
   const { error } = await supabase
     .from('notifications')
