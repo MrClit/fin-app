@@ -67,6 +67,35 @@ describe('logError', () => {
     expect(arg.stack.length).toBe(8_000)
   })
 
+  it('deja pasar un context pequeño intacto', async () => {
+    const context = { op: 'insert', digest: 'abc123' }
+    await logError({ source: 'client', message: 'boom', context })
+
+    expect(insert.mock.calls[0][0].context).toEqual(context)
+  })
+
+  it('sustituye un context demasiado grande por un marcador con el tamaño', async () => {
+    const context = { blob: 'x'.repeat(20_000) }
+    await logError({ source: 'client', message: 'boom', context })
+
+    const arg = insert.mock.calls[0][0]
+    expect(arg.context._truncated).toBe(true)
+    expect(typeof arg.context._bytes).toBe('number')
+    expect(arg.context._bytes).toBeGreaterThan(8_000)
+    expect(arg.context.blob).toBeUndefined()
+  })
+
+  it('marca como _unserializable un context con referencias circulares sin lanzar', async () => {
+    const context: Record<string, unknown> = {}
+    context.self = context
+
+    await expect(
+      logError({ source: 'client', message: 'boom', context })
+    ).resolves.toBeUndefined()
+
+    expect(insert.mock.calls[0][0].context).toEqual({ _unserializable: true })
+  })
+
   it('nunca lanza aunque el insert rechace', async () => {
     insert.mockRejectedValue(new Error('db down'))
     await expect(
