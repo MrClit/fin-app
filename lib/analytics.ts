@@ -1,10 +1,15 @@
-import type { Granularity } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Granularity, PeriodData, AnalyticsResponse } from '@/types'
 
 export interface PeriodRange {
   start: Date
   end: Date
   label: string
 }
+
+// Granularidad inicial por defecto: fuente única compartida por el servidor
+// (período inicial de Analítica) y el cliente (AnalyticsContext) para evitar drift.
+export const DEFAULT_GRANULARITY: Granularity = 'month'
 
 const WINDOW_SIZE: Record<Granularity, number> = {
   week: 9,
@@ -107,4 +112,54 @@ export const PERIOD_LABELS: Record<Granularity, string> = {
   month:   'Mes',
   quarter: 'Trimestre',
   year:    'Año',
+}
+
+// Agrega la ventana de períodos de Analítica vía la RPC `get_period_data`
+// (período actual + YoY). Recibe el cliente Supabase por parámetro para que el
+// servidor (período inicial) y el endpoint `/api/analytics` (transiciones)
+// compartan la misma lógica sin duplicarla y sin importar módulos server-only.
+export async function buildAnalyticsResponse(
+  supabase: SupabaseClient,
+  householdId: string,
+  granularity: Granularity,
+  offset: number,
+): Promise<AnalyticsResponse> {
+  const window = getWindowPeriods(granularity, offset)
+
+  const periods: PeriodData[] = await Promise.all(
+    window.map(async (range) => {
+      const yoy = getYoYRange(range)
+      const [cur, prev] = await Promise.all([
+        supabase.rpc('get_period_data', {
+          p_household_id: householdId,
+          p_start_date: toISODate(range.start),
+          p_end_date:   toISODate(range.end),
+        }),
+        supabase.rpc('get_period_data', {
+          p_household_id: householdId,
+          p_start_date: toISODate(yoy.start),
+          p_end_date:   toISODate(yoy.end),
+        }),
+      ])
+
+      const curRow  = cur.data?.[0]
+      const prevRow = prev.data?.[0]
+      // §5.7: null cuando no hay transacciones del período del año anterior
+      const hasYoy  = prevRow && (Number(prevRow.income) > 0 || Number(prevRow.expense) > 0)
+
+      return {
+        label:       range.label,
+        start:       toISODate(range.start),
+        end:         toISODate(range.end),
+        income:    Number(curRow?.income   ?? 0),
+        expense:      Number(curRow?.expense     ?? 0),
+        savings:      Number(curRow?.savings     ?? 0),
+        byCategory:  curRow?.by_category ?? [],
+        yoyIncome: hasYoy ? Number(prevRow.income) : null,
+        yoyExpense:   hasYoy ? Number(prevRow.expense)   : null,
+      }
+    })
+  )
+
+  return { granularity, periods }
 }
