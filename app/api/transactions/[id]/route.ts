@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 import type { CategoryId } from '@/types'
 import { VALID_CATEGORIES } from '@/lib/categories'
@@ -9,16 +8,17 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await getRequestClient()
 
   const { id } = await params
   const body = await request.json()
@@ -74,16 +74,17 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await getRequestClient()
 
   const { id } = await params
 

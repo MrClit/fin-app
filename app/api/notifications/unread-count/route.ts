@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 
 // Conteo de notificaciones no leídas para el badge de la campana (#177). Calco de
@@ -8,11 +8,11 @@ import { logError } from '@/lib/error-log'
 // endpoint. RLS limita la consulta a las filas propias; `head: true` evita traer
 // filas (solo el conteo, apoyado en el índice parcial de read_at IS NULL).
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const supabase = await getRequestClient()
 
   const { count, error } = await supabase
     .from('notifications')

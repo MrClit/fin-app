@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 
 /**
  * Guarda la PushSubscription del navegador para el usuario autenticado
@@ -8,16 +7,17 @@ import { getHouseholdId } from '@/lib/household'
  * actualiza las claves en vez de duplicar la fila.
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await getRequestClient()
 
   const { endpoint, keys } = await request.json().catch(() => ({}))
   if (!endpoint || !keys?.p256dh || !keys?.auth) {

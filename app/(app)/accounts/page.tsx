@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { Check, Landmark } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
@@ -27,9 +27,9 @@ async function AccountsContent({
 }: {
   searchParams: Promise<AccountsSearchParams>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const supabase = await getRequestClient()
 
   const { data: accounts } = await supabase
     .from('accounts')

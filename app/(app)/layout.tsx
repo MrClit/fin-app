@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { AppHeader } from '@/components/app-header'
 import { BottomNav } from '@/components/bottom-nav'
 import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
@@ -8,9 +8,9 @@ import { NotificationsProvider } from '@/components/notifications/NotificationsP
 import { getConsentBannerData } from '@/lib/accounts'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const supabase = await getRequestClient()
 
   // Datos de perfil del proveedor OAuth (Google rellena estos campos en
   // user_metadata). Con login email/contraseña vienen vacíos.

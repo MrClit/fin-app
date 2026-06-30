@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 
 /**
  * Elimina la PushSubscription del usuario autenticado por `endpoint`
  * (issue #115). La RLS ya garantiza que solo borra filas propias.
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const supabase = await getRequestClient()
 
   const { endpoint } = await request.json().catch(() => ({}))
   if (!endpoint) {

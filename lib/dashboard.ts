@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import type { Account } from '@/types'
 
 export interface DashboardData {
@@ -21,12 +20,13 @@ export function calculateNetWorth(
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) throw new Error('Unauthorized')
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Unauthorized')
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) throw new Error('Unauthorized')
+
+  const supabase = await getRequestClient()
 
   const { data: accounts, error: accError } = await supabase
     .from('accounts')

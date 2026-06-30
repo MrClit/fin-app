@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { TransactionsClient } from '@/components/transactions/TransactionsClient'
 import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
@@ -27,12 +26,13 @@ async function TransactionsContent({
   searchParams: Promise<{ account?: string }>
 }) {
   const { account } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) redirect('/login')
+
+  const supabase = await getRequestClient()
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)

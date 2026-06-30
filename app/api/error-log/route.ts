@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 import { rateLimit, clientIp } from '@/lib/http/rate-limit'
 
@@ -62,11 +61,10 @@ export async function POST(request: NextRequest) {
   let userId: string | null = null
   let householdId: string | null = null
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (user) {
       userId = user.id
-      householdId = await getHouseholdId(supabase, user.id)
+      householdId = await getCurrentHouseholdId()
     }
   } catch {
     // sin sesión / cookies no disponibles: registramos igualmente
