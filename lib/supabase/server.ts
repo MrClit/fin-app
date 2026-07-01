@@ -9,10 +9,16 @@ export async function createClient() {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) =>
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          ),
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Llamado desde el render de un Server Component: el refresh de
+            // sesión lo gestiona el proxy (proxy.ts). Ignorar de forma segura.
+          }
+        },
       },
     }
   )
