@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
-import { CATEGORY_META } from '@/lib/theme'
+import { getCategoryMeta } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import type { CategoryId, CategoryPeriodData, TransactionWithAccount } from '@/types'
@@ -38,7 +38,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   // Período de origen (inicio ISO) al llegar desde Análisis; abrimos el detalle en él.
   const periodParam = searchParams.get('period')
   const { granularity, setShowPicker } = useAnalytics()
-  const meta = CATEGORY_META[categoryId]
+  const meta = getCategoryMeta(categoryId)
   const { Icon, label, color } = meta
 
   const [periods, setPeriods] = useState<CategoryPeriodData[]>([])
