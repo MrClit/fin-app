@@ -3,9 +3,10 @@
 import { Edit3, Check, X } from 'lucide-react'
 import { useHorizontalSwipe, type SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
+import { getEffectiveCategory } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
-import type { CategoryId, TransactionWithAccount } from '@/types'
+import type { TransactionWithAccount } from '@/types'
 
 /**
  * Fase de animación de reorganización entre «No leídos» y el grupo de día (#220):
@@ -29,8 +30,8 @@ interface TxRowProps {
 const ACTION_WIDTH = 120
 
 export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe, onRecategorize, onToggleRead, onTap }: TxRowProps) {
-  const effectiveCategory = (tx.category_manual ?? tx.category) as CategoryId | null
-  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
+  const effectiveCategory = getEffectiveCategory(tx)
+  const meta = effectiveCategory ? CATEGORY_META[effectiveCategory] : UNCATEGORIZED
   const Icon = meta.Icon
 
   const { bind, currentX, isAnimating, didMoveRef } = useHorizontalSwipe({

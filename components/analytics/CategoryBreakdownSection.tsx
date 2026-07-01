@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MoreHorizontal } from 'lucide-react'
 import type { CategoryBreakdown } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
+import { getCategoryMeta } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
 import DonutChart, { type DonutItem } from './DonutChart'
 
@@ -50,7 +51,7 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
   const toItem = (bc: (typeof withPct)[0]): DonutItem => {
     // bc.category never null here (filtered out above)
     const catId = bc.category as NonNullable<typeof bc.category>
-    const meta = CATEGORY_META[catId]
+    const meta = getCategoryMeta(catId)
     return {
       key: catId,
       categoryId: catId,

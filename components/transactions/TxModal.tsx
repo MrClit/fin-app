@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { Trash2, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
+import { getEffectiveCategory } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
-import type { CategoryId, TransactionWithAccount } from '@/types'
+import type { TransactionWithAccount } from '@/types'
 
 interface TxModalProps {
   tx: TransactionWithAccount | null
@@ -59,8 +60,8 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
   const renderTx = tx ?? cachedTx
   if (!renderTx) return null
 
-  const effectiveCategory = (renderTx.category_manual ?? renderTx.category) as CategoryId | null
-  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
+  const effectiveCategory = getEffectiveCategory(renderTx)
+  const meta = effectiveCategory ? CATEGORY_META[effectiveCategory] : UNCATEGORIZED
   const Icon = meta.Icon
 
   const dateStr = (() => {

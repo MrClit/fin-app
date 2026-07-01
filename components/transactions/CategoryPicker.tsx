@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META } from '@/lib/theme'
+import { getEffectiveCategory } from '@/lib/categories'
 import { cn } from '@/lib/utils'
 import type { CategoryId, CategoryType, TransactionWithAccount } from '@/types'
 
@@ -25,8 +26,8 @@ const TYPE_LABELS: Record<CategoryType, string> = {
 const ENTRIES = Object.entries(CATEGORY_META) as [CategoryId, typeof CATEGORY_META[CategoryId]][]
 
 function initialTab(tx: TransactionWithAccount): CategoryType {
-  const effective = (tx.category_manual ?? tx.category) as CategoryId | null
-  if (effective && CATEGORY_META[effective]) return CATEGORY_META[effective].type
+  const effective = getEffectiveCategory(tx)
+  if (effective) return CATEGORY_META[effective].type
   return tx.amount < 0 ? 'expense' : 'income'
 }
 
@@ -46,7 +47,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
   const renderTx = tx ?? cachedTx
   if (!renderTx) return null
 
-  const effectiveCategory = (renderTx.category_manual ?? renderTx.category ?? 'other') as CategoryId
+  const effectiveCategory = getEffectiveCategory(renderTx) ?? 'other'
 
   const visibleCategories = ENTRIES.filter(([, meta]) => meta.type === activeType)
   const q = norm(query.trim())
