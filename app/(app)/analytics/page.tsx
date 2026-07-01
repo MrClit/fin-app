@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import AnalyticsClient from '@/components/analytics/AnalyticsClient'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { buildAnalyticsResponse, DEFAULT_GRANULARITY } from '@/lib/analytics'
+
+export const metadata: Metadata = { title: 'Análisis' }
 
 export default async function AnalyticsPage() {
   const user = await getCurrentUser()
