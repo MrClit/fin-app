@@ -7,7 +7,7 @@ import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
 import { AccountsSkeleton } from '@/components/accounts/AccountsSkeleton'
-import type { Account } from '@/types'
+import { narrowUnions } from '@/lib/supabase/rows'
 
 export const metadata: Metadata = { title: 'Cuentas' }
 
@@ -111,8 +111,8 @@ async function AccountsContent({
         // que las filas lleguen a los bordes. Cada card lleva su border-y (solo
         // líneas arriba/abajo, sin laterales ni esquinas) y el gap las separa.
         <div className="-mx-4 flex flex-col gap-3">
-          {(accounts ?? []).map((account: Account) => (
-            <AccountCard key={account.id} account={account} />
+          {(accounts ?? []).map((account) => (
+            <AccountCard key={account.id} account={narrowUnions(account)} />
           ))}
         </div>
       )}

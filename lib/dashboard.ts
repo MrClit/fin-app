@@ -1,4 +1,5 @@
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
+import { narrowUnions } from '@/lib/supabase/rows'
 import type { Account } from '@/types'
 
 export interface DashboardData {
@@ -30,7 +31,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const { data: accounts, error: accError } = await supabase
     .from('accounts')
-    .select('id, name, type, is_liability, balance, number, color, currency, source, last_synced, consent_expires_at, created_at, user_id, external_id, session_id, is_active')
+    .select('*')
     .eq('household_id', householdId)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -116,5 +117,5 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const annualDelta = activeMonths.length === 12 ? Math.round(balance - values[0]) : null
 
-  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[], netWorthData, annualDelta }
+  return { balance, weeklyDelta, dailyBalances, accounts: accounts.map(narrowUnions), netWorthData, annualDelta }
 }

@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     .eq('household_id', householdId)
     .eq('is_active', true)
     .order('priority', { ascending: false })
-  const dbRules: DbCategorizationRule[] = (rulesData ?? []) as DbCategorizationRule[]
+  const dbRules: DbCategorizationRule[] = rulesData ?? []
 
   let createdAccounts = 0
   // Una sola tabla de filas con las transacciones de todas las tarjetas; cada
