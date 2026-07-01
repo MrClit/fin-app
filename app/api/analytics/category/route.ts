@@ -41,7 +41,10 @@ export async function GET(request: NextRequest) {
           p_end_date:     toISODate(range.end),
         })
         const row = data?.[0]
-        const byCategory: { category: string | null; amount: number }[] = row?.by_category ?? []
+        // `by_category` es jsonb (get_period_data lo agrega con json_agg), así que
+        // el tipo generado es `Json`; se asserta a su forma conocida.
+        const byCategory =
+          (row?.by_category ?? []) as { category: string | null; amount: number }[]
         const match = byCategory.find(bc => bc.category === id)
         return {
           label:  range.label,

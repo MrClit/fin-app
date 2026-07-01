@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Json } from '@/lib/supabase/database.types'
 
 /**
  * Observabilidad de errores (issue #200).
@@ -59,7 +60,9 @@ export async function logError(params: LogErrorParams): Promise<void> {
       message: truncate(params.message, MAX_MESSAGE),
       stack: params.stack ? truncate(params.stack, MAX_STACK) : null,
       route: params.route ?? null,
-      context: capContext(params.context),
+      // `context` es jsonb arbitrario JSON-serializable (se stringifica en
+      // capContext); el tipo de columna generado es `Json`.
+      context: capContext(params.context) as Json,
       user_id: params.userId ?? null,
       household_id: params.householdId ?? null,
     })

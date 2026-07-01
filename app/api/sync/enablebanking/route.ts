@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   }
 
   const accounts = accountsResult.data
-  const dbRules: DbCategorizationRule[] = (rulesResult.data ?? []) as DbCategorizationRule[]
+  const dbRules: DbCategorizationRule[] = rulesResult.data ?? []
 
   if (!accounts || accounts.length === 0) {
     return NextResponse.json({ synced: 0, accounts: 0 })

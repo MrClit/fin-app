@@ -6,6 +6,7 @@ import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
 import { UnreadProvider } from '@/components/transactions/UnreadProvider'
 import { NotificationsProvider } from '@/components/notifications/NotificationsProvider'
 import { getConsentBannerData } from '@/lib/accounts'
+import { narrowUnions } from '@/lib/supabase/rows'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('name, source, consent_expires_at')
     .eq('source', 'enablebanking')
     .eq('is_active', true)
-  const consentBanner = getConsentBannerData(ebAccounts ?? [])
+  const consentBanner = getConsentBannerData((ebAccounts ?? []).map(narrowUnions))
 
   // Conteo de movimientos no leídos para el badge de la tabBar (issue #149). RLS
   // limita la consulta al hogar del usuario. `head: true` evita traer filas.

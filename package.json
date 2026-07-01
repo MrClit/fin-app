@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "gen:types": "supabase gen types typescript --project-id nqrvopltqgztrexdxxtq --schema public > lib/supabase/database.types.ts",
     "seed:categories": "node scripts/generate-categories-seed.mts",
     "scrape:edenred": "node --env-file-if-exists=.env.scrapers scripts/scrapers/edenred/scrape.mjs",
     "scrape:edenred:force": "EDENRED_SKIP_MARKER=1 pnpm scrape:edenred",
@@ -52,6 +53,7 @@
     "playwright": "^1.60.0",
     "serwist": "^9.5.11",
     "sharp": "^0.34.5",
+    "supabase": "^2.109.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.6"

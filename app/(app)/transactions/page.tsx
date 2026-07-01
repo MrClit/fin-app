@@ -5,7 +5,7 @@ import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/a
 import { TransactionsClient } from '@/components/transactions/TransactionsClient'
 import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
-import type { TransactionWithAccount } from '@/types'
+import { narrowUnions } from '@/lib/supabase/rows'
 
 export const metadata: Metadata = { title: 'Movimientos' }
 
@@ -75,11 +75,11 @@ async function TransactionsContent({
     manualAccountId = created?.id
   }
 
-  const accountsList = accounts ?? []
+  const accountsList = (accounts ?? []).map(narrowUnions)
   const initialAccountIds =
     account && accountsList.some(a => a.id === account) ? [account] : []
 
-  const initialTransactions = (transactions ?? []) as TransactionWithAccount[]
+  const initialTransactions = (transactions ?? []).map(narrowUnions)
   const initialCursor = buildNextCursor(initialTransactions, INITIAL_PAGE_SIZE)
 
   return (
