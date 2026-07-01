@@ -1,10 +1,13 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { TransactionsClient } from '@/components/transactions/TransactionsClient'
 import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
 import type { TransactionWithAccount } from '@/types'
+
+export const metadata: Metadata = { title: 'Movimientos' }
 
 const INITIAL_PAGE_SIZE = 200
 

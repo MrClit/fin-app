@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { Check, Landmark } from 'lucide-react'
 import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
@@ -7,6 +8,8 @@ import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
 import { AccountsSkeleton } from '@/components/accounts/AccountsSkeleton'
 import type { Account } from '@/types'
+
+export const metadata: Metadata = { title: 'Cuentas' }
 
 type AccountsSearchParams = { connected?: string; error?: string; renewed?: string }
 
