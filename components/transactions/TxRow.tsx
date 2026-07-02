@@ -59,7 +59,7 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
     >
       {/* overflow-hidden recorta los paneles de acción cuando están fuera de la fila
           y el contenido de la fila mientras el grid colapsa */}
-      <div className="overflow-hidden">
+      <div className="overflow-clip">
       {/*
        * Slider flex único: [panel izq][contenido][panel der]
        * En reposo: translateX(-ACTION_WIDTH) → ambos paneles fuera, contenido visible
@@ -125,7 +125,7 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
           <span
             className={cn(
               'text-[15px] font-bold shrink-0',
-              tx.amount > 0 ? 'text-[#22c55e]' : 'text-destructive'
+              tx.amount > 0 ? 'text-positive' : 'text-negative'
             )}
           >
             <Amount value={tx.amount} decimals={2} signed />

@@ -69,8 +69,8 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
   )
 }
 
-const EXPENSE_COLOR = '#ef4444'
-const INCOME_COLOR = '#22c55e'
+const EXPENSE_COLOR = 'var(--negative)'
+const INCOME_COLOR = 'var(--positive)'
 
 export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddTxModalProps) {
   const [type, setType] = useState<'gasto' | 'ingreso'>('gasto')
@@ -312,13 +312,13 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
             border: 'none',
             borderRadius: 16,
             padding: '15px',
-            background: isValid ? `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` : 'var(--muted)',
+            background: isValid ? `linear-gradient(135deg, ${accentColor}, color-mix(in srgb, ${accentColor} 87%, transparent))` : 'var(--muted)',
             color: isValid ? 'white' : 'var(--muted-foreground)',
             fontSize: 15,
             fontWeight: 700,
             cursor: isValid ? 'pointer' : 'default',
             transition: 'all 0.2s',
-            boxShadow: isValid ? `0 8px 24px ${accentColor}44` : 'none',
+            boxShadow: isValid ? `0 8px 24px color-mix(in srgb, ${accentColor} 27%, transparent)` : 'none',
           }}
         >
           {saving ? 'Guardando…' : 'Guardar movimiento'}

@@ -19,14 +19,14 @@ export default function KpiCard({
   type, value, deltaVsPrev, deltaVsYear, deltaRef,
 }: KpiCardProps) {
   const isIncome = type === 'income'
-  const mainColor  = isIncome ? '#22c55e' : '#ef4444'
+  const mainColor  = isIncome ? 'var(--positive)' : 'var(--negative)'
   const label      = isIncome ? 'Ingresos' : 'Gastos'
 
   // Smart color for YoY: + is good for Ingresos, bad for Gastos
   const yoyPositive = deltaVsYear !== null && deltaVsYear > 0
-  const yoyColor = isIncome
-    ? (yoyPositive ? '#22c55e' : '#ef4444')
-    : (yoyPositive ? '#ef4444' : '#22c55e')
+  const yoyGood  = isIncome === yoyPositive
+  const yoyColor = yoyGood ? 'var(--positive)' : 'var(--negative)'
+  const yoyBg    = yoyGood ? 'var(--positive-subtle)' : 'var(--negative-subtle)'
 
   const fontSize = value >= 10000 ? 20 : 28
 
@@ -59,7 +59,7 @@ export default function KpiCard({
       {/* Badge vs año anterior — smart color */}
       <div
         className="flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5"
-        style={{ background: `${yoyColor}18` }}
+        style={{ background: yoyBg }}
       >
         <span className="text-[10px] font-bold" style={{ color: yoyColor }}>
           {formatDelta(deltaVsYear)}

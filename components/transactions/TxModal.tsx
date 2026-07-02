@@ -98,7 +98,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           <div
             className={cn(
               'text-[44px] font-extrabold leading-none tracking-[-2px]',
-              isPositive ? 'text-[#22c55e]' : 'text-foreground'
+              isPositive ? 'text-positive' : 'text-foreground'
             )}
           >
             <Amount value={renderTx.amount} decimals={2} signed />

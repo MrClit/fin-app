@@ -16,8 +16,8 @@ export function NetWorthChart({ data, annualDelta }: Props) {
         {annualDelta !== null ? (
           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
             annualDelta >= 0
-              ? 'text-emerald-600 bg-emerald-500/10'
-              : 'text-red-500 bg-red-500/10'
+              ? 'text-positive bg-positive-subtle'
+              : 'text-negative bg-negative-subtle'
           }`}>
             {annualDelta >= 0 ? '↑' : '↓'} {annualDelta >= 0 ? '+' : ''}
             <Amount value={annualDelta} /> vs hace 12 meses

@@ -20,7 +20,7 @@ export function RenewBankButton({
   const [loading, setLoading] = useState(false)
 
   // Rojo si ya caducó; ámbar si está a punto de caducar.
-  const color = expired ? '#ef4444' : '#f59e0b'
+  const color = expired ? 'var(--negative)' : '#f59e0b'
 
   async function handleRenew() {
     setLoading(true)
@@ -52,7 +52,7 @@ export function RenewBankButton({
       onClick={handleRenew}
       disabled={loading}
       className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11px] font-semibold transition-opacity disabled:opacity-40"
-      style={{ background: color + '22', color }}
+      style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}
     >
       <ShieldCheck className="size-3 shrink-0" />
       {loading ? 'Abriendo…' : 'Renovar conexión'}
