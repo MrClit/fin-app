@@ -28,7 +28,7 @@ function AccountCell({ account }: { account: Account }) {
       <div className="text-[11px] text-muted-foreground truncate mb-0.5">{account.name}</div>
       <div
         className="text-[17px] font-bold leading-tight"
-        style={{ color: isNegative ? '#ef4444' : undefined }}
+        style={{ color: isNegative ? 'var(--negative)' : undefined }}
       >
         <Amount value={balance} decimals={2} />
       </div>

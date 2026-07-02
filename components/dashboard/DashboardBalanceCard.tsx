@@ -11,13 +11,13 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
   const isPositive = weeklyDelta >= 0
   const deltaSign = isPositive ? '+' : ''
   // Pill colors matching prototype: green tint for positive, red tint for negative
-  const pillColor    = isPositive ? '#a7f3d0' : '#fca5a5'
-  const pillBg       = isPositive ? 'rgba(167,243,208,0.18)' : 'rgba(252,165,165,0.18)'
+  const pillColor    = isPositive ? 'var(--positive)' : 'var(--negative)'
+  const pillBg       = isPositive ? 'var(--positive-subtle)' : 'var(--negative-subtle)'
   const deltaArrow   = isPositive ? '↑' : '↓'
 
   return (
     <div
-      className="-mx-4 overflow-hidden relative"
+      className="-mx-4 overflow-clip relative"
       style={{
         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
       }}

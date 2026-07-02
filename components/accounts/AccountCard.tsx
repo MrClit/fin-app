@@ -16,9 +16,9 @@ function getSyncStatus(iso: string | null): { label: string; color: string; Icon
       : hours < 24
         ? `hace ${Math.floor(hours)} hora${Math.floor(hours) > 1 ? 's' : ''}`
         : `hace ${Math.floor(hours / 24)} día${Math.floor(hours / 24) > 1 ? 's' : ''}`
-  if (hours < 24) return { label, color: '#22c55e', Icon: Check }
+  if (hours < 24) return { label, color: 'var(--positive)', Icon: Check }
   if (hours < 72) return { label, color: '#f59e0b', Icon: AlertTriangle }
-  return { label, color: '#ef4444', Icon: XCircle }
+  return { label, color: 'var(--negative)', Icon: XCircle }
 }
 
 function SourceBadge({ source }: { source: Account['source'] }) {
@@ -57,7 +57,7 @@ function ConsentBadge({ consent }: { consent: ConsentInfo }) {
     return (
       <span
         className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-        style={{ background: '#ef444422', color: '#ef4444' }}
+        style={{ background: 'var(--negative-subtle)', color: 'var(--negative)' }}
       >
         Conexión caducada
       </span>
@@ -104,7 +104,7 @@ export function AccountCard({ account }: { account: Account }) {
               color: isExpired
                 ? 'var(--muted-foreground)'
                 : isNegative
-                  ? '#ef4444'
+                  ? 'var(--negative)'
                   : undefined,
             }}
           >

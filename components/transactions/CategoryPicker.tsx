@@ -75,7 +75,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
               key={type}
               onClick={() => { setActiveType(type); setQuery('') }}
               className={cn(
-                'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-all',
+                'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-colors',
                 activeType === type
                   ? 'bg-popover text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
                   : 'bg-transparent text-muted-foreground'
@@ -117,7 +117,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
                     key={id}
                     onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
                     className={cn(
-                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-all',
+                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-colors',
                       isCurrent ? 'border-2' : 'border border-border bg-muted'
                     )}
                     style={

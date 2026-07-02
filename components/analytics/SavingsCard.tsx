@@ -15,7 +15,7 @@ export default function SavingsCard({ income, savings, granularity }: SavingsCar
   const pct = income > 0 && !isNegative ? Math.min(100, Math.round((savings / income) * 100)) : 0
 
   const bg = isNegative
-    ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+    ? 'linear-gradient(135deg, var(--negative), #dc2626)'
     : 'linear-gradient(135deg, #059669, #10b981)'
 
   return (

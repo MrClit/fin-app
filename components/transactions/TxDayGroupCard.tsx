@@ -34,7 +34,7 @@ export function TxDayGroupCard({
   onToggleRead,
   onTap,
 }: TxDayGroupCardProps) {
-  const netColor = group.net >= 0 ? '#22c55e' : 'var(--foreground)'
+  const netColor = group.net >= 0 ? 'var(--positive)' : 'var(--foreground)'
 
   return (
     <div className="flex flex-col gap-0.5">

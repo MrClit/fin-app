@@ -36,7 +36,7 @@ export default function GranularityPicker() {
               <button
                 key={o.id}
                 onClick={() => select(o.id)}
-                className="flex items-center justify-between rounded-2xl border-none cursor-pointer transition-all duration-150"
+                className="flex items-center justify-between rounded-2xl border-none cursor-pointer transition-colors duration-150"
                 style={{
                   padding: '14px 16px',
                   background: active ? 'color-mix(in srgb, #6366f1 12%, transparent)' : 'var(--secondary)',

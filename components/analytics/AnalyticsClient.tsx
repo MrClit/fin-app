@@ -169,7 +169,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
               <span className="text-[15px] font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
+                className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors"
                 style={{
                   background: showYoY
                     ? 'color-mix(in srgb, #6366f1 12%, transparent)'

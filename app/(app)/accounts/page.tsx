@@ -51,9 +51,9 @@ async function AccountsContent({
         <div
           className="rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2"
           style={{
-            background: '#22c55e15',
-            border: '1px solid #22c55e30',
-            color: '#22c55e',
+            background: 'var(--positive-subtle)',
+            border: '1px solid var(--positive-subtle)',
+            color: 'var(--positive)',
           }}
         >
           <Check className="size-4 shrink-0" />
@@ -66,9 +66,9 @@ async function AccountsContent({
           <div
             className="rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2"
             style={{
-              background: '#22c55e15',
-              border: '1px solid #22c55e30',
-              color: '#22c55e',
+              background: 'var(--positive-subtle)',
+              border: '1px solid var(--positive-subtle)',
+              color: 'var(--positive)',
             }}
           >
             <Check className="size-4 shrink-0" />
@@ -82,9 +82,9 @@ async function AccountsContent({
         <div
           className="rounded-2xl px-4 py-3 text-sm font-medium"
           style={{
-            background: '#ef444415',
-            border: '1px solid #ef444430',
-            color: '#ef4444',
+            background: 'var(--negative-subtle)',
+            border: '1px solid var(--negative-subtle)',
+            color: 'var(--negative)',
           }}
         >
           No se pudo conectar el banco. Inténtalo de nuevo.

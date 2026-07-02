@@ -15,8 +15,6 @@ interface ThemeColors {
   card: string
   accent: string
   accentLight: string
-  positive: string
-  negative: string
 }
 
 export const lightTheme: ThemeColors = {
@@ -29,8 +27,6 @@ export const lightTheme: ThemeColors = {
   card: 'rgba(0,0,0,0.03)',
   accent: '#6366f1',
   accentLight: 'rgba(99,102,241,0.1)',
-  positive: '#22c55e',
-  negative: '#ef4444',
 }
 
 export const darkTheme: ThemeColors = {
@@ -43,8 +39,6 @@ export const darkTheme: ThemeColors = {
   card: 'rgba(255,255,255,0.04)',
   accent: '#6366f1',
   accentLight: 'rgba(99,102,241,0.15)',
-  positive: '#22c55e',
-  negative: '#ef4444',
 }
 
 export const UNCATEGORIZED = {
