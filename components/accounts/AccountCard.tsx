@@ -30,7 +30,7 @@ function SourceBadge({ source }: { source: Account['source'] }) {
         : { label: 'Manual', bg: '#64748b22', color: '#64748b' }
   return (
     <span
-      className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+      className="text-2xs font-semibold px-2.5 py-1 rounded-full"
       style={{ background: config.bg, color: config.color }}
     >
       {config.label}
@@ -46,7 +46,7 @@ function ConsentBadge({ consent }: { consent: ConsentInfo }) {
   if (consent.status === 'warning') {
     return (
       <span
-        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        className="text-2xs font-semibold px-2.5 py-1 rounded-full"
         style={{ background: '#f59e0b22', color: '#f59e0b' }}
       >
         Caduca en {consent.daysLeft} {consent.daysLeft === 1 ? 'día' : 'días'}
@@ -56,7 +56,7 @@ function ConsentBadge({ consent }: { consent: ConsentInfo }) {
   if (consent.status === 'expired') {
     return (
       <span
-        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        className="text-2xs font-semibold px-2.5 py-1 rounded-full"
         style={{ background: 'var(--negative-subtle)', color: 'var(--negative)' }}
       >
         Conexión caducada
@@ -80,7 +80,7 @@ export function AccountCard({ account }: { account: Account }) {
         <div className="flex items-center gap-3">
           <AccountIconBadge type={account.type} color={account.color} size="lg" />
           <div>
-            <div className="text-[15px] font-bold text-foreground leading-tight">
+            <div className="text-md font-bold text-foreground leading-tight">
               {account.name}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
@@ -99,7 +99,7 @@ export function AccountCard({ account }: { account: Account }) {
         <div>
           <div className="text-xs text-muted-foreground mb-1">Saldo actual</div>
           <div
-            className="text-[26px] font-extrabold tracking-tight leading-none"
+            className="text-amount-sm font-extrabold tracking-tight leading-none"
             style={{
               color: isExpired
                 ? 'var(--muted-foreground)'
@@ -121,7 +121,7 @@ export function AccountCard({ account }: { account: Account }) {
       </div>
 
       <div className="mt-3.5 pt-3.5 border-t border-border flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
           <SyncIcon className="size-3 shrink-0" style={{ color: syncColor }} />
           <span style={{ color: syncColor }}>{syncLabel}</span>
         </div>

@@ -88,7 +88,7 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
     <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
       {/* Header + toggle */}
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-[15px] font-bold text-foreground">Desglose por categoría</span>
+        <span className="text-md font-bold text-foreground">Desglose por categoría</span>
         <div style={{ display: 'flex', background: 'var(--muted)', borderRadius: 20, padding: 3 }}>
           {(['gastos', 'ingresos'] as const).map(v => (
             <button
@@ -103,7 +103,7 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
                   ? (v === 'gastos' ? '#6366f1' : '#22c55e')
                   : 'transparent',
                 color: catView === v ? 'white' : 'var(--muted-foreground)',
-                fontSize: 11,
+                fontSize: 'var(--text-2xs)',
                 fontWeight: 700,
                 transition: 'all 0.2s',
                 textTransform: 'capitalize',
@@ -158,18 +158,18 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
                       }}>
                         <Icon size={16} color={isSelected ? 'white' : item.color} />
                       </div>
-                      <span style={{ fontSize: 15, color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
+                      <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
                         {item.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
                         {Math.round(item.pct)}%
                       </span>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
+                      <span style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--foreground)' }}>
                         <Amount value={item.amount} />
                       </span>
-                      {isNavigable && <span style={{ fontSize: 13, color: accentColor }}>›</span>}
+                      {isNavigable && <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>}
                     </div>
                   </div>
                   <div style={{

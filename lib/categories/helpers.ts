@@ -1,4 +1,4 @@
-import { CATEGORY_META, VALID_CATEGORIES, type CategoryId, type CategoryMeta } from './catalog'
+import { CATEGORY_META, VALID_CATEGORIES, type CategoryId, type CategoryMeta, type CategoryType } from './catalog'
 
 /**
  * Categoría efectiva de una transacción: COALESCE(category_manual, category),
@@ -12,6 +12,18 @@ export function getEffectiveCategory(
   return raw && (VALID_CATEGORIES as readonly string[]).includes(raw)
     ? (raw as CategoryId)
     : null
+}
+
+/**
+ * Tipo efectivo de una transacción (income / expense / non_computable), derivado
+ * del `type` de su categoría efectiva. Devuelve null si no tiene categoría válida.
+ * La clasificación va siempre por categoría, nunca por el signo del importe.
+ */
+export function getEffectiveType(
+  tx: { category: string | null; category_manual: string | null }
+): CategoryType | null {
+  const cat = getEffectiveCategory(tx)
+  return cat ? CATEGORY_META[cat].type : null
 }
 
 /**

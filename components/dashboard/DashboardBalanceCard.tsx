@@ -34,26 +34,26 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
 
       {/* Content */}
       <div className="relative z-10 px-4 pt-6">
-        <div className="text-[12px] font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        <div className="text-xs font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
           Balance total
         </div>
-        <div className="text-[36px] font-extrabold text-white tracking-tight leading-none mb-1">
+        <div className="text-amount-md font-extrabold text-white tracking-tight leading-none mb-1">
           <Amount value={balance} decimals={2} />
         </div>
 
         {/* Weekly delta pill */}
         <div className="flex items-center gap-2 mb-3.5">
           <span
-            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ color: pillColor, background: pillBg }}
           >
             {deltaArrow} {deltaSign}<Amount value={weeklyDelta} decimals={2} />
           </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>esta semana</span>
+          <span className="text-2xs" style={{ color: 'rgba(255,255,255,0.7)' }}>esta semana</span>
         </div>
 
         <Sparkline data={dailyBalances} />
-        <div className="text-[10px] mt-1 pb-5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <div className="text-3xs mt-1 pb-5" style={{ color: 'rgba(255,255,255,0.55)' }}>
           Últimos 30 días
         </div>
       </div>

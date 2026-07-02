@@ -88,7 +88,7 @@ function Banner({ color, children }: { color: string; children: React.ReactNode 
   return (
     <div
       role="status"
-      className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium animate-fade-in"
+      className="flex items-center gap-2 px-4 py-2 text-sm font-medium animate-fade-in"
       style={{
         background: `color-mix(in srgb, ${color} 12%, transparent)`,
         color,

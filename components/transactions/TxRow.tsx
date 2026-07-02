@@ -4,7 +4,7 @@ import { Edit3, Check, X } from 'lucide-react'
 import { useHorizontalSwipe, type SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
 import { getEffectiveCategory } from '@/lib/categories'
-import { Amount } from '@/components/ui/amount'
+import { Amount, amountColorClass } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
 import type { TransactionWithAccount } from '@/types'
 
@@ -57,9 +57,12 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
         opacity: leaving ? 0 : 1,
       }}
     >
-      {/* overflow-hidden recorta los paneles de acción cuando están fuera de la fila
-          y el contenido de la fila mientras el grid colapsa */}
-      <div className="overflow-clip">
+      {/* overflow-clip recorta los paneles de acción cuando están fuera de la fila
+          y el contenido de la fila mientras el grid colapsa. `min-w-0` es imprescindible:
+          este div es un grid item (min-width:auto por defecto) y, al no ser overflow-clip
+          un scroll container, sin él la anchura mínima se resuelve al min-content del
+          slider (100%+240px) y la fila se desborda 240px por la derecha. */}
+      <div className="overflow-clip min-w-0">
       {/*
        * Slider flex único: [panel izq][contenido][panel der]
        * En reposo: translateX(-ACTION_WIDTH) → ambos paneles fuera, contenido visible
@@ -118,16 +121,11 @@ export function TxRow({ tx, openSide, phase = 'idle', onOpenSwipe, onCloseSwipe,
             <p className="text-sm font-semibold text-foreground truncate">{tx.description}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="rounded-full shrink-0 h-1.75 w-1.75" style={{ background: meta.color }} />
-              <span className="text-[11px] text-muted-foreground truncate">{meta.label}</span>
+              <span className="text-2xs text-muted-foreground truncate">{meta.label}</span>
             </div>
           </div>
 
-          <span
-            className={cn(
-              'text-[15px] font-bold shrink-0',
-              tx.amount > 0 ? 'text-positive' : 'text-negative'
-            )}
-          >
+          <span className={cn('text-md font-bold shrink-0', amountColorClass(tx))}>
             <Amount value={tx.amount} decimals={2} signed />
           </span>
         </div>

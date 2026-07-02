@@ -51,7 +51,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 10,
+          fontSize: 'var(--text-3xs)',
           color: 'var(--muted-foreground)',
           fontWeight: 600,
           marginBottom: 2,
@@ -63,7 +63,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
         {children}
       </div>
       {chevron && (
-        <span style={{ fontSize: 16, color: 'var(--muted-foreground)', flexShrink: 0, lineHeight: 1 }}>›</span>
+        <span style={{ fontSize: 'var(--text-base)', color: 'var(--muted-foreground)', flexShrink: 0, lineHeight: 1 }}>›</span>
       )}
     </div>
   )
@@ -158,7 +158,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                   border: 'none',
                   background: type === tp ? (tp === 'gasto' ? EXPENSE_COLOR : INCOME_COLOR) : 'transparent',
                   color: type === tp ? 'white' : 'var(--muted-foreground)',
-                  fontSize: 13,
+                  fontSize: 'var(--text-sm)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   textTransform: 'capitalize',
@@ -180,7 +180,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
               step="0.01"
               autoFocus
               style={{
-                fontSize: 48,
+                fontSize: 'var(--text-amount-lg)',
                 fontWeight: 800,
                 letterSpacing: -2,
                 color: amount ? accentColor : 'var(--muted-foreground)',
@@ -193,7 +193,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                 caretColor: accentColor,
               }}
             />
-            <span style={{ fontSize: 28, fontWeight: 700, color: amount ? accentColor : 'var(--muted-foreground)' }}>€</span>
+            <span style={{ fontSize: 'var(--text-amount-sm)', fontWeight: 700, color: amount ? accentColor : 'var(--muted-foreground)' }}>€</span>
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 14,
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 color: 'var(--foreground)',
                 width: '100%',
@@ -226,7 +226,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 14,
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 color: 'var(--foreground)',
                 width: '100%',
@@ -293,7 +293,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                     }}>
                       <Icon size={15} style={{ color: meta.color }} strokeWidth={2} />
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--foreground)', textAlign: 'center' }}>
+                    <span style={{ fontSize: 'var(--text-3xs)', fontWeight: 600, color: 'var(--foreground)', textAlign: 'center' }}>
                       {meta.label}
                     </span>
                   </button>
@@ -314,7 +314,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
             padding: '15px',
             background: isValid ? `linear-gradient(135deg, ${accentColor}, color-mix(in srgb, ${accentColor} 87%, transparent))` : 'var(--muted)',
             color: isValid ? 'white' : 'var(--muted-foreground)',
-            fontSize: 15,
+            fontSize: 'var(--text-md)',
             fontWeight: 700,
             cursor: isValid ? 'pointer' : 'default',
             transition: 'all 0.2s',
