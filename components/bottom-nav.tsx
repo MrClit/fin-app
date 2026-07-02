@@ -33,7 +33,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
               key={href}
               href={href}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.75 py-1.5 text-[10px] transition-colors duration-200',
+                'flex flex-1 flex-col items-center gap-0.75 py-1.5 text-3xs transition-colors duration-200',
                 active ? 'text-primary font-semibold' : 'text-muted-foreground font-normal'
               )}
             >
@@ -47,7 +47,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
                 {showBadge && (
                   <span
                     className="absolute -top-0.5 right-2 flex h-4 min-w-4 items-center justify-center
-                               rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground"
+                               rounded-full bg-primary px-1 text-3xs font-bold leading-none text-primary-foreground"
                     aria-label={`${unreadCount} movimientos no leídos`}
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}

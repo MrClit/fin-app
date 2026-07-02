@@ -132,7 +132,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
                     >
                       <Icon size={16} style={{ color: meta.color }} strokeWidth={2} />
                     </div>
-                    <span className="text-[10px] font-semibold text-foreground text-center leading-tight">
+                    <span className="text-3xs font-semibold text-foreground text-center leading-tight">
                       {meta.label}
                     </span>
                   </button>

@@ -21,19 +21,19 @@ function AccountCell({ account }: { account: Account }) {
     >
       <div className="flex items-center justify-between mb-2.5">
         <AccountIconBadge type={account.type} color={account.color} size="sm" />
-        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide">
+        <span className="text-3xs font-bold text-muted-foreground uppercase tracking-wide">
           {typeLabel[account.type]}
         </span>
       </div>
-      <div className="text-[11px] text-muted-foreground truncate mb-0.5">{account.name}</div>
+      <div className="text-2xs text-muted-foreground truncate mb-0.5">{account.name}</div>
       <div
-        className="text-[17px] font-bold leading-tight"
+        className="text-lg font-bold leading-tight"
         style={{ color: isNegative ? 'var(--negative)' : undefined }}
       >
         <Amount value={balance} decimals={2} />
       </div>
       {account.number && (
-        <div className="text-[10px] text-muted-foreground mt-0.5">{account.number}</div>
+        <div className="text-3xs text-muted-foreground mt-0.5">{account.number}</div>
       )}
     </Link>
   )
@@ -54,7 +54,7 @@ export function DashboardAccountGrid({ accounts }: DashboardAccountGridProps) {
 
   return (
     <div>
-      <div className="text-[13px] font-semibold text-muted-foreground mb-3">Mis cuentas</div>
+      <div className="text-sm font-semibold text-muted-foreground mb-3">Mis cuentas</div>
       <div className="-mx-4 grid grid-cols-2 border-t border-l border-border">
         {accounts.map(account => (
           <AccountCell key={account.id} account={account} />

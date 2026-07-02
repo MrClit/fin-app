@@ -122,7 +122,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
-            <span className="text-[10px] opacity-70">▾</span>
+            <span className="text-3xs opacity-70">▾</span>
           </button>
         </div>
         {activeBar && (
@@ -166,10 +166,10 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         ) : (
           <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15px] font-bold text-foreground">Ingresos y gastos</span>
+              <span className="text-md font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors"
+                className="rounded-full px-2.5 py-1 text-3xs font-bold transition-colors"
                 style={{
                   background: showYoY
                     ? 'color-mix(in srgb, #6366f1 12%, transparent)'

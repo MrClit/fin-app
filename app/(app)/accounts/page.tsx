@@ -100,7 +100,7 @@ async function AccountsContent({
             <Landmark className="size-7" style={{ color: '#6366f1' }} />
           </div>
           <div>
-            <div className="text-[15px] font-bold text-foreground">No tienes cuentas conectadas</div>
+            <div className="text-md font-bold text-foreground">No tienes cuentas conectadas</div>
             <div className="text-sm text-muted-foreground mt-1">
               Conecta tu primer banco para empezar a ver tus finanzas
             </div>

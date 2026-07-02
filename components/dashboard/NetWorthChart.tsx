@@ -12,9 +12,9 @@ export function NetWorthChart({ data, annualDelta }: Props) {
   return (
     <div className="bg-secondary -mx-4 px-4 py-5 border-y border-border">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[15px] font-bold">Patrimonio neto</span>
+        <span className="text-md font-bold">Patrimonio neto</span>
         {annualDelta !== null ? (
-          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+          <span className={`text-2xs font-bold px-2.5 py-0.5 rounded-full ${
             annualDelta >= 0
               ? 'text-positive bg-positive-subtle'
               : 'text-negative bg-negative-subtle'
@@ -23,12 +23,12 @@ export function NetWorthChart({ data, annualDelta }: Props) {
             <Amount value={annualDelta} /> vs hace 12 meses
           </span>
         ) : (
-          <span className="text-[11px] text-muted-foreground px-2.5 py-0.5">
+          <span className="text-2xs text-muted-foreground px-2.5 py-0.5">
             — vs hace 12 meses
           </span>
         )}
       </div>
-      <p className="text-[12px] text-muted-foreground mb-3.5">
+      <p className="text-xs text-muted-foreground mb-3.5">
         Últimos {data.length} {data.length === 1 ? 'mes' : 'meses'}
       </p>
       <ResponsiveContainer width="100%" height={80}>

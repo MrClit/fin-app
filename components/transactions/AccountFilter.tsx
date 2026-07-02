@@ -86,7 +86,7 @@ export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSel
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{account.name}</p>
                   {maskedNumber && (
-                    <p className="text-[11px] text-muted-foreground">{maskedNumber}</p>
+                    <p className="text-2xs text-muted-foreground">{maskedNumber}</p>
                   )}
                 </div>
                 <div

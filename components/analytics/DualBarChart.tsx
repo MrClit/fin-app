@@ -178,7 +178,7 @@ export default function DualBarChart({
           {([['#22c55e', 'Ingresos'], ['#6366f1', 'Gastos']] as const).map(([color, lbl]) => (
             <div key={lbl} className="flex items-center gap-1.5">
               <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-              <span className="text-[11px] text-muted-foreground">{lbl}</span>
+              <span className="text-2xs text-muted-foreground">{lbl}</span>
             </div>
           ))}
         </div>
@@ -188,7 +188,7 @@ export default function DualBarChart({
             {([['#22c55e', 'Ingresos'] , ['#6366f1', 'Gastos']] as const).map(([color, lbl]) => (
               <div key={lbl} className="flex items-center gap-1.5">
                 <YoYIcon color={color} />
-                <span className="text-[10px] text-muted-foreground">{lbl} ant.</span>
+                <span className="text-3xs text-muted-foreground">{lbl} ant.</span>
               </div>
             ))}
           </div>
@@ -262,7 +262,7 @@ export default function DualBarChart({
       <div className="mt-2.5 flex items-center justify-between">
         <button
           onClick={() => canGoBack && shift('back')}
-          className="text-[13px] font-semibold transition-colors"
+          className="text-sm font-semibold transition-colors"
           style={{
             background: 'none', border: 'none', padding: 0, cursor: canGoBack ? 'pointer' : 'default',
             color: canGoBack ? 'var(--muted-foreground)' : 'transparent',
@@ -272,7 +272,7 @@ export default function DualBarChart({
         </button>
         <button
           onClick={() => canGoFwd && shift('fwd')}
-          className="text-[13px] font-semibold transition-colors"
+          className="text-sm font-semibold transition-colors"
           style={{
             background: 'none', border: 'none', padding: 0, cursor: canGoFwd ? 'pointer' : 'default',
             color: canGoFwd ? 'var(--muted-foreground)' : 'transparent',

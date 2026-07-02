@@ -28,7 +28,7 @@ export default function KpiCard({
   const yoyColor = yoyGood ? 'var(--positive)' : 'var(--negative)'
   const yoyBg    = yoyGood ? 'var(--positive-subtle)' : 'var(--negative-subtle)'
 
-  const fontSize = value >= 10000 ? 20 : 28
+  const valueSize = value >= 10000 ? 'text-amount-xs' : 'text-amount-sm'
 
   return (
     <div className="flex flex-1 flex-col">
@@ -39,15 +39,15 @@ export default function KpiCard({
 
       {/* Main value */}
       <div
-        className="mb-2 font-extrabold leading-none"
-        style={{ fontSize, color: mainColor }}
+        className={`mb-2 font-extrabold leading-none ${valueSize}`}
+        style={{ color: mainColor }}
       >
         <Amount value={value} />
       </div>
 
       {/* Badge vs período anterior — neutral */}
       <div
-        className="mb-1.5 w-fit rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+        className="mb-1.5 w-fit rounded-full px-2.5 py-0.5 text-3xs font-bold"
         style={{
           background: 'color-mix(in srgb, var(--muted-foreground) 14%, transparent)',
           color: 'var(--muted-foreground)',
@@ -61,10 +61,10 @@ export default function KpiCard({
         className="flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5"
         style={{ background: yoyBg }}
       >
-        <span className="text-[10px] font-bold" style={{ color: yoyColor }}>
+        <span className="text-3xs font-bold" style={{ color: yoyColor }}>
           {formatDelta(deltaVsYear)}
         </span>
-        <span className="text-[10px] text-muted-foreground">vs año anterior</span>
+        <span className="text-3xs text-muted-foreground">vs año anterior</span>
       </div>
     </div>
   )

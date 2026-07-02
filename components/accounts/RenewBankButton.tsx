@@ -51,7 +51,7 @@ export function RenewBankButton({
       type="button"
       onClick={handleRenew}
       disabled={loading}
-      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11px] font-semibold transition-opacity disabled:opacity-40"
+      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-2xs font-semibold transition-opacity disabled:opacity-40"
       style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}
     >
       <ShieldCheck className="size-3 shrink-0" />

@@ -206,7 +206,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
-            <span className="text-[10px] opacity-70">▾</span>
+            <span className="text-3xs opacity-70">▾</span>
           </button>
         </div>
         {!loadingTxs && selectedPeriod && (
@@ -223,7 +223,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         {/* Evolution card */}
         <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[15px] font-bold text-foreground">Evolución</span>
+            <span className="text-md font-bold text-foreground">Evolución</span>
             <span className="text-xs text-muted-foreground capitalize">{PERIOD_LABELS[granularity]}</span>
           </div>
 
@@ -233,7 +233,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
               <Skeleton className="h-9 w-32 rounded-lg" />
             ) : (
               <>
-                <span style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: -1 }}>
+                <span style={{ fontSize: 'var(--text-amount-md)', fontWeight: 800, color, letterSpacing: -1 }}>
                   <Amount value={periodTotal} decimals={2} />
                 </span>
                 {selectedPeriod && (
@@ -261,7 +261,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         </div>
 
         {/* Transaction list */}
-        <span className="text-[15px] font-bold text-foreground">Movimientos</span>
+        <span className="text-md font-bold text-foreground">Movimientos</span>
 
         {loadingTxs ? (
           <div className="-mx-4 flex flex-col gap-2">
