@@ -2,24 +2,22 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal } from 'lucide-react'
 import type { CategoryBreakdown } from '@/types'
-import { CATEGORY_META } from '@/lib/theme'
-import { getCategoryMeta } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
-import DonutChart, { type DonutItem } from './DonutChart'
-
-const MIN_PCT = 5
-const REST_KEY = '__rest__'
-const REST_COLOR = '#94a3b8'
+import DonutChart from './DonutChart'
+import { buildDonutModel, REST_KEY } from './donutModel'
 
 interface CategoryBreakdownSectionProps {
   byCategory: CategoryBreakdown[]
+  /** Total neto de ingresos del período (= KPI). Fuente única del total del donut (#272). */
+  income: number
+  /** Total neto de gastos del período (= KPI). */
+  expense: number
   /** Inicio (ISO) del período activo en Análisis; se propaga al detalle para abrirlo en el mismo período. */
   periodStart: string
 }
 
-export default function CategoryBreakdownSection({ byCategory, periodStart }: CategoryBreakdownSectionProps) {
+export default function CategoryBreakdownSection({ byCategory, income, expense, periodStart }: CategoryBreakdownSectionProps) {
   const router = useRouter()
   const [catView, setCatView] = useState<'gastos' | 'ingresos'>('gastos')
   // Tracked by key instead of index — auto-deselects when byCategory changes and the
@@ -28,53 +26,9 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
 
   const typeFilter = catView === 'gastos' ? 'expense' : 'income'
   const accentColor = catView === 'gastos' ? '#6366f1' : '#22c55e'
+  const netTotal = catView === 'gastos' ? expense : income
 
-  const rawItems = byCategory
-    .filter(bc => {
-      if (bc.amount === 0) return false
-      if (bc.category === null) return false
-      return CATEGORY_META[bc.category]?.type === typeFilter
-    })
-    .map(bc => ({ ...bc, amount: Math.abs(bc.amount) }))
-    .sort((a, b) => b.amount - a.amount)
-
-  const total = rawItems.reduce((s, i) => s + i.amount, 0)
-
-  const withPct = rawItems.map(bc => ({
-    ...bc,
-    pct: total > 0 ? (bc.amount / total) * 100 : 0,
-  }))
-
-  const main = withPct.filter(bc => bc.pct >= MIN_PCT)
-  const rest = withPct.filter(bc => bc.pct < MIN_PCT)
-
-  const toItem = (bc: (typeof withPct)[0]): DonutItem => {
-    // bc.category never null here (filtered out above)
-    const catId = bc.category as NonNullable<typeof bc.category>
-    const meta = getCategoryMeta(catId)
-    return {
-      key: catId,
-      categoryId: catId,
-      label: meta.label,
-      color: meta.color,
-      Icon: meta.Icon,
-      amount: bc.amount,
-      pct: bc.pct,
-    }
-  }
-
-  const items: DonutItem[] = [
-    ...main.map(toItem),
-    ...(rest.length > 0 ? [{
-      key: REST_KEY,
-      categoryId: null,
-      label: 'Resto',
-      color: REST_COLOR,
-      Icon: MoreHorizontal,
-      amount: rest.reduce((s, i) => s + i.amount, 0),
-      pct: rest.reduce((s, i) => s + i.pct, 0),
-    } satisfies DonutItem] : []),
-  ]
+  const { slices: items, credits, netTotal: centerTotal } = buildDonutModel(byCategory, typeFilter, netTotal)
 
   // Derive index from tracked key — null if category not present in current items
   const selectedCatIdx = selectedKey === null ? null : items.findIndex(i => i.key === selectedKey)
@@ -83,6 +37,8 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
   const handleSelect = (idx: number | null) => {
     setSelectedKey(idx === null ? null : items[idx].key)
   }
+
+  const isEmpty = items.length === 0 && credits.length === 0
 
   return (
     <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
@@ -115,19 +71,22 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {isEmpty ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Sin datos para este período</p>
       ) : (
         <>
           {/* Donut */}
-          <div className="mb-5 flex justify-center">
-            <DonutChart
-              items={items}
-              selectedIdx={effectiveIdx}
-              accentColor={accentColor}
-              onSelect={handleSelect}
-            />
-          </div>
+          {items.length > 0 && (
+            <div className="mb-5 flex justify-center">
+              <DonutChart
+                items={items}
+                total={centerTotal}
+                selectedIdx={effectiveIdx}
+                accentColor={accentColor}
+                onSelect={handleSelect}
+              />
+            </div>
+          )}
 
           {/* Category rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -182,6 +141,46 @@ export default function CategoryBreakdownSection({ byCategory, periodStart }: Ca
                       background: item.color, borderRadius: 3,
                       transition: 'width 0.6s ease',
                     }} />
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Credit rows — categorías con neto de signo contrario (reembolsos): reducen el total,
+                no son gasto/ingreso, así que se muestran como crédito sin barra ni porción (#272). */}
+            {credits.map(credit => {
+              const isDimmed = effectiveIdx !== null
+              const { Icon } = credit
+              return (
+                <div
+                  key={credit.categoryId}
+                  onClick={() => router.push(`/analytics/category/${credit.categoryId}?period=${periodStart}`)}
+                  style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                        background: 'var(--positive-subtle)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Icon size={16} className="text-positive" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: 500 }}>
+                          {credit.label}
+                        </span>
+                        <span className="text-positive" style={{ fontSize: 'var(--text-2xs)', fontWeight: 600 }}>
+                          Reembolso
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>
+                        <Amount value={credit.amount} signed className="text-positive" />
+                      </span>
+                      <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
+                    </div>
                   </div>
                 </div>
               )

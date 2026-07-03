@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Granularity, PeriodData, AnalyticsResponse } from '@/types'
+import type { Granularity, PeriodData, AnalyticsResponse, CategoryBreakdown } from '@/types'
+import { CATEGORY_META } from '@/lib/theme'
 
 export interface PeriodRange {
   start: Date
@@ -114,6 +115,27 @@ export const PERIOD_LABELS: Record<Granularity, string> = {
   year:    'Año',
 }
 
+// Totales de período (KPIs) derivados del desglose `by_category`, que es la ÚNICA
+// fuente de verdad tanto del KPI como del donut (#272). Se clasifica por el catálogo
+// (`CATEGORY_META`, fuente única de tipos) y se aplica la matemática del spec §5.4:
+//   income  = Σ neto de categorías income   (SIN abs: una devolución con amount<0 resta)
+//   expense = |Σ neto de categorías expense| (CON abs)
+// El signo del importe nunca clasifica: sólo el `type` de la categoría efectiva.
+export function periodTotalsFromCategories(
+  byCategory: CategoryBreakdown[],
+): { income: number; expense: number } {
+  let incomeNet = 0
+  let expenseNet = 0
+  for (const bc of byCategory) {
+    if (bc.category === null) continue
+    const type = CATEGORY_META[bc.category]?.type
+    const amount = Number(bc.amount)
+    if (type === 'income') incomeNet += amount
+    else if (type === 'expense') expenseNet += amount
+  }
+  return { income: incomeNet, expense: Math.abs(expenseNet) }
+}
+
 // Agrega la ventana de períodos de Analítica vía la RPC `get_period_data`
 // (período actual + YoY). Recibe el cliente Supabase por parámetro para que el
 // servidor (período inicial) y el endpoint `/api/analytics` (transiciones)
@@ -144,19 +166,27 @@ export async function buildAnalyticsResponse(
 
       const curRow  = cur.data?.[0]
       const prevRow = prev.data?.[0]
+
+      // KPIs derivados de `by_category` (fuente única con el donut, #272), no de las
+      // columnas income/expense crudas de la RPC.
+      const curCats  = (curRow?.by_category  ?? []) as CategoryBreakdown[]
+      const prevCats = (prevRow?.by_category ?? []) as CategoryBreakdown[]
+      const curTotals  = periodTotalsFromCategories(curCats)
+      const prevTotals = periodTotalsFromCategories(prevCats)
+
       // §5.7: null cuando no hay transacciones del período del año anterior
-      const hasYoy  = prevRow && (Number(prevRow.income) > 0 || Number(prevRow.expense) > 0)
+      const hasYoy = prevRow != null && (prevTotals.income > 0 || prevTotals.expense > 0)
 
       return {
         label:       range.label,
         start:       toISODate(range.start),
         end:         toISODate(range.end),
-        income:    Number(curRow?.income   ?? 0),
-        expense:      Number(curRow?.expense     ?? 0),
-        savings:      Number(curRow?.savings     ?? 0),
-        byCategory:  curRow?.by_category ?? [],
-        yoyIncome: hasYoy ? Number(prevRow.income) : null,
-        yoyExpense:   hasYoy ? Number(prevRow.expense)   : null,
+        income:      curTotals.income,
+        expense:     curTotals.expense,
+        savings:     curTotals.income - curTotals.expense,
+        byCategory:  curCats,
+        yoyIncome:   hasYoy ? prevTotals.income  : null,
+        yoyExpense:  hasYoy ? prevTotals.expense : null,
       }
     })
   )
