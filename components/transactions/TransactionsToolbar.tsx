@@ -73,7 +73,7 @@ export function TransactionsToolbar({
         <div className="flex items-center gap-1.5">
           {selectedAccountIds.length > 0 && (
             <span
-              className="rounded-full text-[10px] font-bold px-1.5 py-0.5 leading-none"
+              className="rounded-full text-3xs font-bold px-1.5 py-0.5 leading-none"
               style={{ background: '#6366f1', color: 'white' }}
             >
               {selectedAccountIds.length}

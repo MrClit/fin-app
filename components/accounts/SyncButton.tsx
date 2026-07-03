@@ -35,7 +35,7 @@ export function SyncButton({ lastSynced }: { lastSynced: string | null }) {
       type="button"
       onClick={() => runSync()}
       disabled={isSyncing || isOffline || inCooldown}
-      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11px] font-semibold transition-opacity disabled:opacity-40"
+      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-2xs font-semibold transition-opacity disabled:opacity-40"
       style={{ background: '#6366f115', color: '#6366f1' }}
     >
       <RefreshCw className={`size-3 ${isSyncing ? 'animate-spin' : ''}`} />

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 
 // Conteo de movimientos no leídos para refrescar el badge de la tabBar sin
@@ -11,16 +10,17 @@ import { logError } from '@/lib/error-log'
 // (visibilitychange). RLS limita la consulta al hogar del usuario; `head: true`
 // evita traer filas (solo el conteo, apoyado en el índice parcial de #149).
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await getRequestClient()
 
   const { count, error } = await supabase
     .from('transactions')

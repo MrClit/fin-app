@@ -17,7 +17,7 @@ export function StatusBanner({ consent }: { consent: ConsentBannerData | null })
 
   if (consent) {
     return (
-      <Banner color="#ef4444">
+      <Banner color="var(--negative)">
         <ShieldAlert className="size-3.5 shrink-0" />
         <span>{consentMessage(consent)}</span>
         <Link
@@ -88,8 +88,12 @@ function Banner({ color, children }: { color: string; children: React.ReactNode 
   return (
     <div
       role="status"
-      className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium animate-fade-in"
-      style={{ background: color + '1f', color, borderTop: `1px solid ${color}26` }}
+      className="flex items-center gap-2 px-4 py-2 text-sm font-medium animate-fade-in"
+      style={{
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+        color,
+        borderTop: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
+      }}
     >
       {children}
     </div>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { createSessionFromCode, decodeBankingState } from '@/lib/enablebanking'
 
 /** Normaliza un IBAN para comparar (sin espacios, mayúsculas). */
@@ -19,16 +18,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/accounts?error=bank_auth_cancelled`)
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.redirect(`${appUrl}/login`)
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.redirect(`${appUrl}/login`)
   }
+
+  const supabase = await getRequestClient()
 
   let session
   try {

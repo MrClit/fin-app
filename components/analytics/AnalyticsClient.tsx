@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AnalyticsResponse, Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
@@ -50,10 +50,10 @@ interface PageState {
   showYoY: boolean
 }
 
-export default function AnalyticsClient() {
+export default function AnalyticsClient({ initialData }: { initialData: AnalyticsResponse }) {
   const { granularity, setShowPicker } = useAnalytics()
   const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
-    data: null, selectedBarIdx: null, showYoY: false,
+    data: initialData, selectedBarIdx: null, showYoY: false,
   })
 
   // Derived: loading when data hasn't arrived yet or belongs to a different granularity
@@ -64,7 +64,15 @@ export default function AnalyticsClient() {
   const toggleShowYoY = () =>
     setPageState(s => ({ ...s, showYoY: !s.showYoY }))
 
+  // El período inicial ya viene resuelto del servidor: solo se hace fetch en las
+  // transiciones posteriores de granularidad, no en el montaje (#235).
+  const isFirst = useRef(true)
   useEffect(() => {
+    if (isFirst.current && granularity === initialData.granularity) {
+      isFirst.current = false
+      return
+    }
+    isFirst.current = false
     let cancelled = false
     fetch(`/api/analytics?granularity=${granularity}&offset=0`)
       .then(r => r.json())
@@ -72,7 +80,7 @@ export default function AnalyticsClient() {
         if (!cancelled) setPageState({ data: d, selectedBarIdx: null, showYoY: false })
       })
     return () => { cancelled = true }
-  }, [granularity])
+  }, [granularity, initialData.granularity])
 
   // Derived active bar
   const activeIdx = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
@@ -114,7 +122,7 @@ export default function AnalyticsClient() {
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
-            <span className="text-[10px] opacity-70">▾</span>
+            <span className="text-3xs opacity-70">▾</span>
           </button>
         </div>
         {activeBar && (
@@ -158,10 +166,10 @@ export default function AnalyticsClient() {
         ) : (
           <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15px] font-bold text-foreground">Ingresos y gastos</span>
+              <span className="text-md font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
+                className="rounded-full px-2.5 py-1 text-3xs font-bold transition-colors"
                 style={{
                   background: showYoY
                     ? 'color-mix(in srgb, #6366f1 12%, transparent)'
@@ -189,7 +197,12 @@ export default function AnalyticsClient() {
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (
-          <CategoryBreakdownSection byCategory={activeBar.byCategory} periodStart={activeBar.start} />
+          <CategoryBreakdownSection
+            byCategory={activeBar.byCategory}
+            income={activeBar.income}
+            expense={activeBar.expense}
+            periodStart={activeBar.start}
+          />
         )}
 
         {/* Savings card */}

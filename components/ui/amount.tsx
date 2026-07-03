@@ -1,9 +1,28 @@
 import { fmt } from '@/lib/formatting'
+import { getEffectiveType } from '@/lib/categories'
 import { cn } from '@/lib/utils'
 
 // Punto único de verdad de la clase de cifras tabulares. Reutilizable en sitios que no
 // pueden renderizar el componente <Amount> (strings, SVG, tooltips de chart).
 export const TABULAR_NUMS = 'tabular-nums [font-variant-numeric:tabular-nums_slashed-zero]'
+
+/**
+ * Clase de color de un importe según el TIPO de su categoría efectiva (no el signo):
+ * ingresos en verde, gastos en rojo, no computables y sin categoría en neutro. Punto
+ * único de verdad para colorear importes de forma coherente en lista, modal, etc.
+ */
+export function amountColorClass(
+  tx: { category: string | null; category_manual: string | null }
+): string {
+  switch (getEffectiveType(tx)) {
+    case 'income':
+      return 'text-positive'
+    case 'expense':
+      return 'text-negative'
+    default:
+      return 'text-foreground' // non_computable | sin categoría
+  }
+}
 
 interface AmountProps {
   value: number

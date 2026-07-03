@@ -1,12 +1,15 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { Check, Landmark } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
 import { AccountsSkeleton } from '@/components/accounts/AccountsSkeleton'
-import type { Account } from '@/types'
+import { narrowUnions } from '@/lib/supabase/rows'
+
+export const metadata: Metadata = { title: 'Cuentas' }
 
 type AccountsSearchParams = { connected?: string; error?: string; renewed?: string }
 
@@ -27,9 +30,9 @@ async function AccountsContent({
 }: {
   searchParams: Promise<AccountsSearchParams>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const supabase = await getRequestClient()
 
   const { data: accounts } = await supabase
     .from('accounts')
@@ -48,9 +51,9 @@ async function AccountsContent({
         <div
           className="rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2"
           style={{
-            background: '#22c55e15',
-            border: '1px solid #22c55e30',
-            color: '#22c55e',
+            background: 'var(--positive-subtle)',
+            border: '1px solid var(--positive-subtle)',
+            color: 'var(--positive)',
           }}
         >
           <Check className="size-4 shrink-0" />
@@ -63,9 +66,9 @@ async function AccountsContent({
           <div
             className="rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2"
             style={{
-              background: '#22c55e15',
-              border: '1px solid #22c55e30',
-              color: '#22c55e',
+              background: 'var(--positive-subtle)',
+              border: '1px solid var(--positive-subtle)',
+              color: 'var(--positive)',
             }}
           >
             <Check className="size-4 shrink-0" />
@@ -79,9 +82,9 @@ async function AccountsContent({
         <div
           className="rounded-2xl px-4 py-3 text-sm font-medium"
           style={{
-            background: '#ef444415',
-            border: '1px solid #ef444430',
-            color: '#ef4444',
+            background: 'var(--negative-subtle)',
+            border: '1px solid var(--negative-subtle)',
+            color: 'var(--negative)',
           }}
         >
           No se pudo conectar el banco. Inténtalo de nuevo.
@@ -97,7 +100,7 @@ async function AccountsContent({
             <Landmark className="size-7" style={{ color: '#6366f1' }} />
           </div>
           <div>
-            <div className="text-[15px] font-bold text-foreground">No tienes cuentas conectadas</div>
+            <div className="text-md font-bold text-foreground">No tienes cuentas conectadas</div>
             <div className="text-sm text-muted-foreground mt-1">
               Conecta tu primer banco para empezar a ver tus finanzas
             </div>
@@ -108,8 +111,8 @@ async function AccountsContent({
         // que las filas lleguen a los bordes. Cada card lleva su border-y (solo
         // líneas arriba/abajo, sin laterales ni esquinas) y el gap las separa.
         <div className="-mx-4 flex flex-col gap-3">
-          {(accounts ?? []).map((account: Account) => (
-            <AccountCard key={account.id} account={account} />
+          {(accounts ?? []).map((account) => (
+            <AccountCard key={account.id} account={narrowUnions(account)} />
           ))}
         </div>
       )}

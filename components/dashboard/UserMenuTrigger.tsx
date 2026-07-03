@@ -31,7 +31,7 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
           <button
             type="button"
             aria-label="Abrir menú de usuario"
-            className="grid size-9 place-items-center overflow-hidden rounded-full border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            className="grid size-9 place-items-center overflow-clip rounded-full border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
             {showAvatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- avatar remoto de Google, sin optimización de next/image
@@ -54,7 +54,7 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
       >
         <SheetHeader className="flex flex-row items-center gap-3 pt-3">
           <div
-            className="grid size-10 place-items-center overflow-hidden rounded-full text-base font-semibold text-white"
+            className="grid size-10 place-items-center overflow-clip rounded-full text-base font-semibold text-white"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
             {showAvatar ? (

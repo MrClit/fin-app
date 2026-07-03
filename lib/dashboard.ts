@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
+import { narrowUnions } from '@/lib/supabase/rows'
 import type { Account } from '@/types'
 
 export interface DashboardData {
@@ -21,16 +21,17 @@ export function calculateNetWorth(
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) throw new Error('Unauthorized')
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Unauthorized')
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) throw new Error('Unauthorized')
+
+  const supabase = await getRequestClient()
 
   const { data: accounts, error: accError } = await supabase
     .from('accounts')
-    .select('id, name, type, is_liability, balance, number, color, currency, source, last_synced, consent_expires_at, created_at, user_id, external_id, session_id, is_active')
+    .select('*')
     .eq('household_id', householdId)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -116,5 +117,5 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const annualDelta = activeMonths.length === 12 ? Math.round(balance - values[0]) : null
 
-  return { balance, weeklyDelta, dailyBalances, accounts: accounts as Account[], netWorthData, annualDelta }
+  return { balance, weeklyDelta, dailyBalances, accounts: accounts.map(narrowUnions), netWorthData, annualDelta }
 }

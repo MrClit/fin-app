@@ -1,4 +1,5 @@
 import type { CategoryId } from './catalog'
+import type { Tables } from '@/lib/supabase/database.types'
 
 type RuleField = 'description' | 'merchant'
 
@@ -94,11 +95,14 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   { pattern: /bizum/i, category: 'other' },
 ]
 
-export interface DbCategorizationRule {
-  pattern: string
-  field: 'description' | 'merchant' | 'iban'
-  category_id: string
-}
+// Subconjunto de columnas de `categorization_rules` que consume la
+// categorización. Derivado del esquema (issue #241): renombrar/retirar una de
+// estas columnas rompe el build. `field` se guarda como TEXT en la BD; la lógica
+// sólo distingue `'merchant'` del resto (ver `categorizeWithRules`).
+export type DbCategorizationRule = Pick<
+  Tables<'categorization_rules'>,
+  'pattern' | 'field' | 'category_id'
+>
 
 // Longitud máxima de un patrón de regla. Debe mantenerse sincronizada con el
 // CHECK de la tabla `categorization_rules` (migración pattern_length).

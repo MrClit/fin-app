@@ -87,7 +87,7 @@ export function NotificationsTrigger() {
             {count > 0 && (
               <span
                 className="absolute -top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center
-                           rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground"
+                           rounded-full bg-primary px-1 text-3xs font-bold leading-none text-primary-foreground"
               >
                 {count > 99 ? '99+' : count}
               </span>
@@ -133,7 +133,7 @@ export function NotificationsTrigger() {
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="text-sm font-medium text-foreground">{item.title}</span>
                   <span className="text-xs text-muted-foreground">{item.body}</span>
-                  <span className="text-[11px] text-muted-foreground/70">
+                  <span className="text-2xs text-muted-foreground/70">
                     {timeAgo(item.created_at)}
                   </span>
                 </span>

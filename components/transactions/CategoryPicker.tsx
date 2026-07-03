@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META } from '@/lib/theme'
+import { getEffectiveCategory } from '@/lib/categories'
 import { cn } from '@/lib/utils'
 import type { CategoryId, CategoryType, TransactionWithAccount } from '@/types'
 
@@ -25,8 +26,8 @@ const TYPE_LABELS: Record<CategoryType, string> = {
 const ENTRIES = Object.entries(CATEGORY_META) as [CategoryId, typeof CATEGORY_META[CategoryId]][]
 
 function initialTab(tx: TransactionWithAccount): CategoryType {
-  const effective = (tx.category_manual ?? tx.category) as CategoryId | null
-  if (effective && CATEGORY_META[effective]) return CATEGORY_META[effective].type
+  const effective = getEffectiveCategory(tx)
+  if (effective) return CATEGORY_META[effective].type
   return tx.amount < 0 ? 'expense' : 'income'
 }
 
@@ -46,7 +47,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
   const renderTx = tx ?? cachedTx
   if (!renderTx) return null
 
-  const effectiveCategory = (renderTx.category_manual ?? renderTx.category ?? 'other') as CategoryId
+  const effectiveCategory = getEffectiveCategory(renderTx) ?? 'other'
 
   const visibleCategories = ENTRIES.filter(([, meta]) => meta.type === activeType)
   const q = norm(query.trim())
@@ -74,7 +75,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
               key={type}
               onClick={() => { setActiveType(type); setQuery('') }}
               className={cn(
-                'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-all',
+                'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-colors',
                 activeType === type
                   ? 'bg-popover text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
                   : 'bg-transparent text-muted-foreground'
@@ -116,7 +117,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
                     key={id}
                     onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
                     className={cn(
-                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-all',
+                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-colors',
                       isCurrent ? 'border-2' : 'border border-border bg-muted'
                     )}
                     style={
@@ -131,7 +132,7 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
                     >
                       <Icon size={16} style={{ color: meta.color }} strokeWidth={2} />
                     </div>
-                    <span className="text-[10px] font-semibold text-foreground text-center leading-tight">
+                    <span className="text-3xs font-semibold text-foreground text-center leading-tight">
                       {meta.label}
                     </span>
                   </button>

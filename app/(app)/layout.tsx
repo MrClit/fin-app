@@ -1,16 +1,17 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
 import { AppHeader } from '@/components/app-header'
 import { BottomNav } from '@/components/bottom-nav'
 import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
 import { UnreadProvider } from '@/components/transactions/UnreadProvider'
 import { NotificationsProvider } from '@/components/notifications/NotificationsProvider'
 import { getConsentBannerData } from '@/lib/accounts'
+import { narrowUnions } from '@/lib/supabase/rows'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const supabase = await getRequestClient()
 
   // Datos de perfil del proveedor OAuth (Google rellena estos campos en
   // user_metadata). Con login email/contraseña vienen vacíos.
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('name, source, consent_expires_at')
     .eq('source', 'enablebanking')
     .eq('is_active', true)
-  const consentBanner = getConsentBannerData(ebAccounts ?? [])
+  const consentBanner = getConsentBannerData((ebAccounts ?? []).map(narrowUnions))
 
   // Conteo de movimientos no leídos para el badge de la tabBar (issue #149). RLS
   // limita la consulta al hogar del usuario. `head: true` evita traer filas.

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 import { getWindowPeriods, toISODate } from '@/lib/analytics'
 import type { Granularity, CategoryId, CategoryAnalyticsResponse } from '@/types'
@@ -18,16 +17,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid params' }, { status: 400 })
   }
 
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await getRequestClient()
 
   try {
     const allPeriods = getWindowPeriods(granularity, 0)
@@ -41,7 +41,10 @@ export async function GET(request: NextRequest) {
           p_end_date:     toISODate(range.end),
         })
         const row = data?.[0]
-        const byCategory: { category: string | null; amount: number }[] = row?.by_category ?? []
+        // `by_category` es jsonb (get_period_data lo agrega con json_agg), así que
+        // el tipo generado es `Json`; se asserta a su forma conocida.
+        const byCategory =
+          (row?.by_category ?? []) as { category: string | null; amount: number }[]
         const match = byCategory.find(bc => bc.category === id)
         return {
           label:  range.label,

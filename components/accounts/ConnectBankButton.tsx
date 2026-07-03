@@ -65,7 +65,7 @@ export function ConnectBankButton() {
         style={{ borderColor: '#6366f140', background: '#6366f108' }}
       >
         <Plus className="size-4.5" style={{ color: '#6366f1' }} />
-        <span className="text-[14px] font-semibold" style={{ color: '#6366f1' }}>
+        <span className="text-sm font-semibold" style={{ color: '#6366f1' }}>
           Conectar nueva cuenta
         </span>
       </button>
@@ -75,7 +75,7 @@ export function ConnectBankButton() {
   return (
     <div className="rounded-[20px] border border-border bg-card p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-[15px] font-bold text-foreground">Selecciona tu banco</span>
+        <span className="text-md font-bold text-foreground">Selecciona tu banco</span>
         <button onClick={() => setStep('idle')} className="text-muted-foreground">
           <X className="size-4" />
         </button>
@@ -130,7 +130,7 @@ export function ConnectBankButton() {
       <button
         onClick={handleConnect}
         disabled={!selected || step === 'connecting'}
-        className="w-full rounded-[14px] py-3.5 text-[14px] font-bold text-white transition-opacity disabled:opacity-40"
+        className="w-full rounded-[14px] py-3.5 text-sm font-bold text-white transition-opacity disabled:opacity-40"
         style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
       >
         {step === 'connecting' ? 'Iniciando…' : selected ? `Conectar ${selected.name}` : 'Selecciona un banco'}

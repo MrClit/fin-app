@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { CATEGORY_META } from '@/lib/theme'
-import type { CategoryId, TransactionWithAccount } from '@/types'
+import { getEffectiveCategory } from '@/lib/categories'
+import type { TransactionWithAccount } from '@/types'
 
 export type TypeFilter = 'all' | 'income' | 'expense' | 'non-computable'
 
@@ -30,7 +31,7 @@ export function useTransactionsFilters(
 
     if (typeFilter !== 'all') {
       result = result.filter(tx => {
-        const catId = (tx.category_manual ?? tx.category) as CategoryId | null
+        const catId = getEffectiveCategory(tx)
         if (catId === null) return false
         const catType = CATEGORY_META[catId]?.type
         if (typeFilter === 'income')      return catType === 'income'
@@ -44,8 +45,8 @@ export function useTransactionsFilters(
     if (q) {
       result = result.filter(tx => {
         if (tx.description.toLowerCase().includes(q)) return true
-        const cat = (tx.category_manual ?? tx.category ?? 'other') as CategoryId
-        const label = CATEGORY_META[cat]?.label ?? ''
+        const cat = getEffectiveCategory(tx) ?? 'other'
+        const label = CATEGORY_META[cat].label
         return label.toLowerCase().includes(q)
       })
     }

@@ -1,10 +1,16 @@
-import type { Granularity } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Granularity, PeriodData, AnalyticsResponse, CategoryBreakdown } from '@/types'
+import { CATEGORY_META } from '@/lib/theme'
 
 export interface PeriodRange {
   start: Date
   end: Date
   label: string
 }
+
+// Granularidad inicial por defecto: fuente única compartida por el servidor
+// (período inicial de Analítica) y el cliente (AnalyticsContext) para evitar drift.
+export const DEFAULT_GRANULARITY: Granularity = 'month'
 
 const WINDOW_SIZE: Record<Granularity, number> = {
   week: 9,
@@ -107,4 +113,83 @@ export const PERIOD_LABELS: Record<Granularity, string> = {
   month:   'Mes',
   quarter: 'Trimestre',
   year:    'Año',
+}
+
+// Totales de período (KPIs) derivados del desglose `by_category`, que es la ÚNICA
+// fuente de verdad tanto del KPI como del donut (#272). Se clasifica por el catálogo
+// (`CATEGORY_META`, fuente única de tipos) y se aplica la matemática del spec §5.4:
+//   income  = Σ neto de categorías income   (SIN abs: una devolución con amount<0 resta)
+//   expense = |Σ neto de categorías expense| (CON abs)
+// El signo del importe nunca clasifica: sólo el `type` de la categoría efectiva.
+export function periodTotalsFromCategories(
+  byCategory: CategoryBreakdown[],
+): { income: number; expense: number } {
+  let incomeNet = 0
+  let expenseNet = 0
+  for (const bc of byCategory) {
+    if (bc.category === null) continue
+    const type = CATEGORY_META[bc.category]?.type
+    const amount = Number(bc.amount)
+    if (type === 'income') incomeNet += amount
+    else if (type === 'expense') expenseNet += amount
+  }
+  return { income: incomeNet, expense: Math.abs(expenseNet) }
+}
+
+// Agrega la ventana de períodos de Analítica vía la RPC `get_period_data`
+// (período actual + YoY). Recibe el cliente Supabase por parámetro para que el
+// servidor (período inicial) y el endpoint `/api/analytics` (transiciones)
+// compartan la misma lógica sin duplicarla y sin importar módulos server-only.
+export async function buildAnalyticsResponse(
+  supabase: SupabaseClient,
+  householdId: string,
+  granularity: Granularity,
+  offset: number,
+): Promise<AnalyticsResponse> {
+  const window = getWindowPeriods(granularity, offset)
+
+  const periods: PeriodData[] = await Promise.all(
+    window.map(async (range) => {
+      const yoy = getYoYRange(range)
+      const [cur, prev] = await Promise.all([
+        supabase.rpc('get_period_data', {
+          p_household_id: householdId,
+          p_start_date: toISODate(range.start),
+          p_end_date:   toISODate(range.end),
+        }),
+        supabase.rpc('get_period_data', {
+          p_household_id: householdId,
+          p_start_date: toISODate(yoy.start),
+          p_end_date:   toISODate(yoy.end),
+        }),
+      ])
+
+      const curRow  = cur.data?.[0]
+      const prevRow = prev.data?.[0]
+
+      // KPIs derivados de `by_category` (fuente única con el donut, #272), no de las
+      // columnas income/expense crudas de la RPC.
+      const curCats  = (curRow?.by_category  ?? []) as CategoryBreakdown[]
+      const prevCats = (prevRow?.by_category ?? []) as CategoryBreakdown[]
+      const curTotals  = periodTotalsFromCategories(curCats)
+      const prevTotals = periodTotalsFromCategories(prevCats)
+
+      // §5.7: null cuando no hay transacciones del período del año anterior
+      const hasYoy = prevRow != null && (prevTotals.income > 0 || prevTotals.expense > 0)
+
+      return {
+        label:       range.label,
+        start:       toISODate(range.start),
+        end:         toISODate(range.end),
+        income:      curTotals.income,
+        expense:     curTotals.expense,
+        savings:     curTotals.income - curTotals.expense,
+        byCategory:  curCats,
+        yoyIncome:   hasYoy ? prevTotals.income  : null,
+        yoyExpense:  hasYoy ? prevTotals.expense : null,
+      }
+    })
+  )
+
+  return { granularity, periods }
 }

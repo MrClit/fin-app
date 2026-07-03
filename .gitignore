@@ -57,6 +57,9 @@ scripts/scrapers/sabadell-visa/*.local.*
 public/sw.js
 public/sw.js.map
 
+# supabase CLI — estado local de vinculación (no versionar)
+supabase/.temp/
+
 # historical data
 historical_data
 # claude code — config local de la máquina (los symlinks de skills sí se versionan)

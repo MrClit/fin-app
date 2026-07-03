@@ -1,3 +1,9 @@
+// Tipos de dominio derivados del esquema real (lib/supabase/database.types.ts,
+// issue #241). La forma de las tablas es fuente única de verdad: regenerar con
+// `pnpm gen:types` tras un cambio de esquema. Se sobreescriben sólo las columnas
+// con una unión de negocio que la BD guarda como TEXT libre (`type`, `source`).
+import type { Tables } from '@/lib/supabase/database.types'
+
 export type AccountType = 'bank' | 'card' | 'edenred' | 'cash'
 export type DataSource = 'enablebanking' | 'scraper' | 'manual'
 
@@ -5,59 +11,17 @@ export type DataSource = 'enablebanking' | 'scraper' | 'manual'
 import type { CategoryId, CategoryType } from '@/lib/categories/catalog'
 export type { CategoryId, CategoryType }
 
-export interface Household {
-  id: string
-  name: string
-  primary_currency: string
-  month_start_day: number
-  created_at: string
-}
+export type Household = Tables<'households'>
+export type HouseholdMember = Tables<'household_members'>
+export type UserConfig = Tables<'user_config'>
 
-export interface HouseholdMember {
-  household_id: string
-  user_id: string
-  role: string
-  created_at: string
-}
-
-export interface Account {
-  id: string
-  user_id: string
-  household_id: string
-  name: string
+export type Account = Omit<Tables<'accounts'>, 'type' | 'source'> & {
   type: AccountType
   source: DataSource
-  is_liability: boolean
-  balance: number | null
-  number: string | null
-  color: string | null
-  currency: string
-  external_id: string | null
-  session_id: string | null
-  consent_expires_at: string | null
-  aspsp_name: string | null
-  aspsp_country: string | null
-  last_synced: string | null
-  is_active: boolean
-  sort_order: number
-  created_at: string
 }
 
-export interface Transaction {
-  id: string
-  user_id: string
-  household_id: string
-  account_id: string
-  date: string
-  amount: number
-  description: string
-  category: string | null
-  category_manual: string | null
+export type Transaction = Omit<Tables<'transactions'>, 'source'> & {
   source: DataSource
-  external_id: string | null
-  notes: string | null
-  is_read: boolean
-  created_at: string
 }
 
 export interface Category {
@@ -69,15 +33,6 @@ export interface Category {
 
 export interface TransactionWithAccount extends Transaction {
   account: Pick<Account, 'id' | 'name' | 'color'>
-}
-
-export interface UserConfig {
-  user_id: string
-  household_id: string
-  primary_currency: string
-  month_start_day: number
-  created_at: string
-  updated_at: string
 }
 
 export type Granularity = 'week' | 'month' | 'quarter' | 'year'

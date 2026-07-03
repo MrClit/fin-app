@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { Trash2, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
-import { Amount } from '@/components/ui/amount'
+import { getEffectiveCategory } from '@/lib/categories'
+import { Amount, amountColorClass } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
-import type { CategoryId, TransactionWithAccount } from '@/types'
+import type { TransactionWithAccount } from '@/types'
 
 interface TxModalProps {
   tx: TransactionWithAccount | null
@@ -37,7 +38,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] text-muted-foreground">
+        <div className="mb-0.5 text-3xs font-semibold uppercase tracking-[0.4px] text-muted-foreground">
           {label}
         </div>
         {children}
@@ -59,8 +60,8 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
   const renderTx = tx ?? cachedTx
   if (!renderTx) return null
 
-  const effectiveCategory = (renderTx.category_manual ?? renderTx.category) as CategoryId | null
-  const meta = effectiveCategory ? (CATEGORY_META[effectiveCategory] ?? CATEGORY_META.other) : UNCATEGORIZED
+  const effectiveCategory = getEffectiveCategory(renderTx)
+  const meta = effectiveCategory ? CATEGORY_META[effectiveCategory] : UNCATEGORIZED
   const Icon = meta.Icon
 
   const dateStr = (() => {
@@ -72,8 +73,6 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
       year: 'numeric',
     })
   })()
-
-  const isPositive = renderTx.amount > 0
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -96,8 +95,8 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{renderTx.description}</div>
           <div
             className={cn(
-              'text-[44px] font-extrabold leading-none tracking-[-2px]',
-              isPositive ? 'text-[#22c55e]' : 'text-foreground'
+              'text-amount-lg font-extrabold leading-none tracking-tight',
+              amountColorClass(renderTx)
             )}
           >
             <Amount value={renderTx.amount} decimals={2} signed />

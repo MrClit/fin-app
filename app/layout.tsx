@@ -22,7 +22,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Finanzas',
+  title: {
+    default: 'Finanzas',
+    template: '%s · Finanzas',
+  },
   description: 'App de gestión financiera personal',
   icons: {
     apple: '/icons/apple-touch-icon.png',

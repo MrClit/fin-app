@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Json } from '@/lib/supabase/database.types'
 
 /**
  * Observabilidad de errores (issue #200).
@@ -25,9 +26,30 @@ export type LogErrorParams = {
 // Límites defensivos: evitar que un stack o un context enormes inflen la tabla.
 const MAX_STACK = 8_000
 const MAX_MESSAGE = 2_000
+// `context` es JSONB arbitrario (puede venir de un endpoint público, issue #233):
+// se serializa y, si pasa del cap, se sustituye por un marcador en vez de
+// truncarlo (truncar JSON deja un objeto inválido).
+const MAX_CONTEXT_BYTES = 8_000
 
 function truncate(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value
+}
+
+function capContext(
+  context: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null {
+  if (!context) return null
+  try {
+    const json = JSON.stringify(context)
+    const bytes = Buffer.byteLength(json, 'utf8')
+    if (bytes > MAX_CONTEXT_BYTES) {
+      return { _truncated: true, _bytes: bytes }
+    }
+    return context
+  } catch {
+    // p. ej. referencias circulares: no perdemos la señal de que había context.
+    return { _unserializable: true }
+  }
 }
 
 export async function logError(params: LogErrorParams): Promise<void> {
@@ -38,7 +60,9 @@ export async function logError(params: LogErrorParams): Promise<void> {
       message: truncate(params.message, MAX_MESSAGE),
       stack: params.stack ? truncate(params.stack, MAX_STACK) : null,
       route: params.route ?? null,
-      context: params.context ?? null,
+      // `context` es jsonb arbitrario JSON-serializable (se stringifica en
+      // capContext); el tipo de columna generado es `Json`.
+      context: capContext(params.context) as Json,
       user_id: params.userId ?? null,
       household_id: params.householdId ?? null,
     })

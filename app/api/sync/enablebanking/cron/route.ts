@@ -63,16 +63,11 @@ export async function POST(req: Request) {
   }
 
   const rulesByHousehold = new Map<string, DbCategorizationRule[]>()
-  for (const row of rulesData ?? []) {
-    const householdId = (row as { household_id: string }).household_id
-    const rule: DbCategorizationRule = {
-      pattern: (row as { pattern: string }).pattern,
-      field: (row as { field: DbCategorizationRule['field'] }).field,
-      category_id: (row as { category_id: string }).category_id,
-    }
-    const list = rulesByHousehold.get(householdId)
+  for (const { household_id, pattern, field, category_id } of rulesData ?? []) {
+    const rule: DbCategorizationRule = { pattern, field, category_id }
+    const list = rulesByHousehold.get(household_id)
     if (list) list.push(rule)
-    else rulesByHousehold.set(householdId, [rule])
+    else rulesByHousehold.set(household_id, [rule])
   }
 
   let totalSynced = 0
@@ -153,7 +148,7 @@ export async function POST(req: Request) {
   // Aviso de caducidad PSD2 (≤7 días, issue #115). Se evalúa sobre todas las
   // cuentas (las críticas siguen siendo sincronizables) y se manda una sola vez
   // por ciclo de caducidad gracias a consent_reminder_sent_for.
-  const notified = await notifyExpiringConsents(db, accounts as NotifiableAccount[])
+  const notified = await notifyExpiringConsents(db, accounts)
 
   return NextResponse.json({
     synced: totalSynced,

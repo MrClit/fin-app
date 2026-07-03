@@ -1,20 +1,18 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getCurrentHouseholdId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getHouseholdId } from '@/lib/household'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 
 export async function POST(request: Request) {
-  // Auth: verify user via cookie client
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  // Auth: verify user via cookie client (memoizado por request, #236)
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -59,7 +57,7 @@ export async function POST(request: Request) {
   }
 
   const accounts = accountsResult.data
-  const dbRules: DbCategorizationRule[] = (rulesResult.data ?? []) as DbCategorizationRule[]
+  const dbRules: DbCategorizationRule[] = rulesResult.data ?? []
 
   if (!accounts || accounts.length === 0) {
     return NextResponse.json({ synced: 0, accounts: 0 })

@@ -1,11 +1,13 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getHouseholdId } from '@/lib/household'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { TransactionsClient } from '@/components/transactions/TransactionsClient'
 import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { buildNextCursor } from '@/lib/pagination'
-import type { TransactionWithAccount } from '@/types'
+import { narrowUnions } from '@/lib/supabase/rows'
+
+export const metadata: Metadata = { title: 'Movimientos' }
 
 const INITIAL_PAGE_SIZE = 200
 
@@ -27,12 +29,13 @@ async function TransactionsContent({
   searchParams: Promise<{ account?: string }>
 }) {
   const { account } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const householdId = await getHouseholdId(supabase, user.id)
+  const householdId = await getCurrentHouseholdId()
   if (!householdId) redirect('/login')
+
+  const supabase = await getRequestClient()
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
@@ -72,11 +75,11 @@ async function TransactionsContent({
     manualAccountId = created?.id
   }
 
-  const accountsList = accounts ?? []
+  const accountsList = (accounts ?? []).map(narrowUnions)
   const initialAccountIds =
     account && accountsList.some(a => a.id === account) ? [account] : []
 
-  const initialTransactions = (transactions ?? []) as TransactionWithAccount[]
+  const initialTransactions = (transactions ?? []).map(narrowUnions)
   const initialCursor = buildNextCursor(initialTransactions, INITIAL_PAGE_SIZE)
 
   return (
