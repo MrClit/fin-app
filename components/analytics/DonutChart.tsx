@@ -16,6 +16,8 @@ export interface DonutItem {
 
 interface DonutChartProps {
   items: DonutItem[]
+  /** Total mostrado en el centro. Es el neto del tipo (= KPI), no la suma de los arcos (#272). */
+  total: number
   selectedIdx: number | null
   accentColor: string
   onSelect: (idx: number | null) => void
@@ -31,9 +33,7 @@ const ICON_R = R + STROKE_W / 2 + 18
 
 const degToRad = (d: number) => (d * Math.PI) / 180
 
-export default function DonutChart({ items, selectedIdx, accentColor, onSelect }: DonutChartProps) {
-  const total = items.reduce((s, i) => s + i.amount, 0)
-
+export default function DonutChart({ items, total, selectedIdx, accentColor, onSelect }: DonutChartProps) {
   const segments = items.map((item, i) => {
     const startPct = items.slice(0, i).reduce((s, it) => s + it.pct, 0)
     const midDeg = -90 + (startPct + item.pct / 2) * 3.6

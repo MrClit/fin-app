@@ -197,7 +197,12 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (
-          <CategoryBreakdownSection byCategory={activeBar.byCategory} periodStart={activeBar.start} />
+          <CategoryBreakdownSection
+            byCategory={activeBar.byCategory}
+            income={activeBar.income}
+            expense={activeBar.expense}
+            periodStart={activeBar.start}
+          />
         )}
 
         {/* Savings card */}

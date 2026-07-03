@@ -4,10 +4,12 @@ import {
   getPeriodRange,
   getWindowPeriods,
   getYoYRange,
+  periodTotalsFromCategories,
   toISODate,
   yoyDelta,
   type PeriodRange,
 } from './analytics'
+import type { CategoryBreakdown } from '@/types'
 
 // NOW = jueves 21 mayo 2026, 12:00 local. Suficientemente lejos de bordes
 // (semana lun 18 — dom 24, Q2, año 2026) para los casos felices.
@@ -286,5 +288,53 @@ describe('PERIOD_LABELS', () => {
       quarter: 'Trimestre',
       year: 'Año',
     })
+  })
+})
+
+describe('periodTotalsFromCategories (#272)', () => {
+  const bc = (category: string | null, amount: number): CategoryBreakdown =>
+    ({ category, amount } as CategoryBreakdown)
+
+  it('caso normal: todo gasto con neto negativo → expense = Σ|net|', () => {
+    const { income, expense } = periodTotalsFromCategories([
+      bc('groceries', -100),
+      bc('restaurant', -50),
+    ])
+    expect(expense).toBe(150)
+    expect(income).toBe(0)
+  })
+
+  it('signos cruzados (caso Julio 2026): groceries con neto +18,55 RESTA del gasto', () => {
+    // KPI correcto = |Σ net| = |−189,12| = 189,12, NO Σ|net_cat| = 226,22.
+    const { expense } = periodTotalsFromCategories([
+      bc('community_fees', -65),
+      bc('beauty', -56),
+      bc('taxes', -36.67),
+      bc('sports', -25),
+      bc('groceries', 18.55), // reembolsos > compras
+      bc('charity', -18),
+      bc('clothing', -7),
+    ])
+    expect(expense).toBeCloseTo(189.12, 2)
+  })
+
+  it('cambio de tipo por category_manual: devolución neteada en categoría de ingresos resta del income', () => {
+    // payroll neto positivo, other_income con devolución neta negativa: income = 1000 − 100 = 900.
+    const { income, expense } = periodTotalsFromCategories([
+      bc('payroll', 1000),
+      bc('other_income', -100),
+    ])
+    expect(income).toBe(900)
+    expect(expense).toBe(0)
+  })
+
+  it('excluye category null y categorías fuera de CATEGORY_META', () => {
+    const { income, expense } = periodTotalsFromCategories([
+      bc(null, -999),
+      bc('__inexistente__', -999),
+      bc('groceries', -40),
+    ])
+    expect(expense).toBe(40)
+    expect(income).toBe(0)
   })
 })

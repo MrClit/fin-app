@@ -205,19 +205,27 @@ describe('GET /api/analytics — shape de la respuesta', () => {
 
   it('cada periodo tiene la forma documentada (label, fechas ISO, KPIs, byCategory, yoy*)', async () => {
     const { supabase } = buildSupabase({
+      // Los KPIs se derivan de `by_category` (#272), no de las columnas income/expense de la RPC:
+      // payroll (income) = 1000, groceries (expense) = |−750| = 750, savings = 250.
       rpc: rpcByPeriod(
         'month',
         {
-          income: 1000,
-          expense: 750,
-          savings: 250,
-          by_category: [{ category: 'groceries', amount: -200 }],
+          income: -1,
+          expense: -1,
+          savings: -1,
+          by_category: [
+            { category: 'payroll', amount: 1000 },
+            { category: 'groceries', amount: -750 },
+          ],
         },
         {
-          income: 800,
-          expense: 600,
-          savings: 200,
-          by_category: [{ category: 'groceries', amount: -150 }],
+          income: -1,
+          expense: -1,
+          savings: -1,
+          by_category: [
+            { category: 'payroll', amount: 800 },
+            { category: 'groceries', amount: -600 },
+          ],
         }
       ),
     })
@@ -240,7 +248,10 @@ describe('GET /api/analytics — shape de la respuesta', () => {
         yoyIncome: 800,
         yoyExpense: 600,
       })
-      expect(p.byCategory).toEqual([{ category: 'groceries', amount: -200 }])
+      expect(p.byCategory).toEqual([
+        { category: 'payroll', amount: 1000 },
+        { category: 'groceries', amount: -750 },
+      ])
     }
 
     // El último periodo de la ventana debe ser el mes actual (mayo 2026)
@@ -248,6 +259,36 @@ describe('GET /api/analytics — shape de la respuesta', () => {
     expect(last.start).toBe('2026-05-01')
     expect(last.end).toBe('2026-05-31')
     expect(last.label).toBe('May')
+  })
+
+  it('deriva expense NETO de by_category (signos cruzados), no Σ|net_cat| ni la columna cruda (#272)', async () => {
+    // Escenario tipo Julio 2026: groceries queda con neto positivo (reembolsos > compras).
+    // KPI correcto = |−100 + 30| = 70 (neto), NO 100 + 30 = 130 (Σ|net_cat|).
+    const { supabase } = buildSupabase({
+      rpc: rpcByPeriod(
+        'month',
+        {
+          income: 0,
+          expense: 999, // columna cruda ignorada a propósito
+          savings: 0,
+          by_category: [
+            { category: 'community_fees', amount: -100 },
+            { category: 'groceries', amount: 30 },
+          ],
+        },
+        null
+      ),
+    })
+    vi.mocked(createClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createClient>>
+    )
+
+    const res = await GET(req({ granularity: 'month' }))
+    const body = await res.json()
+    const last = body.periods.at(-1)
+    expect(last.expense).toBe(70)
+    expect(last.income).toBe(0)
+    expect(last.savings).toBe(-70)
   })
 
   it('llama a rpc("get_period_data", ...) dos veces por período (actual + YoY)', async () => {
@@ -314,8 +355,8 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
-        { income: 100, expense: 50, savings: 50, by_category: [] },
-        { income: 0, expense: 200, savings: -200, by_category: [] }
+        { income: 0, expense: 0, savings: 0, by_category: [{ category: 'payroll', amount: 100 }] },
+        { income: 0, expense: 0, savings: 0, by_category: [{ category: 'groceries', amount: -200 }] }
       ),
     })
     vi.mocked(createClient).mockResolvedValue(
@@ -331,20 +372,20 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
   })
 
   it('clasificación por categories.type (§13 nota 10): una devolución de nómina (amount=-1500, type=income) suma a income, no a expense', async () => {
-    // El RPC v2 (post-#63) clasifica por `categories.type`, no por signo del amount.
+    // La clasificación es por el TIPO de la categoría, no por el signo del amount.
     // Para una devolución de nómina (única transacción del período, amount=-1500,
-    // categoría con type='income') devuelve income=-1500 / expense=0 / savings=-1500
+    // categoría payroll con type='income') income=-1500 / expense=0 / savings=-1500
     // y by_category con el amount negativo preservado. Este test es el guardián
-    // del contrato: si el route o alguna capa intermedia reintrodujese lógica
-    // basada en el signo (income = solo amount > 0), aquí saltaría.
+    // del contrato: si alguna capa reintrodujese lógica basada en el signo
+    // (income = solo amount > 0), aquí saltaría.
     const { supabase } = buildSupabase({
       rpc: rpcByPeriod(
         'month',
         {
-          income: -1500,
+          income: 0,
           expense: 0,
-          savings: -1500,
-          by_category: [{ category: 'salary', amount: -1500 }],
+          savings: 0,
+          by_category: [{ category: 'payroll', amount: -1500 }],
         },
         null
       ),
@@ -360,7 +401,7 @@ describe('GET /api/analytics — comparativa YoY (§5.7)', () => {
       expect(p.income).toBe(-1500)
       expect(p.expense).toBe(0)
       expect(p.savings).toBe(-1500)
-      expect(p.byCategory).toEqual([{ category: 'salary', amount: -1500 }])
+      expect(p.byCategory).toEqual([{ category: 'payroll', amount: -1500 }])
     }
   })
 })
