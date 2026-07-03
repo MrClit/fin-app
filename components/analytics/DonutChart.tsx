@@ -33,14 +33,20 @@ const ICON_R = R + STROKE_W / 2 + 18
 
 const degToRad = (d: number) => (d * Math.PI) / 180
 
+// Redondea a 2 decimales para que los valores geométricos (posición de iconos, arcos)
+// sean deterministas: el navegador normaliza los estilos inline a pocos decimales, y con
+// precisión completa (Math.cos/sin) el HTML del servidor y el render del cliente no
+// coinciden → hydration mismatch. Redondear a la fuente evita el desajuste.
+const round2 = (n: number) => Math.round(n * 100) / 100
+
 export default function DonutChart({ items, total, selectedIdx, accentColor, onSelect }: DonutChartProps) {
   const segments = items.map((item, i) => {
     const startPct = items.slice(0, i).reduce((s, it) => s + it.pct, 0)
     const midDeg = -90 + (startPct + item.pct / 2) * 3.6
-    const offset = CIRC - (startPct / 100) * CIRC
-    const dash = (item.pct / 100) * CIRC
-    const ix = CX + ICON_R * Math.cos(degToRad(midDeg))
-    const iy = CY + ICON_R * Math.sin(degToRad(midDeg))
+    const offset = round2(CIRC - (startPct / 100) * CIRC)
+    const dash = round2((item.pct / 100) * CIRC)
+    const ix = round2(CX + ICON_R * Math.cos(degToRad(midDeg)))
+    const iy = round2(CY + ICON_R * Math.sin(degToRad(midDeg)))
     return { item, i, offset, dash, ix, iy }
   })
 
@@ -76,7 +82,7 @@ export default function DonutChart({ items, total, selectedIdx, accentColor, onS
               fill="none"
               stroke={item.color}
               strokeWidth={isSelected ? STROKE_W + 4 : STROKE_W}
-              strokeDasharray={`${dash} ${CIRC - dash}`}
+              strokeDasharray={`${dash} ${round2(CIRC - dash)}`}
               strokeDashoffset={offset}
               strokeLinecap="butt"
               transform={`rotate(-90 ${CX} ${CY})`}

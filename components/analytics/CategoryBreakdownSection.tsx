@@ -137,7 +137,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                     overflow: 'hidden',
                   }}>
                     <div style={{
-                      width: `${item.pct}%`, height: '100%',
+                      width: `${Math.round(item.pct * 100) / 100}%`, height: '100%',
                       background: item.color, borderRadius: 3,
                       transition: 'width 0.6s ease',
                     }} />
