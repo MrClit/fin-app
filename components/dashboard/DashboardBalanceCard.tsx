@@ -10,9 +10,11 @@ interface DashboardBalanceCardProps {
 export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: DashboardBalanceCardProps) {
   const isPositive = weeklyDelta >= 0
   const deltaSign = isPositive ? '+' : ''
-  // Pill colors matching prototype: green tint for positive, red tint for negative
-  const pillColor    = isPositive ? 'var(--positive)' : 'var(--negative)'
-  const pillBg       = isPositive ? 'var(--positive-subtle)' : 'var(--negative-subtle)'
+  // Paleta pastel del prototipo (emerald-200 / red-200): los tokens de signo saturados
+  // (--positive/--negative) no contrastan sobre el degradado morado de la tarjeta. Colores
+  // claros sobre el morado para que el pill se lea bien en ambos signos (#278).
+  const pillColor    = isPositive ? '#a7f3d0' : '#fecaca'
+  const pillBg       = isPositive ? 'rgba(167, 243, 208, 0.18)' : 'rgba(254, 202, 202, 0.18)'
   const deltaArrow   = isPositive ? '↑' : '↓'
 
   return (
