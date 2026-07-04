@@ -98,6 +98,7 @@ git checkout develop
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
+| `v0.7.0` | 2026-07-04 | Bloque-veredicto (ahorro + KPIs) en la cabecera de Análisis (#283). Fix: el proxy exime `/api/scrapers` del chequeo de sesión (#284). |
 | `v0.6.0` | 2026-07-03 | Clientes de Supabase tipados con `Database` generado y tipos de dominio derivados (#269, #268), período inicial de análisis resuelto en servidor (#235), título de pestaña por sección (#238). Seguridad: RLS de `household_members` restringida al owner (#234), endpoint público de error-log endurecido (#233), `setAll` protegido con try/catch (#237). Perf: dedupe de `getUser()`/`household_id` por request con `cache()` (#236). Fixes de analytics/dashboard: total gasto/ingreso unificado (#272), hydration del Donut (#276), contraste del pill semanal (#278). |
 | `v0.5.0` | 2026-06-30 | Avisos in-app de fallo de scrapers (#177). Fixes: login de Sabadell VISA y navegación post-login (#212), resolución determinista del owner del hogar en webhooks (#257), Edenred blur antes del click de login (#253). |
 | `v0.4.0` | 2026-06-20 | Cifras tabulares para todos los importes (#243), push al iPhone al fallar el scraper de Sabadell VISA (#213), versión de release en login + acceso solo con Google (#226). Seguridad: RLS en `categories` (#232) y retirada de la MV `transactions_monthly_summary` (#231). |
