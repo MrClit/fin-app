@@ -5,8 +5,7 @@ import type { AnalyticsResponse, Granularity } from '@/types'
 import { useAnalytics } from '@/contexts/AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import GranularityPicker from './GranularityPicker'
-import SavingsCard from './SavingsCard'
-import KpiCard from './KpiCard'
+import PeriodVerdict from './PeriodVerdict'
 import DualBarChart from './DualBarChart'
 import CategoryBreakdownSection from './CategoryBreakdownSection'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -134,30 +133,21 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
 
       {/* Content */}
       <div className="flex flex-col gap-3 px-4 py-3">
-        {/* KPI row */}
+        {/* Period verdict (ahorro + KPIs) */}
         {loading || !activeBar ? (
-          <CardSkeleton />
+          <CardSkeleton height={290} />
         ) : (
-          <div className="-mx-4 flex border-y border-border bg-secondary px-4 py-5">
-            <div className="flex-1 pr-4">
-              <KpiCard
-                type="income"
-                value={activeBar.income}
-                deltaVsPrev={deltaVsPrevIncome}
-                deltaVsYear={deltaVsYearIncome}
-                deltaRef={deltaRef}
-              />
-            </div>
-            <div className="flex-1 border-l border-border pl-4">
-              <KpiCard
-                type="expense"
-                value={activeBar.expense}
-                deltaVsPrev={deltaVsPrevExpense}
-                deltaVsYear={deltaVsYearExpense}
-                deltaRef={deltaRef}
-              />
-            </div>
-          </div>
+          <PeriodVerdict
+            income={activeBar.income}
+            expense={activeBar.expense}
+            savings={activeBar.savings}
+            granularity={granularity}
+            deltaVsPrevIncome={deltaVsPrevIncome}
+            deltaVsYearIncome={deltaVsYearIncome}
+            deltaVsPrevExpense={deltaVsPrevExpense}
+            deltaVsYearExpense={deltaVsYearExpense}
+            deltaRef={deltaRef}
+          />
         )}
 
         {/* Chart card */}
@@ -203,13 +193,6 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             expense={activeBar.expense}
             periodStart={activeBar.start}
           />
-        )}
-
-        {/* Savings card */}
-        {loading || !activeBar ? (
-          <CardSkeleton />
-        ) : (
-          <SavingsCard income={activeBar.income} savings={activeBar.savings} granularity={granularity} />
         )}
       </div>
 
