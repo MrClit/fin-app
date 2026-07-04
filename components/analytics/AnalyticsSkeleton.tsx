@@ -29,14 +29,12 @@ export function AnalyticsSkeleton() {
 
       {/* Content */}
       <div className="flex flex-col gap-3 px-4 py-3">
-        {/* KPI row */}
-        <CardSkeleton />
+        {/* Period verdict (ahorro + KPIs) */}
+        <CardSkeleton height={290} />
         {/* Chart card */}
         <CardSkeleton height={220} />
         {/* Category breakdown */}
         <CardSkeleton height={420} />
-        {/* Savings card */}
-        <CardSkeleton />
       </div>
     </div>
   )
