@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/api/edenred') ||
     pathname.startsWith('/api/sabadell-visa') ||
+    pathname.startsWith('/api/scrapers') ||
     pathname === '/api/sync/enablebanking/cron'
   ) {
     return NextResponse.next({ request })
