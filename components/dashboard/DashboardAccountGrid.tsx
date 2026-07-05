@@ -8,6 +8,7 @@ const typeLabel: Record<AccountType, string> = {
   card:     'Tarjeta',
   edenred:  'Edenred',
   cash:     'Efectivo',
+  savings:  'Ahorro',
 }
 
 function AccountCell({ account }: { account: Account }) {

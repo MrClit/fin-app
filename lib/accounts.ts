@@ -1,4 +1,4 @@
-import { Landmark, CreditCard, UtensilsCrossed, Banknote } from 'lucide-react'
+import { Landmark, CreditCard, UtensilsCrossed, Banknote, PiggyBank } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Account, AccountType } from '@/types'
 
@@ -12,6 +12,7 @@ export const accountTypeIcon: Record<AccountType, LucideIcon> = {
   card:    CreditCard,
   edenred: UtensilsCrossed,
   cash:    Banknote,
+  savings: PiggyBank,
 }
 
 /**
