@@ -28,7 +28,7 @@ import {
 import { parseAmount, parseDate } from '../sabadell-shared/parsers.mjs'
 import { createScraperInfra } from '../sabadell-shared/infra.mjs'
 import { createProfileLock } from '../sabadell-shared/lock.mjs'
-import { login } from '../sabadell-shared/session.mjs'
+import { login, dismissNotices } from '../sabadell-shared/session.mjs'
 import { navigateFromMenu } from '../sabadell-shared/navigation.mjs'
 import { DESCRIPTOR } from './descriptor.mjs'
 
@@ -159,6 +159,9 @@ async function main() {
     const page = context.pages()[0] ?? (await context.newPage())
 
     await login(page, { infra, cronMode: CRON_MODE, loginCommand: DESCRIPTOR.loginCommand, debug: DEBUG })
+    // Cierra avisos post-login (p.ej. "Tu DNI/TIE ha caducado") que bloquean la
+    // navegación hasta descartarlos.
+    await dismissNotices(page, { infra, debug: DEBUG })
 
     const cards = []
     for (const last4 of TARGET_CARD_LAST4) {

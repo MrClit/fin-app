@@ -20,6 +20,24 @@ export async function acceptCookies(page) {
   }
 }
 
+// Cierra los avisos informativos que Sabadell muestra tras el login (p.ej. "Tu
+// DNI/TIE ha caducado", BSO_WELCOME…). Son modales `.comp-modal` con un control
+// `.close` que SÓLO descarta el aviso; el botón de acción del pie ("Actualizar",
+// que navega a Onfido) NUNCA se toca. Puede haber varios encolados, así que se
+// cierran en bucle. Best-effort: si no hay ninguno, no hace nada. Debe llamarse
+// tras `login`, antes de navegar, porque el modal bloquea la interacción.
+export async function dismissNotices(page, { infra, debug = false, maxModals = 5 } = {}) {
+  for (let i = 0; i < maxModals; i++) {
+    // `:visible` descarta las plantillas de modal ocultas que Sabadell deja en el
+    // DOM; sólo actuamos sobre el aviso realmente mostrado.
+    const close = page.locator('.comp-modal .close:visible').first()
+    if (!(await close.isVisible().catch(() => false))) return
+    if (debug && infra) await infra.dump(page, `notice-${i}`)
+    await close.click().catch(() => {})
+    await page.waitForTimeout(600)
+  }
+}
+
 // Rellena el form y lo envía una vez. Devuelve:
 //   'ok'       login completado
 //   'otp'      el banco pide OTP (dispositivo no enrolado)
