@@ -30,7 +30,7 @@ import { createScraperInfra } from '../sabadell-shared/infra.mjs'
 import { createProfileLock } from '../sabadell-shared/lock.mjs'
 import { login, dismissNotices } from '../sabadell-shared/session.mjs'
 import { DESCRIPTOR } from './descriptor.mjs'
-import { SAVINGS_MENU_HREF, SAVINGS_TILE, SAVINGS_SELECTORS } from './config.mjs'
+import { SAVINGS_TILE, SAVINGS_SELECTORS } from './config.mjs'
 
 const CRON_MODE = process.env.SABADELL_CRON === '1'
 const DRY_RUN = process.env.SABADELL_DRY_RUN === '1'
@@ -51,53 +51,42 @@ async function gotoGlobalPosition(page) {
   if (done) await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 }
 
-// La sección de ahorro es un micro-frontend (iframe proteo4-mfe): al pulsar
-// "Ahorro e inversión" carga un shell y el tile del plan tarda ~12 s en aparecer
-// en el DOM principal. Por eso se espera con margen amplio (30 s). NO se usa
-// navigateFromMenu del shared: su fallback recarga la home de marketing (sin
-// doAction), un callejón sin salida; aquí el reset entre intentos es siempre la
-// posición global vía doAction.
-const MFE_TIMEOUT = 30000
+// Margen para la recarga que dispara el despliegue del tile (init → initInfo).
+const EXPAND_TIMEOUT = 30000
 
-// Abre la ficha de detalle del plan: posición global → "Ahorro e inversión" →
-// lista con el tile (MFE) → click del tile → ficha con movimientos.
+// Despliega el plan de ahorro y sus movimientos. El plan es un tile en la posición
+// global (PAGlobalPosition.init); al clicarlo, la posición global se recarga a
+// PAGlobalPosition.initInfo mostrando los movimientos inline. NO se pasa por el
+// menú "Ahorro e inversión" (es el catálogo de productos, sin el plan).
 async function openSavingsDetail(page) {
   const MAX_ATTEMPTS = 3
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    // 1. Reasienta la posición global clásica (nunca la home de marketing).
+    // 1. Posición global (doAction), donde vive el tile del plan.
     await gotoGlobalPosition(page)
 
-    // 2. Click en el enlace VISIBLE "Ahorro e inversión" (SVProductFinancing).
-    const menu = page.locator(SAVINGS_MENU_HREF).first()
-    if (!(await menu.count().catch(() => 0))) {
-      if (DEBUG) await infra.dump(page, `no-ahorro-menu-${attempt}`)
+    // 2. Espera el tile del plan en la posición global.
+    const tile = await page.locator(SAVINGS_TILE).first()
+      .waitFor({ state: 'attached', timeout: 20000 }).then(() => true).catch(() => false)
+    if (!tile) {
+      if (DEBUG) await infra.dump(page, `no-tile-${attempt}`)
       continue
     }
-    await menu.click().catch(() => {})
+    if (DEBUG) await infra.dump(page, 'savings-global')
 
-    // 3. Espera el tile del plan (lo pinta el MFE, con retardo).
-    const listed = await page.locator(SAVINGS_TILE).first()
-      .waitFor({ state: 'attached', timeout: MFE_TIMEOUT }).then(() => true).catch(() => false)
-    if (!listed) {
-      if (DEBUG) await infra.dump(page, `no-savings-tile-${attempt}`)
-      continue
-    }
-    if (DEBUG) await infra.dump(page, 'savings-list')
-
-    // 4. Click del tile → ficha con saldo y movimientos. Pequeña espera para que
-    //    el handler JS del tile (cursor:pointer, no es un <a>) quede enlazado.
+    // 3. Click del tile → despliega los movimientos (recarga a .initInfo). Pequeña
+    //    espera antes para que el handler JS del tile (cursor:pointer) quede enlazado.
     await page.waitForTimeout(1000)
     await page.locator(SAVINGS_TILE).first().click().catch(() => {})
     const loaded = await page.locator(SAVINGS_SELECTORS.movementsContainer).first()
-      .waitFor({ state: 'attached', timeout: MFE_TIMEOUT }).then(() => true).catch(() => false)
+      .waitFor({ state: 'attached', timeout: EXPAND_TIMEOUT }).then(() => true).catch(() => false)
     if (loaded) {
       if (DEBUG) await infra.dump(page, 'savings-detail')
       return
     }
-    // La ficha no cargó: reintenta reasentando la posición global.
+    // No desplegó: reintenta reasentando la posición global.
   }
   await infra.dump(page, 'no-savings-detail')
-  infra.die(4, 'No se pudo abrir la ficha del plan de ahorro (sección MFE de ahorro)')
+  infra.die(4, 'No se pudo desplegar el plan de ahorro en la posición global')
 }
 
 // Despliega el histórico completo pulsando "Ver más movimientos" mientras sea
