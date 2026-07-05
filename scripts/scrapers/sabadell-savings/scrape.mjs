@@ -22,14 +22,13 @@ import { chromium } from 'playwright'
 import { existsSync } from 'node:fs'
 
 import {
-  USER_DATA_DIR, SABADELL_HOME_URL,
+  USER_DATA_DIR,
   CHROME_CHANNEL, CHROME_ARGS, STEALTH_INIT_SCRIPT,
 } from '../sabadell-shared/config.mjs'
 import { parseAmount, parseSpanishDate } from '../sabadell-shared/parsers.mjs'
 import { createScraperInfra } from '../sabadell-shared/infra.mjs'
 import { createProfileLock } from '../sabadell-shared/lock.mjs'
 import { login, dismissNotices } from '../sabadell-shared/session.mjs'
-import { navigateFromMenu } from '../sabadell-shared/navigation.mjs'
 import { DESCRIPTOR } from './descriptor.mjs'
 import { SAVINGS_MENU_HREF, SAVINGS_TILE, SAVINGS_SELECTORS } from './config.mjs'
 
@@ -52,38 +51,53 @@ async function gotoGlobalPosition(page) {
   if (done) await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 }
 
-// Abre la ficha de detalle del plan: posición global → menú "Ahorro e inversión"
-// → lista con el tile → click del tile → ficha con movimientos. Reintenta el par
-// lista+click.
-async function openSavingsDetail(page) {
-  const MAX_ATTEMPTS = 2
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    // 1. Posición global → menú → lista "Mis planes de ahorro" (espera el tile).
-    await gotoGlobalPosition(page)
-    await navigateFromMenu(page, {
-      hrefPattern: SAVINGS_MENU_HREF,
-      readySelector: SAVINGS_TILE,
-      homeUrl: SABADELL_HOME_URL,
-      infra,
-      debug: DEBUG,
-      debugTag: 'savings-list',
-      failTag: 'no-savings-tile',
-      failMsg: 'No se encontró el plan de ahorro en la lista (#planSavingEntity)',
-    })
+// La sección de ahorro es un micro-frontend (iframe proteo4-mfe): al pulsar
+// "Ahorro e inversión" carga un shell y el tile del plan tarda ~12 s en aparecer
+// en el DOM principal. Por eso se espera con margen amplio (30 s). NO se usa
+// navigateFromMenu del shared: su fallback recarga la home de marketing (sin
+// doAction), un callejón sin salida; aquí el reset entre intentos es siempre la
+// posición global vía doAction.
+const MFE_TIMEOUT = 30000
 
-    // 2. Click del tile → ficha con saldo y movimientos.
+// Abre la ficha de detalle del plan: posición global → "Ahorro e inversión" →
+// lista con el tile (MFE) → click del tile → ficha con movimientos.
+async function openSavingsDetail(page) {
+  const MAX_ATTEMPTS = 3
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // 1. Reasienta la posición global clásica (nunca la home de marketing).
+    await gotoGlobalPosition(page)
+
+    // 2. Click en el enlace VISIBLE "Ahorro e inversión" (SVProductFinancing).
+    const menu = page.locator(SAVINGS_MENU_HREF).first()
+    if (!(await menu.count().catch(() => 0))) {
+      if (DEBUG) await infra.dump(page, `no-ahorro-menu-${attempt}`)
+      continue
+    }
+    await menu.click().catch(() => {})
+
+    // 3. Espera el tile del plan (lo pinta el MFE, con retardo).
+    const listed = await page.locator(SAVINGS_TILE).first()
+      .waitFor({ state: 'attached', timeout: MFE_TIMEOUT }).then(() => true).catch(() => false)
+    if (!listed) {
+      if (DEBUG) await infra.dump(page, `no-savings-tile-${attempt}`)
+      continue
+    }
+    if (DEBUG) await infra.dump(page, 'savings-list')
+
+    // 4. Click del tile → ficha con saldo y movimientos. Pequeña espera para que
+    //    el handler JS del tile (cursor:pointer, no es un <a>) quede enlazado.
+    await page.waitForTimeout(1000)
     await page.locator(SAVINGS_TILE).first().click().catch(() => {})
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
     const loaded = await page.locator(SAVINGS_SELECTORS.movementsContainer).first()
-      .waitFor({ state: 'attached', timeout: 12000 }).then(() => true).catch(() => false)
+      .waitFor({ state: 'attached', timeout: MFE_TIMEOUT }).then(() => true).catch(() => false)
     if (loaded) {
       if (DEBUG) await infra.dump(page, 'savings-detail')
       return
     }
-    // No cargó la ficha: reintentar desde el menú.
+    // La ficha no cargó: reintenta reasentando la posición global.
   }
   await infra.dump(page, 'no-savings-detail')
-  infra.die(4, 'No cargó la ficha del plan de ahorro con movimientos')
+  infra.die(4, 'No se pudo abrir la ficha del plan de ahorro (sección MFE de ahorro)')
 }
 
 // Despliega el histórico completo pulsando "Ver más movimientos" mientras sea
