@@ -26,7 +26,7 @@ import {
   STEALTH_INIT_SCRIPT,
   LOGIN_SELECTORS,
   isStorageStateValid,
-} from './config.mjs'
+} from '../sabadell-shared/config.mjs'
 
 const SNAPSHOT_INTERVAL_MS = 4000
 
