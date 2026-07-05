@@ -2,12 +2,14 @@
 // Fase 0 de #197. El login, el perfil y la anti-detección son comunes y viven en
 // ../sabadell-shared/config.mjs.
 
-// Navegación: desde la posición global, el enlace de menú "Ahorro e inversión"
-// (consulta de posiciones) lleva a la lista "Mis planes de ahorro", que contiene
-// el tile del plan. El deep-link directo está bloqueado por el WAF; se llega
-// clicando el enlace. El `key=` de la URL es de sesión, por eso se casa solo el
-// nombre estable de la acción.
-export const SAVINGS_MENU_HREF = 'a[href*="SVFinancingHeader.init.bs"]'
+// Navegación: desde la posición global (PAGlobalPosition), el enlace de menú
+// VISIBLE "Ahorro e inversión" lleva a la lista "Mis planes de ahorro", que
+// contiene el tile del plan. Ese enlace visible es SVProductFinancing; existe otro
+// "Ahorro e inversión" con href SVFinancingHeader pero está display:none en la
+// posición global (dentro de un td mostrarBSOP_OCULTARMENU) y NO se debe clicar.
+// El deep-link directo está bloqueado por el WAF; se llega clicando el enlace. El
+// `key=` de la URL es de sesión, por eso se casa solo el nombre estable de la acción.
+export const SAVINGS_MENU_HREF = 'a[href*="SVProductFinancing.init.bs"]'
 
 // Tile del plan en la lista; al clicarlo se abre la ficha con saldo y movimientos.
 export const SAVINGS_TILE = '#planSavingEntity'

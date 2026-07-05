@@ -40,12 +40,26 @@ const DEBUG = process.env.SABADELL_DEBUG === '1'
 const infra = createScraperInfra(DESCRIPTOR)
 const lock = createProfileLock()
 
-// Abre la ficha de detalle del plan: menú "Ahorro e inversión" → lista con el
-// tile → click del tile → ficha con movimientos. Reintenta el par lista+click.
+// Fuerza la posición global clásica (PAGlobalPosition), de donde cuelga el menú
+// "Ahorro e inversión". Se usa la propia función doAction de la página (POST del
+// formulario, tolerada por el WAF a diferencia del deep-link GET). Best-effort: si
+// no existe doAction (otra landing), no hace nada y navigateFromMenu lo intentará.
+async function gotoGlobalPosition(page) {
+  const done = await page.evaluate(() => {
+    if (typeof doAction === 'function') { doAction('PAGlobalPosition.init'); return true }
+    return false
+  }).catch(() => false)
+  if (done) await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+}
+
+// Abre la ficha de detalle del plan: posición global → menú "Ahorro e inversión"
+// → lista con el tile → click del tile → ficha con movimientos. Reintenta el par
+// lista+click.
 async function openSavingsDetail(page) {
   const MAX_ATTEMPTS = 2
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    // 1. Menú → lista "Mis planes de ahorro" (espera el tile del plan).
+    // 1. Posición global → menú → lista "Mis planes de ahorro" (espera el tile).
+    await gotoGlobalPosition(page)
     await navigateFromMenu(page, {
       hrefPattern: SAVINGS_MENU_HREF,
       readySelector: SAVINGS_TILE,
