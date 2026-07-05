@@ -31,6 +31,7 @@ import {
 const SOURCE_SECRET_ENV: Record<NotificationSource, string> = {
   edenred: 'EDENRED_WEBHOOK_SECRET',
   sabadell_visa: 'SABADELL_VISA_WEBHOOK_SECRET',
+  sabadell_savings: 'SABADELL_SAVINGS_WEBHOOK_SECRET',
 }
 
 export async function POST(req: Request) {
