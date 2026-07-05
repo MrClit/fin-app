@@ -1,4 +1,4 @@
-// Parsers del scraper de Sabadell.
+// Parsers comunes a los scrapers de Sabadell.
 //
 // A diferencia de Edenred (que muestra los importes/fechas sólo como texto en
 // español), las celdas de movimiento de Sabadell exponen el valor en formato

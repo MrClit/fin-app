@@ -1,12 +1,19 @@
-// Configuración compartida entre login.mjs y scrape.mjs.
-// Mantener selectores, rutas y opciones de navegador en un único sitio evita
-// que el script de login y el de scraping se desincronicen.
+// Configuración común a TODOS los scrapers de Banco Sabadell (visa, ahorro,
+// futura hipoteca…). Login, perfil de navegador y anti-detección son idénticos
+// entre productos: mantenerlos en un único sitio evita que los scripts se
+// desincronicen. Lo específico de cada producto (selectores/URLs de sus
+// movimientos, endpoint, secreto) vive en el descriptor de cada scraper.
 
 // Sesión Playwright de Sabadell. A diferencia de Edenred (storage-state suelto),
 // la banca online liga la sesión a un fingerprint de dispositivo, así que usamos
 // un PERFIL PERSISTENTE de Chrome (userDataDir): conserva cookies, localStorage e
 // indexedDB entre ejecuciones, que es lo que mantiene viva la sesión del banco.
 // El storage-state JSON se exporta sólo para validar/inspeccionar cookies.
+//
+// IMPORTANTE: el perfil vive físicamente en el directorio `sabadell-visa/` por
+// motivos históricos (fue el primer scraper). Es el ÚNICO dispositivo enrolado y
+// lo COMPARTEN todos los scrapers de Sabadell — moverlo obligaría a re-enrolar
+// con OTP. Por eso `pnpm scrape:sabadell-visa:login` enrola la sesión para todos.
 export const USER_DATA_DIR = 'scripts/scrapers/sabadell-visa/.userdata'
 export const LOCAL_STORAGE_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json'
 export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json.bak'
@@ -17,7 +24,7 @@ export const SABADELL_LOGIN_URL =
   process.env.SABADELL_LOGIN_URL || 'https://www.bancsabadell.com/bsnacional/es/particulares/login/'
 
 // Home logueado tras el login (sirve para detectar sesión válida y como punto
-// de partida para navegar a tarjetas).
+// de partida para navegar a tarjetas/cuentas).
 export const SABADELL_HOME_URL = 'https://www.bancsabadell.com/bsnacional/es/particulares/'
 
 // Selectores del formulario de login (DNI + PIN de 8 dígitos). El form visible lo
