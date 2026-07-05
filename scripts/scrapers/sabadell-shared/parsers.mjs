@@ -1,4 +1,4 @@
-// Parsers del scraper de Sabadell.
+// Parsers comunes a los scrapers de Sabadell.
 //
 // A diferencia de Edenred (que muestra los importes/fechas sólo como texto en
 // español), las celdas de movimiento de Sabadell exponen el valor en formato
@@ -30,4 +30,14 @@ export function parseDate(raw) {
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (!m) return null
   return `${m[1]}-${m[2]}-${m[3]}`
+}
+
+// "25/05/2026" (DD/MM/YYYY, formato español de las tablas del plan de ahorro, que
+// NO exponen `abbr`) → "2026-05-25". Devuelve null si no casa. Complementa a
+// `parseDate` (que cubre el ISO del `abbr` de las tarjetas).
+export function parseSpanishDate(raw) {
+  if (raw == null) return null
+  const m = String(raw).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!m) return null
+  return `${m[3]}-${m[2]}-${m[1]}`
 }

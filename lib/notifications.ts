@@ -13,7 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  */
 
 /** Scrapers que pueden emitir notificaciones. */
-export type NotificationSource = 'edenred' | 'sabadell_visa'
+export type NotificationSource = 'edenred' | 'sabadell_visa' | 'sabadell_savings'
 /**
  * Tipo de fallo. `session_expired`: sesión caducada; `2fa`: pide segundo factor;
  * `login_failed`: el login fue rechazado repetidamente sin pedir 2FA (posible
@@ -55,6 +55,20 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
     },
     login_failed: {
       title: 'Sabadell VISA: login fallido',
+      body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde o revisa las credenciales.',
+      url: '/accounts',
+    },
+  },
+  // El plan de ahorro comparte perfil y sesión con Sabadell VISA: el re-enrolado
+  // es el mismo comando (login compartido, ver scripts/scrapers/sabadell-shared).
+  sabadell_savings: {
+    session_expired: {
+      title: 'Sabadell Ahorro: sesión caducada',
+      body: 'Ejecuta «pnpm scrape:sabadell-visa:login» para re-enrolar el dispositivo.',
+      url: '/accounts',
+    },
+    login_failed: {
+      title: 'Sabadell Ahorro: login fallido',
       body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde o revisa las credenciales.',
       url: '/accounts',
     },
