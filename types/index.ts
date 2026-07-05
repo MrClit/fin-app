@@ -4,7 +4,7 @@
 // con una unión de negocio que la BD guarda como TEXT libre (`type`, `source`).
 import type { Tables } from '@/lib/supabase/database.types'
 
-export type AccountType = 'bank' | 'card' | 'edenred' | 'cash'
+export type AccountType = 'bank' | 'card' | 'edenred' | 'cash' | 'savings'
 export type DataSource = 'enablebanking' | 'scraper' | 'manual'
 
 // Derivados del catálogo único (lib/categories/catalog.ts) — issue #175.
