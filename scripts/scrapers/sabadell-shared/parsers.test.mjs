@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAmount, parseDate } from './parsers.mjs'
+import { parseAmount, parseDate, parseSpanishDate } from './parsers.mjs'
 
 describe('parseAmount', () => {
   it('parsea el valor máquina del atributo abbr (punto decimal)', () => {
@@ -46,5 +46,22 @@ describe('parseDate', () => {
     expect(parseDate('25/05/2026')).toBeNull()
     expect(parseDate('no es fecha')).toBeNull()
     expect(parseDate(null)).toBeNull()
+  })
+})
+
+describe('parseSpanishDate', () => {
+  it('convierte DD/MM/YYYY a ISO', () => {
+    expect(parseSpanishDate('25/05/2026')).toBe('2026-05-25')
+    expect(parseSpanishDate('01/07/2026')).toBe('2026-07-01')
+  })
+
+  it('ignora texto sobrante tras la fecha', () => {
+    expect(parseSpanishDate('30/06/2026 valor')).toBe('2026-06-30')
+  })
+
+  it('devuelve null ante formato no español', () => {
+    expect(parseSpanishDate('2026-05-25')).toBeNull()
+    expect(parseSpanishDate('no es fecha')).toBeNull()
+    expect(parseSpanishDate(null)).toBeNull()
   })
 })
