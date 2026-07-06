@@ -17,9 +17,11 @@ export type NotificationSource = 'edenred' | 'sabadell_visa' | 'sabadell_savings
 /**
  * Tipo de fallo. `session_expired`: sesión caducada; `2fa`: pide segundo factor;
  * `login_failed`: el login fue rechazado repetidamente sin pedir 2FA (posible
- * bloqueo blando anti-bot), distinto de una sesión caducada (#212).
+ * bloqueo blando anti-bot), distinto de una sesión caducada (#212);
+ * `scrape_failed`: el scraper entró bien pero no pudo traer datos — cambio del DOM
+ * del banco (exit 4) o error de webhook (exit 3), unificados en un único aviso (#295).
  */
-export type NotificationKind = 'session_expired' | '2fa' | 'login_failed'
+export type NotificationKind = 'session_expired' | '2fa' | 'login_failed' | 'scrape_failed'
 
 export interface NotificationContent {
   title: string
@@ -46,6 +48,11 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
       body: 'Ejecuta «pnpm scrape:edenred:login» para regenerar la sesión.',
       url: '/accounts',
     },
+    scrape_failed: {
+      title: 'Edenred: fallo de sincronización',
+      body: 'El scraper no pudo traer datos (cambio del banco o error de red). Revisa el estado con «pnpm cron:edenred:status».',
+      url: '/accounts',
+    },
   },
   sabadell_visa: {
     session_expired: {
@@ -56,6 +63,11 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
     login_failed: {
       title: 'Sabadell VISA: login fallido',
       body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde o revisa las credenciales.',
+      url: '/accounts',
+    },
+    scrape_failed: {
+      title: 'Sabadell VISA: fallo de sincronización',
+      body: 'El scraper no pudo traer datos (cambio del banco o error de red). Revisa el estado con «pnpm cron:sabadell-visa:status».',
       url: '/accounts',
     },
   },
@@ -70,6 +82,11 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
     login_failed: {
       title: 'Sabadell Ahorro: login fallido',
       body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde o revisa las credenciales.',
+      url: '/accounts',
+    },
+    scrape_failed: {
+      title: 'Sabadell Ahorro: fallo de sincronización',
+      body: 'El scraper no pudo traer datos (cambio del banco o error de red). Revisa el estado con «pnpm cron:sabadell-savings:status».',
       url: '/accounts',
     },
   },

@@ -31,5 +31,10 @@ export const DESCRIPTOR = {
       title: 'Sabadell VISA: login fallido',
       body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde.',
     },
+    // Fallo de scraping/webhook (exit 4/3): el banco cambió el DOM o el POST falló (#295).
+    scrape_failed: {
+      title: 'Sabadell VISA: fallo de sincronización',
+      body: 'El scraper no pudo traer datos. Revisa el estado con pnpm cron:sabadell-visa:status.',
+    },
   },
 }

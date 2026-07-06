@@ -40,7 +40,7 @@ const DEBUG = process.env.SABADELL_DEBUG === '1'
 // Configurable por si cambian. Las de débito (5402…) se ignoran.
 const TARGET_CARD_LAST4 = (process.env.SABADELL_CARDS || '4014,5011').split(',').map(s => s.trim())
 
-const infra = createScraperInfra(DESCRIPTOR)
+const infra = createScraperInfra(DESCRIPTOR, { cronMode: CRON_MODE })
 const lock = createProfileLock()
 
 // Navega a la lista de tarjetas (#cardAccountTable) clicando el enlace del menú
@@ -70,7 +70,7 @@ async function openCardMovements(page, last4) {
     if (!(await row.isVisible().catch(() => false))) {
       if (attempt < MAX_ATTEMPTS) { await gotoCardsList(page); continue }
       await infra.dump(page, `card-${last4}-no-row`)
-      infra.die(4, `No se encontró la fila de la tarjeta …${last4} en la lista`)
+      await infra.failScrape(4, `No se encontró la fila de la tarjeta …${last4} en la lista`)
     }
     await row.click().catch(() => {})
     // Botón de consulta de movimientos.
@@ -89,7 +89,7 @@ async function openCardMovements(page, last4) {
     // No cargaron: reintentar desde la lista de tarjetas.
     if (attempt < MAX_ATTEMPTS) { await gotoCardsList(page); continue }
     await infra.dump(page, `card-${last4}-no-movements`)
-    infra.die(4, `No cargaron los movimientos de la tarjeta …${last4}`)
+    await infra.failScrape(4, `No cargaron los movimientos de la tarjeta …${last4}`)
   }
 }
 
@@ -194,7 +194,9 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch(async err => {
   console.error('[sabadell-scrape] error inesperado:', err)
+  // Error inesperado = fallo de scraping (exit 4): avisa bajo cron antes de salir.
+  if (CRON_MODE) await infra.notifyExpired('scrape_failed')
   process.exit(4)
 })

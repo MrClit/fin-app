@@ -48,6 +48,17 @@ describe('resolveScraperNotification', () => {
       title: 'Sabadell VISA: login fallido',
       url: '/accounts',
     })
+    // scrape_failed (#295): fallo de scraping/webhook, en las 3 sources.
+    expect(resolveScraperNotification('edenred', 'scrape_failed')).toMatchObject({
+      title: 'Edenred: fallo de sincronización',
+      url: '/accounts',
+    })
+    expect(resolveScraperNotification('sabadell_visa', 'scrape_failed')?.title).toBe(
+      'Sabadell VISA: fallo de sincronización'
+    )
+    expect(resolveScraperNotification('sabadell_savings', 'scrape_failed')?.title).toBe(
+      'Sabadell Ahorro: fallo de sincronización'
+    )
   })
 
   it('devuelve null para source o kind no soportados', () => {
