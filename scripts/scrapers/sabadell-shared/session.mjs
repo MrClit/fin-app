@@ -87,7 +87,7 @@ export async function login(page, { infra, cronMode = false, loginCommand, debug
       // El campo no aparece: fallo estructural (front cambiado o banner de
       // cookies), no transitorio → no tiene sentido reintentar.
       await infra.dump(page, 'login-no-field')
-      infra.die(4, 'No apareció el campo de DNI en el login (¿cambió el front o el banner de cookies?)')
+      await infra.failScrape(4, 'No apareció el campo de DNI en el login (¿cambió el front o el banner de cookies?)')
     }
 
     if (result === 'ok') {

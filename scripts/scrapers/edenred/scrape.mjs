@@ -139,6 +139,27 @@ function notifySessionExpired() {
   } catch {}
 }
 
+// Aviso de fallo de scraping (exit 4) o de webhook (exit 3), unificados en un solo
+// aviso "el scraper falló" (#295). Dispara ambos canales —notificación nativa de
+// macOS + aviso in-app/push vía postScraperNotify— gateado por CRON_MODE (en manual
+// el error ya se ve por pantalla) y throttleado 1/día por notifyMarkerPath (mismo
+// marker que la sesión caducada: 1 aviso/día por Edenred). Best-effort: todo en
+// try/catch, nunca rompe el exit.
+async function notifyScrapeFailed() {
+  if (!CRON_MODE) return
+  if (existsSync(notifyMarkerPath())) return
+  try {
+    const title = 'Edenred: fallo de sincronización'
+    const message = 'El scraper no pudo traer datos. Revisa pnpm cron:edenred:status.'
+    execFileSync('osascript', [
+      '-e',
+      `display notification ${JSON.stringify(message)} with title ${JSON.stringify(title)}`,
+    ])
+  } catch {}
+  await postScraperNotify('scrape_failed')
+  try { closeSync(openSync(notifyMarkerPath(), 'a')) } catch {}
+}
+
 // Selectores capturados sobre empleados.edenred.es con el design system
 // "ore-*". Si Edenred refactoriza el front, revisar con:
 //   pnpm exec playwright codegen --load-storage=scripts/scrapers/edenred/storage-state.json https://empleados.edenred.es
@@ -266,6 +287,7 @@ async function extractBalance(page) {
   const el = page.locator(SELECTORS.balance).first()
   if (!(await el.isVisible().catch(() => false))) {
     await dumpFailure(page)
+    await notifyScrapeFailed()
     die(4, 'Saldo no encontrado en el DOM')
   }
   const text = (await el.textContent()) ?? ''
@@ -276,6 +298,7 @@ async function extractTransactions(page) {
   const rows = await page.locator(SELECTORS.transactionRow).all()
   if (rows.length === 0) {
     await dumpFailure(page)
+    await notifyScrapeFailed()
     die(4, 'No se encontró ninguna fila de transacciones')
   }
 
@@ -333,6 +356,7 @@ async function postToWebhook({ balance, transactions }) {
 
   if (res.status !== 200) {
     const text = await res.text().catch(() => '')
+    await notifyScrapeFailed()
     die(3, `Webhook respondió ${res.status}: ${text}`)
   }
 
@@ -395,8 +419,10 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  // process.exit ya disparado por die(); cualquier otro error es inesperado.
+main().catch(async err => {
+  // process.exit ya disparado por die(); cualquier otro error es inesperado
+  // (= fallo de scraping, exit 4): avisa bajo cron antes de salir.
   console.error('[edenred-scrape] error inesperado:', err)
+  await notifyScrapeFailed()
   process.exit(4)
 })

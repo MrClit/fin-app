@@ -24,7 +24,9 @@ const FAILURE_KEEP = 5
 // Crea el conjunto de helpers de infraestructura ligados a un scraper concreto.
 // El descriptor define la identidad; de `name` se derivan los prefijos de los
 // ficheros de estado en LOG_DIR (idénticos a los que ya usa sabadell-visa).
-export function createScraperInfra(descriptor) {
+// `cronMode` (segundo arg) habilita los avisos de fallo de scraping/webhook desde
+// `failScrape`; en ejecuciones manuales queda en false y no notifica (#295).
+export function createScraperInfra(descriptor, { cronMode = false } = {}) {
   const { name, logPrefix, notifySource, secretEnv, webhookPath, notifyText } = descriptor
 
   const MARKER_PREFIX = `${name}-last-success.`
@@ -119,6 +121,15 @@ export function createScraperInfra(descriptor) {
     process.exit(code)
   }
 
+  // Fallo de scraping (exit 4) o de webhook (exit 3): notifica bajo cron (macOS +
+  // in-app + push, reutilizando notifyExpired con su dedup 1/día y su try/catch) y
+  // luego sale con `code`. `notifyExpired` es best-effort y nunca lanza, así que el
+  // exit se preserva siempre (#295). Sin cron no notifica (ejecución manual).
+  async function failScrape(code, msg) {
+    if (cronMode) await notifyExpired('scrape_failed')
+    die(code, msg)
+  }
+
   function requireEnv(envName) {
     const v = process.env[envName]
     if (!v) die(1, `Falta env var: ${envName}`)
@@ -137,14 +148,14 @@ export function createScraperInfra(descriptor) {
     })
     if (res.status !== 200) {
       const text = await res.text().catch(() => '')
-      die(3, `Webhook respondió ${res.status}: ${text}`)
+      await failScrape(3, `Webhook respondió ${res.status}: ${text}`)
     }
     return res.json()
   }
 
   return {
     markerPath, notifyPath, writeMarker, notifyError, notifyExpired,
-    rotateFailures, dump, die, requireEnv, postToWebhook, log, logError,
+    rotateFailures, dump, die, failScrape, requireEnv, postToWebhook, log, logError,
     MARKER_PREFIX, NOTIFY_PREFIX, FAILURE_PREFIX,
   }
 }
