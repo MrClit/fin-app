@@ -165,7 +165,7 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json() as PushPayload;
   } catch {
-    payload = { title: "Finanzas", body: event.data.text(), url: "/" };
+    payload = { title: "Nummo", body: event.data.text(), url: "/" };
   }
 
   event.waitUntil(
