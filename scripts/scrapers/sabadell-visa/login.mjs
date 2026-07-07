@@ -61,9 +61,12 @@ async function tryAutofill(page) {
   // Tras enviar, ¿pide OTP o entra directo? Diagnóstico para decidir el modelo
   // de cron (device recordado vs OTP por login). No bloquea el guardado.
   await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {})
+  const deviceModal = await page.locator(LOGIN_SELECTORS.deviceModal).first().isVisible().catch(() => false)
   const otpVisible = await page.locator(LOGIN_SELECTORS.otp).first().isVisible().catch(() => false)
   const stillPwd = await page.locator(LOGIN_SELECTORS.pass).first().isVisible().catch(() => false)
-  if (otpVisible) {
+  if (deviceModal) {
+    console.log('[sabadell-login] >>> El banco pide CONFIRMAR DISPOSITIVO. Pulsa «Confirmar» en la ventana para re-enrolar (y firma en la app si lo solicita). (#286)')
+  } else if (otpVisible) {
     console.log('[sabadell-login] >>> El banco PIDE OTP. Complétalo en la ventana. (cron desatendido NO viable)')
   } else if (stillPwd) {
     console.log('[sabadell-login] >>> Sigue en login (¿credenciales incorrectas o error?).')

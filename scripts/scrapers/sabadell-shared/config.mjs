@@ -39,6 +39,22 @@ export const LOGIN_SELECTORS = {
   // Indicador de que aún se pide credencial (login no completado).
   passwordVisible: '#password',
   otp: 'input[name="otp"], input[autocomplete="one-time-code"], input[name*="sms" i], input[name*="codigo" i], input[id*="otp" i]',
+  // Modal "Confirmar dispositivo": paso de ENROLAMIENTO del dispositivo de
+  // confianza de la SCA (PSD2, Directiva UE 2015/2366). El banco lo muestra
+  // cuando deja de confiar en este navegador/perfil (caducidad del enrolamiento,
+  // cookie de confianza expirada o evento de seguridad — el TTL/cookie exactos se
+  // investigan en headed, ver login.mjs y #286). Vive dentro del lightbox SCA
+  // (`sca`) como el paso `#enrollment`. Confirmar re-enrola el dispositivo y
+  // persiste la confianza en el perfil, curando la causa raíz del fallo recurrente.
+  // OJO: su botón usa id="acceptButton", que NO es único (el paso de firma reusa
+  // el mismo id), por eso `deviceConfirm` se acota a `#enrollment`.
+  deviceModal: '#enrollment',
+  deviceConfirm: '#enrollment button.comp-button.primary',
+  deviceContinueWithout: '#enrollment a[href*="setEnrollmentValue(false)"]',
+  // Lightbox SCA que envuelve enrollment/firma. Tras pulsar Confirmar, si sigue
+  // visible es que el banco pide un segundo factor (firma en la app / OTP) que NO
+  // es automatizable desatendido → tratarlo como sesión caducada (re-enrolar).
+  sca: '#capaSCA',
 }
 
 // Anti-detección: la banca online detecta navegadores automatizados (el tell más
