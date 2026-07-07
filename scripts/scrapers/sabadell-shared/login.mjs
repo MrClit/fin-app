@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Sabadell VISA login — registro de dispositivo / regeneración de sesión.
+// Login COMPARTIDO de Sabadell — registro de dispositivo / regeneración de sesión.
+// Enrola el perfil de confianza que usan TODOS los scrapers Sabadell (VISA,
+// Ahorro, …): comparten perfil y sesión, que viven aquí en `sabadell-shared/`
+// (ver config.mjs: USER_DATA_DIR / LOCAL_STORAGE_PATH).
 //
 // Uso:
-//   pnpm scrape:sabadell-visa:login
+//   pnpm scrape:sabadell:login
 //
 // Requiere en .env.local: SABADELL_USER (DNI), SABADELL_PASS (PIN de 8 dígitos).
 //
@@ -14,7 +17,7 @@
 // para guardar.
 
 import { chromium } from 'playwright'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 
 import {
@@ -26,9 +29,12 @@ import {
   STEALTH_INIT_SCRIPT,
   LOGIN_SELECTORS,
   isStorageStateValid,
-} from '../sabadell-shared/config.mjs'
+} from './config.mjs'
 
 const SNAPSHOT_INTERVAL_MS = 4000
+// Los volcados de investigación (HTML de cada tick) van a una subcarpeta propia
+// para no mezclarlos con el código del módulo. Gitignored (ver .gitignore).
+const DUMP_DIR = 'scripts/scrapers/sabadell-shared/.dumps'
 
 function dumpStamp() {
   const d = new Date()
@@ -61,9 +67,12 @@ async function tryAutofill(page) {
   // Tras enviar, ¿pide OTP o entra directo? Diagnóstico para decidir el modelo
   // de cron (device recordado vs OTP por login). No bloquea el guardado.
   await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {})
+  const deviceModal = await page.locator(LOGIN_SELECTORS.deviceModal).first().isVisible().catch(() => false)
   const otpVisible = await page.locator(LOGIN_SELECTORS.otp).first().isVisible().catch(() => false)
   const stillPwd = await page.locator(LOGIN_SELECTORS.pass).first().isVisible().catch(() => false)
-  if (otpVisible) {
+  if (deviceModal) {
+    console.log('[sabadell-login] >>> El banco pide CONFIRMAR DISPOSITIVO. Pulsa «Confirmar» en la ventana para re-enrolar (y firma en la app si lo solicita). (#286)')
+  } else if (otpVisible) {
     console.log('[sabadell-login] >>> El banco PIDE OTP. Complétalo en la ventana. (cron desatendido NO viable)')
   } else if (stillPwd) {
     console.log('[sabadell-login] >>> Sigue en login (¿credenciales incorrectas o error?).')
@@ -73,6 +82,7 @@ async function tryAutofill(page) {
 }
 
 async function main() {
+  mkdirSync(DUMP_DIR, { recursive: true })
   const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
     headless: false,
     channel: CHROME_CHANNEL,
@@ -104,7 +114,7 @@ async function main() {
       const key = `${url}|${html.length}`
       if (key !== lastKey) {
         lastKey = key
-        await writeFile(`scripts/scrapers/sabadell-visa/.dump-${dumpStamp()}.local.html`, html)
+        await writeFile(`${DUMP_DIR}/${dumpStamp()}.local.html`, html)
         console.log(`[sabadell-login] snapshot (${url})`)
       }
       await context.storageState({ path: LOCAL_STORAGE_PATH, indexedDB: true })

@@ -57,7 +57,7 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
   sabadell_visa: {
     session_expired: {
       title: 'Sabadell VISA: sesión caducada',
-      body: 'Ejecuta «pnpm scrape:sabadell-visa:login» para re-enrolar el dispositivo.',
+      body: 'Ejecuta «pnpm scrape:sabadell:login» para re-enrolar el dispositivo.',
       url: '/accounts',
     },
     login_failed: {
@@ -76,7 +76,7 @@ const CATALOG: Record<NotificationSource, Partial<Record<NotificationKind, Notif
   sabadell_savings: {
     session_expired: {
       title: 'Sabadell Ahorro: sesión caducada',
-      body: 'Ejecuta «pnpm scrape:sabadell-visa:login» para re-enrolar el dispositivo.',
+      body: 'Ejecuta «pnpm scrape:sabadell:login» para re-enrolar el dispositivo.',
       url: '/accounts',
     },
     login_failed: {
