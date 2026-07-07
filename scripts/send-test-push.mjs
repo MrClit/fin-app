@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
 
 const [userId, ...rest] = process.argv.slice(2)
-const message = rest.join(' ') || 'Notificación de prueba de Finanzas.'
+const message = rest.join(' ') || 'Notificación de prueba de Nummo.'
 
 if (!userId) {
   console.error('Uso: node --env-file=.env.local scripts/send-test-push.mjs <user_id> [mensaje]')
@@ -59,7 +59,7 @@ if (!subs || subs.length === 0) {
 }
 
 const payload = JSON.stringify({
-  title: 'Finanzas — prueba',
+  title: 'Nummo — prueba',
   body: message,
   url: '/cuentas',
 })

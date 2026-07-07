@@ -26,6 +26,26 @@ function GoogleIcon() {
   )
 }
 
+// Monograma "Nummo": misma "N" geométrica que el icono PWA (ver
+// scripts/generate-icons.mjs), blanca sobre el cuadrado indigo #6366f1.
+function NummoMark() {
+  return (
+    <div className="mx-auto h-14 w-14 overflow-hidden rounded-2xl">
+      <svg viewBox="0 0 512 512" className="h-full w-full" aria-hidden="true">
+        <rect width="512" height="512" fill="#6366f1" />
+        <path
+          d="M 149.92 399.36 L 149.92 112.64 L 362.08 399.36 L 362.08 112.64"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="45.88"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   // Si el callback OAuth falla (p. ej. el usuario cancela en Google), vuelve
@@ -66,7 +86,8 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-white">Finanzas</h1>
+          <NummoMark />
+          <h1 className="mt-4 text-2xl font-semibold text-white">Nummo</h1>
           <p className="mt-1 text-sm text-neutral-400">Gestión financiera personal</p>
         </div>
 
