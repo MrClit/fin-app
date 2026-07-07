@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Login COMPARTIDO de Sabadell — registro de dispositivo / regeneración de sesión.
 // Enrola el perfil de confianza que usan TODOS los scrapers Sabadell (VISA,
-// Ahorro, …): comparten perfil y sesión. Vive en el directorio `sabadell-visa/`
-// por motivos históricos, junto al perfil persistente (ver sabadell-shared/config).
+// Ahorro, …): comparten perfil y sesión, que viven aquí en `sabadell-shared/`
+// (ver config.mjs: USER_DATA_DIR / LOCAL_STORAGE_PATH).
 //
 // Uso:
 //   pnpm scrape:sabadell:login
@@ -17,7 +17,7 @@
 // para guardar.
 
 import { chromium } from 'playwright'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 
 import {
@@ -29,9 +29,12 @@ import {
   STEALTH_INIT_SCRIPT,
   LOGIN_SELECTORS,
   isStorageStateValid,
-} from '../sabadell-shared/config.mjs'
+} from './config.mjs'
 
 const SNAPSHOT_INTERVAL_MS = 4000
+// Los volcados de investigación (HTML de cada tick) van a una subcarpeta propia
+// para no mezclarlos con el código del módulo. Gitignored (ver .gitignore).
+const DUMP_DIR = 'scripts/scrapers/sabadell-shared/.dumps'
 
 function dumpStamp() {
   const d = new Date()
@@ -79,6 +82,7 @@ async function tryAutofill(page) {
 }
 
 async function main() {
+  mkdirSync(DUMP_DIR, { recursive: true })
   const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
     headless: false,
     channel: CHROME_CHANNEL,
@@ -110,7 +114,7 @@ async function main() {
       const key = `${url}|${html.length}`
       if (key !== lastKey) {
         lastKey = key
-        await writeFile(`scripts/scrapers/sabadell-visa/.dump-${dumpStamp()}.local.html`, html)
+        await writeFile(`${DUMP_DIR}/${dumpStamp()}.local.html`, html)
         console.log(`[sabadell-login] snapshot (${url})`)
       }
       await context.storageState({ path: LOCAL_STORAGE_PATH, indexedDB: true })

@@ -10,13 +10,14 @@
 // indexedDB entre ejecuciones, que es lo que mantiene viva la sesión del banco.
 // El storage-state JSON se exporta sólo para validar/inspeccionar cookies.
 //
-// IMPORTANTE: el perfil vive físicamente en el directorio `sabadell-visa/` por
-// motivos históricos (fue el primer scraper). Es el ÚNICO dispositivo enrolado y
-// lo COMPARTEN todos los scrapers de Sabadell — moverlo obligaría a re-enrolar
-// con OTP. Por eso `pnpm scrape:sabadell:login` enrola la sesión para todos.
-export const USER_DATA_DIR = 'scripts/scrapers/sabadell-visa/.userdata'
-export const LOCAL_STORAGE_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json'
-export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json.bak'
+// El perfil vive en `sabadell-shared/` porque es el ÚNICO dispositivo enrolado y
+// lo COMPARTEN todos los scrapers de Sabadell. Por eso `pnpm scrape:sabadell:login`
+// enrola la sesión para todos. La confianza del dispositivo vive DENTRO de estos
+// ficheros (cookies/localStorage/indexedDB), así que se puede mover con el perfil
+// sin re-enrolar; solo un perfil vacío nuevo obligaría a re-enrolar con OTP.
+export const USER_DATA_DIR = 'scripts/scrapers/sabadell-shared/.userdata'
+export const LOCAL_STORAGE_PATH = 'scripts/scrapers/sabadell-shared/storage-state.json'
+export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/sabadell-shared/storage-state.json.bak'
 
 // URL de la página de login de BS Online particulares. Configurable por si
 // cambia. Se puede sobreescribir con SABADELL_LOGIN_URL en .env.local.
