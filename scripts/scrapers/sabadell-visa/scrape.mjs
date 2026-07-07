@@ -15,7 +15,7 @@
 //   SABADELL_DEBUG=1     vuelca DOM en cada paso a ~/Library/Logs/fin-app
 //
 // Exit codes:
-//   0 éxito · 1 falta config · 2 sesión/OTP (re-enrolar con scrape:sabadell-visa:login)
+//   0 éxito · 1 falta config · 2 sesión/OTP (re-enrolar con scrape:sabadell:login)
 //   3 error webhook · 4 error de scraping (navegación/selectores)
 
 import { chromium } from 'playwright'
@@ -139,7 +139,7 @@ async function main() {
     return
   }
   if (!existsSync(USER_DATA_DIR)) {
-    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell-visa:login')
+    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell:login')
   }
 
   // Serializa con otros scrapers Sabadell que comparten el perfil de Chrome.

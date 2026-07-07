@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Sabadell VISA login — registro de dispositivo / regeneración de sesión.
+// Login COMPARTIDO de Sabadell — registro de dispositivo / regeneración de sesión.
+// Enrola el perfil de confianza que usan TODOS los scrapers Sabadell (VISA,
+// Ahorro, …): comparten perfil y sesión. Vive en el directorio `sabadell-visa/`
+// por motivos históricos, junto al perfil persistente (ver sabadell-shared/config).
 //
 // Uso:
-//   pnpm scrape:sabadell-visa:login
+//   pnpm scrape:sabadell:login
 //
 // Requiere en .env.local: SABADELL_USER (DNI), SABADELL_PASS (PIN de 8 dígitos).
 //

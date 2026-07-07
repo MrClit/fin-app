@@ -12,7 +12,7 @@
 //   SABADELL_DRY_RUN=1   no hace POST; imprime el payload
 //   SABADELL_DEBUG=1     vuelca DOM en cada paso a ~/Library/Logs/fin-app
 //
-// El enrolado (login con OTP) es compartido: pnpm scrape:sabadell-visa:login
+// El enrolado (login con OTP) es compartido: pnpm scrape:sabadell:login
 //
 // Exit codes:
 //   0 éxito · 1 falta config/perfil · 2 sesión/OTP · 3 error webhook
@@ -123,7 +123,7 @@ async function main() {
     return
   }
   if (!existsSync(USER_DATA_DIR)) {
-    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell-visa:login')
+    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell:login')
   }
 
   // Serializa con la VISA (comparten el perfil de Chrome).

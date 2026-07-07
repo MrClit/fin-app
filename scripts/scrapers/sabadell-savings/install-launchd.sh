@@ -9,7 +9,7 @@
 # (sabadell-shared/lock.mjs) serializa por si aún se solaparan.
 #
 # IMPORTANTE: corre HEADED (Sabadell bloquea Chrome headless vía WAF). El enrolado
-# del dispositivo es COMPARTIDO con la VISA: `pnpm scrape:sabadell-visa:login`
+# del dispositivo es COMPARTIDO con la VISA: `pnpm scrape:sabadell:login`
 # (una sola vez). No hay login propio de este scraper.
 #
 # Uso:

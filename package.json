@@ -20,7 +20,7 @@
     "cron:edenred:status": "node scripts/scrapers/edenred/status.mjs",
     "scrape:sabadell-visa": "node --env-file-if-exists=.env.scrapers scripts/scrapers/sabadell-visa/scrape.mjs",
     "scrape:sabadell-visa:force": "SABADELL_SKIP_MARKER=1 pnpm scrape:sabadell-visa",
-    "scrape:sabadell-visa:login": "node --env-file-if-exists=.env.scrapers scripts/scrapers/sabadell-visa/login.mjs",
+    "scrape:sabadell:login": "node --env-file-if-exists=.env.scrapers scripts/scrapers/sabadell-visa/login.mjs",
     "cron:sabadell-visa:status": "node scripts/scrapers/sabadell-visa/status.mjs",
     "scrape:sabadell-savings": "node --env-file-if-exists=.env.scrapers scripts/scrapers/sabadell-savings/scrape.mjs",
     "scrape:sabadell-savings:force": "SABADELL_SKIP_MARKER=1 pnpm scrape:sabadell-savings",

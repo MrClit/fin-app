@@ -17,7 +17,7 @@ export const DESCRIPTOR = {
   // Ruta del webhook de datos al que se hace POST del payload.
   webhookPath: '/api/sabadell-visa',
   // Comando de re-enrolado que se sugiere ante OTP.
-  loginCommand: 'pnpm scrape:sabadell-visa:login',
+  loginCommand: 'pnpm scrape:sabadell:login',
   // Agente launchd y basename de sus logs (usados por el status).
   agentLabel: 'com.fin-app.sabadell-visa-scraper',
   logBasename: 'sabadell-visa-scraper',
@@ -25,7 +25,7 @@ export const DESCRIPTOR = {
   notifyText: {
     session_expired: {
       title: 'Sabadell VISA: sesión caducada',
-      body: 'Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.',
+      body: 'Ejecuta pnpm scrape:sabadell:login para re-enrolar el dispositivo.',
     },
     login_failed: {
       title: 'Sabadell VISA: login fallido',

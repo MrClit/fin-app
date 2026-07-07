@@ -8,7 +8,7 @@
 #
 # IMPORTANTE: el scraper corre HEADED (Sabadell bloquea Chrome headless vía WAF),
 # así que el agente abre una ventana de Chrome en la sesión gráfica del usuario.
-# Requisito previo (una vez): `pnpm scrape:sabadell-visa:login` para enrolar el
+# Requisito previo (una vez): `pnpm scrape:sabadell:login` para enrolar el
 # dispositivo de confianza (login con OTP). Luego el cron entra solo (DNI+PIN).
 #
 # Uso:

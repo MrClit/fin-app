@@ -13,7 +13,7 @@
 // IMPORTANTE: el perfil vive físicamente en el directorio `sabadell-visa/` por
 // motivos históricos (fue el primer scraper). Es el ÚNICO dispositivo enrolado y
 // lo COMPARTEN todos los scrapers de Sabadell — moverlo obligaría a re-enrolar
-// con OTP. Por eso `pnpm scrape:sabadell-visa:login` enrola la sesión para todos.
+// con OTP. Por eso `pnpm scrape:sabadell:login` enrola la sesión para todos.
 export const USER_DATA_DIR = 'scripts/scrapers/sabadell-visa/.userdata'
 export const LOCAL_STORAGE_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json'
 export const LOCAL_STORAGE_BACKUP_PATH = 'scripts/scrapers/sabadell-visa/storage-state.json.bak'
