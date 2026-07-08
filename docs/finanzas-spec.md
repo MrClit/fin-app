@@ -440,16 +440,18 @@ APP_URL=                        # URL de producción en Vercel
 
 ```
 launchd (StartCalendarInterval: 07:00 hora local)
-  └── pnpm scrape:edenred (Playwright headless, sesión en scripts/scrapers/edenred/storage-state.json)
-        ├── Carga storage-state.json y entra en edenred.es
-        ├── Extrae saldo actual y últimos movimientos
-        └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
-              └── Next.js guarda en transactions con source='scraper'
-                  (RECARGA → category='income', consumos → category='restaurant')
-                  y actualiza balance en accounts
+  └── cron-wrapper.sh (#256: worktree ~/Projects/fin-app-cron fijado a origin/main;
+      │                 lo actualiza best-effort antes de cada run)
+      └── pnpm scrape:edenred (Playwright headless, sesión en scripts/scrapers/edenred/storage-state.json)
+            ├── Carga storage-state.json y entra en edenred.es
+            ├── Extrae saldo actual y últimos movimientos
+            └── POST a /api/edenred con Authorization: Bearer {EDENRED_WEBHOOK_SECRET}
+                  └── Next.js guarda en transactions con source='scraper'
+                      (RECARGA → category='income', consumos → category='restaurant')
+                      y actualiza balance en accounts
 ```
 
-El agente se instala con `./scripts/scrapers/edenred/install-launchd.sh` y se desinstala con la misma orden + `--uninstall`. Si la sesión caduca, el script sale con exit code 2 y se regenera con `pnpm scrape:edenred:login`.
+Los agentes launchd (Edenred y los dos Sabadell) no ejecutan la carpeta de desarrollo sino un **git worktree dedicado fijado a `origin/main`** (#256), alineado con lo desplegado en Vercel e independiente de la rama activa en desarrollo. El worktree se crea con `./scripts/scrapers/setup-cron-worktree.sh` (symlinks a secretos/sesiones incluidos) y cada agente se instala con `./scripts/scrapers/<scraper>/install-launchd.sh` (con `--dev` ejecuta el checkout de desarrollo como antes; `--uninstall` desinstala). Si la sesión caduca, el scraper sale con exit code 2 y se regenera con `pnpm scrape:edenred:login` desde la carpeta de desarrollo.
 
 **Variables en `.env.scrapers` del Mac** (fichero de producción de scrapers, separado de
 `.env.local` que es solo para la app de desarrollo — issue #201):

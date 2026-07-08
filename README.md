@@ -22,7 +22,7 @@ El scraper de Edenred (`scripts/scrapers/edenred/scrape.mjs`) se ejecuta **cada 
 
 ### Instalar el cron
 
-Desde la raíz del proyecto:
+Desde la raíz del proyecto (requiere el [worktree de cron](#worktree-de-cron-fijado-a-main-256) ya creado):
 
 ```bash
 ./scripts/scrapers/edenred/install-launchd.sh
@@ -30,7 +30,7 @@ Desde la raíz del proyecto:
 
 El script:
 
-1. Genera `~/Library/LaunchAgents/com.fin-app.edenred-scraper.plist` apuntando al directorio actual del proyecto y al `pnpm` que tenga tu shell en el `PATH`.
+1. Genera `~/Library/LaunchAgents/com.fin-app.edenred-scraper.plist` apuntando al worktree de cron fijado a `origin/main` (con `--dev`, al checkout de desarrollo y su rama activa, como antes de #256) y al `pnpm` que tenga tu shell en el `PATH`.
 2. Lo registra con `launchctl load`. Se ejecuta en varios slots diarios (07, 10, 13, 16, 19, 22 hora local) y, gracias a `RunAtLoad`, también intenta un scrape **inmediato** al instalar el agente o al reiniciar el Mac — así ves el resultado en segundos sin esperar al siguiente slot. El marker diario (`~/Library/Logs/fin-app/edenred-last-success.YYYY-MM-DD`) evita que se ejecute dos veces el mismo día.
 3. Crea `~/Library/Logs/fin-app/` para los logs (`edenred-scraper.out.log` y `edenred-scraper.err.log`).
 
@@ -75,6 +75,28 @@ pnpm scrape:edenred:login   # abre Chromium, completas 2FA, ENTER al final
 ```bash
 ./scripts/scrapers/edenred/install-launchd.sh --uninstall
 ```
+
+## Worktree de cron fijado a `main` (#256)
+
+Los agentes launchd de los tres scrapers (Edenred, Sabadell VISA, Sabadell Ahorro) **no ejecutan la carpeta de desarrollo** sino un git worktree dedicado en `~/Projects/fin-app-cron`, fijado a `origin/main` — la misma versión desplegada en Vercel. Así el cron nunca corre código a medio hacer de una rama `develop`/`feature/*`, y las ejecuciones manuales (`pnpm scrape:*` desde la carpeta de desarrollo) siguen usando la rama activa, útil para probar cambios antes de release.
+
+### Cómo funciona
+
+Cada plist lanza `scripts/scrapers/cron-wrapper.sh <script>` dentro del worktree. El wrapper hace `git fetch` y, solo si hay una release nueva, `git reset --hard origin/main` + `pnpm install --frozen-lockfile` + `pnpm exec playwright install chromium`; después ejecuta el scraper con `exec`, así su exit code (1 config / 2 sesión caducada / 3 webhook / 4 fallo de scraping — #295) llega intacto a launchd y las notificaciones no se ven afectadas. El update es **best-effort**: sin red, avisa en el `err.log` y ejecuta la copia actual (siempre una release completa). Un lock en `.cron-update.lock/` evita que los tres agentes actualicen a la vez tras un reboot (`RunAtLoad`).
+
+Los ficheros gitignored que necesitan los scrapers son **symlinks hacia el checkout de desarrollo**, que es la única fuente de verdad: `.env.scrapers`, `scripts/scrapers/edenred/storage-state.json(.bak)`, `scripts/scrapers/sabadell-shared/storage-state.json(.bak)` y `scripts/scrapers/sabadell-shared/.userdata/`. Por eso los logins (`pnpm scrape:edenred:login`, `pnpm scrape:sabadell:login`) se siguen ejecutando **desde la carpeta de desarrollo**, como siempre, y el worktree ve la sesión nueva automáticamente. `git reset --hard` no toca lo gitignored, así que nunca pisa secretos ni sesiones (no usar `git clean` en el worktree).
+
+### Crear (o recrear) el setup
+
+```bash
+./scripts/scrapers/setup-cron-worktree.sh
+```
+
+Idempotente: crea el worktree (o lo resetea a `origin/main`), instala dependencias (pnpm comparte el store global, apenas ocupa disco), crea los symlinks y reconfigura los tres agentes launchd con los instaladores del propio worktree. La ruta es configurable con `FIN_APP_CRON_WORKTREE` (default `~/Projects/fin-app-cron`).
+
+> **Rollout inicial:** el worktree ejecuta lo que hay en `origin/main`, así que este setup solo funciona a partir de la release que incluya #256. Si se ejecuta antes, el script prepara el worktree pero avisa y deja los agentes actuales intactos; re-ejecutarlo tras la release.
+
+Para volver temporalmente al modo antiguo (el cron ejecuta el checkout de desarrollo): `./scripts/scrapers/<scraper>/install-launchd.sh --dev`. Reinstalar sin flag vuelve al modo pinned.
 
 ## Cron de Enable Banking
 
