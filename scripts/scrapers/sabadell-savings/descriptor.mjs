@@ -10,17 +10,22 @@ export const DESCRIPTOR = {
   secretEnv: 'SABADELL_SAVINGS_WEBHOOK_SECRET',
   webhookPath: '/api/sabadell-savings',
   // El login/enrolado es compartido: se hace con el comando de la VISA.
-  loginCommand: 'pnpm scrape:sabadell-visa:login',
+  loginCommand: 'pnpm scrape:sabadell:login',
   agentLabel: 'com.fin-app.sabadell-savings-scraper',
   logBasename: 'sabadell-savings-scraper',
   notifyText: {
     session_expired: {
       title: 'Sabadell Ahorro: sesión caducada',
-      body: 'Ejecuta pnpm scrape:sabadell-visa:login para re-enrolar el dispositivo.',
+      body: 'Ejecuta pnpm scrape:sabadell:login para re-enrolar el dispositivo.',
     },
     login_failed: {
       title: 'Sabadell Ahorro: login fallido',
       body: 'El acceso fue rechazado varias veces (posible bloqueo temporal). Reintenta más tarde.',
+    },
+    // Fallo de scraping/webhook (exit 4/3): el banco cambió el DOM o el POST falló (#295).
+    scrape_failed: {
+      title: 'Sabadell Ahorro: fallo de sincronización',
+      body: 'El scraper no pudo traer datos. Revisa el estado con pnpm cron:sabadell-savings:status.',
     },
   },
 }

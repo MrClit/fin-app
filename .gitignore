@@ -47,11 +47,14 @@ next-env.d.ts
 scripts/scrapers/edenred/storage-state.json
 scripts/scrapers/edenred/storage-state.json.*
 
-# sabadell-visa scraper — sesión/perfil Playwright y volcados de investigación
-scripts/scrapers/sabadell-visa/storage-state.json
-scripts/scrapers/sabadell-visa/storage-state.json.*
-scripts/scrapers/sabadell-visa/.userdata/
-scripts/scrapers/sabadell-visa/*.local.*
+# cron de scrapers — lock de la fase de update en el worktree pinned (#256)
+.cron-update.lock/
+
+# sabadell scraper — sesión/perfil Playwright COMPARTIDO y volcados de investigación
+scripts/scrapers/sabadell-shared/storage-state.json
+scripts/scrapers/sabadell-shared/storage-state.json.*
+scripts/scrapers/sabadell-shared/.userdata/
+scripts/scrapers/sabadell-shared/.dumps/
 
 # serwist — service worker generado en build
 public/sw.js

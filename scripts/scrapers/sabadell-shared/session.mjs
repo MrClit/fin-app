@@ -38,11 +38,40 @@ export async function dismissNotices(page, { infra, debug = false, maxModals = 5
   }
 }
 
+// Clasifica el estado del login a partir de señales del DOM ya leídas. Pura (sin
+// Playwright) y por tanto testeable de forma aislada. Precedencia:
+//   'device_confirmation'  modal "Confirmar dispositivo" (enrolamiento SCA, #286).
+//                          Va PRIMERO: cuando aparece, el lightbox SCA reemplaza al
+//                          form (a veces #password ya no está) y es la acción real.
+//   'otp'                  el banco pide OTP/segundo factor (dispositivo no enrolado)
+//   'retry'                seguimos en el form de password (login no completado)
+//   'ok'                   login completado
+export function classifyLoginState({ otpVisible, deviceModalVisible, passwordVisible }) {
+  if (deviceModalVisible) return 'device_confirmation'
+  if (otpVisible) return 'otp'
+  if (passwordVisible) return 'retry'
+  return 'ok'
+}
+
+// Lee del DOM las señales de estado del login y las clasifica. Compartido por
+// `attemptLogin` (tras enviar credenciales) y por la re-evaluación posterior a
+// pulsar "Confirmar". `.first()` + catch para tolerar selectores ausentes.
+async function readLoginState(page) {
+  const isVisible = sel => page.locator(sel).first().isVisible().catch(() => false)
+  const [otpVisible, deviceModalVisible, passwordVisible] = await Promise.all([
+    isVisible(LOGIN_SELECTORS.otp),
+    isVisible(LOGIN_SELECTORS.deviceModal),
+    isVisible(LOGIN_SELECTORS.pass),
+  ])
+  return classifyLoginState({ otpVisible, deviceModalVisible, passwordVisible })
+}
+
 // Rellena el form y lo envía una vez. Devuelve:
-//   'ok'       login completado
-//   'otp'      el banco pide OTP (dispositivo no enrolado)
-//   'retry'    seguimos en el form de password (login no completado, transitorio)
-//   'no-field' el campo de DNI no apareció (fallo estructural, no transitorio)
+//   'ok'                  login completado
+//   'otp'                 el banco pide OTP (dispositivo no enrolado)
+//   'device_confirmation' modal "Confirmar dispositivo" (re-enrolamiento SCA, #286)
+//   'retry'               seguimos en el form de password (login no completado, transitorio)
+//   'no-field'            el campo de DNI no apareció (fallo estructural, no transitorio)
 export async function attemptLogin(page, user, pass) {
   await page.goto(SABADELL_LOGIN_URL, { waitUntil: 'domcontentloaded' })
   await acceptCookies(page)
@@ -68,9 +97,7 @@ export async function attemptLogin(page, user, pass) {
   await page.locator(LOGIN_SELECTORS.submit).first().click()
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
 
-  if (await page.locator(LOGIN_SELECTORS.otp).first().isVisible().catch(() => false)) return 'otp'
-  if (await page.locator(LOGIN_SELECTORS.pass).first().isVisible().catch(() => false)) return 'retry'
-  return 'ok'
+  return readLoginState(page)
 }
 
 // Orquesta el login con reintentos. `cronMode` habilita los avisos de fallo (solo
@@ -87,7 +114,7 @@ export async function login(page, { infra, cronMode = false, loginCommand, debug
       // El campo no aparece: fallo estructural (front cambiado o banner de
       // cookies), no transitorio → no tiene sentido reintentar.
       await infra.dump(page, 'login-no-field')
-      infra.die(4, 'No apareció el campo de DNI en el login (¿cambió el front o el banner de cookies?)')
+      await infra.failScrape(4, 'No apareció el campo de DNI en el login (¿cambió el front o el banner de cookies?)')
     }
 
     if (result === 'ok') {
@@ -101,6 +128,35 @@ export async function login(page, { infra, cronMode = false, loginCommand, debug
       await infra.dump(page, 'login-otp')
       if (cronMode) await infra.notifyExpired('session_expired')
       infra.die(2, `Sabadell pide OTP: el dispositivo no está enrolado. Ejecuta ${loginCommand}`)
+    }
+
+    if (result === 'device_confirmation') {
+      // Modal "Confirmar dispositivo" (enrolamiento SCA/PSD2, #286): el banco dejó
+      // de confiar en este navegador. Pulsar "Confirmar" re-enrola el dispositivo y
+      // persiste la confianza en el perfil → cura la causa raíz. Tras el clic
+      // re-evaluamos el estado sin reenviar credenciales.
+      await infra.dump(page, 'login-device-confirm')
+      await page.locator(LOGIN_SELECTORS.deviceConfirm).first().click().catch(() => {})
+      await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
+
+      // Si el lightbox SCA sigue arriba, Confirmar disparó un segundo factor (firma
+      // en la app / OTP) que NO es automatizable desatendido → sesión caducada.
+      const scaStillUp = await page.locator(LOGIN_SELECTORS.sca).first().isVisible().catch(() => false)
+      const after = await readLoginState(page)
+
+      if (after === 'ok' && !scaStillUp) {
+        if (debug) await infra.dump(page, 'after-login')
+        return
+      }
+      if (after === 'otp' || scaStillUp) {
+        await infra.dump(page, 'login-device-confirm-otp')
+        if (cronMode) await infra.notifyExpired('session_expired')
+        infra.die(2, `Confirmar dispositivo requirió OTP/firma: no se pudo re-enrolar desatendido. Ejecuta ${loginCommand}`)
+      }
+      // El modal reapareció o seguimos en el form: dejar que el bucle reintente.
+      infra.logError(`"Confirmar dispositivo" no se resolvió (intento ${attempt}/${LOGIN_MAX_ATTEMPTS})`)
+      if (attempt < LOGIN_MAX_ATTEMPTS) await page.waitForTimeout(1500 * attempt)
+      continue
     }
 
     // result === 'retry': login no completado (transitorio). Reintentar si quedan.

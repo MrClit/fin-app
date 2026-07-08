@@ -12,7 +12,7 @@
 //   SABADELL_DRY_RUN=1   no hace POST; imprime el payload
 //   SABADELL_DEBUG=1     vuelca DOM en cada paso a ~/Library/Logs/fin-app
 //
-// El enrolado (login con OTP) es compartido: pnpm scrape:sabadell-visa:login
+// El enrolado (login con OTP) es compartido: pnpm scrape:sabadell:login
 //
 // Exit codes:
 //   0 éxito · 1 falta config/perfil · 2 sesión/OTP · 3 error webhook
@@ -36,7 +36,7 @@ const CRON_MODE = process.env.SABADELL_CRON === '1'
 const DRY_RUN = process.env.SABADELL_DRY_RUN === '1'
 const DEBUG = process.env.SABADELL_DEBUG === '1'
 
-const infra = createScraperInfra(DESCRIPTOR)
+const infra = createScraperInfra(DESCRIPTOR, { cronMode: CRON_MODE })
 const lock = createProfileLock()
 
 // Fuerza la posición global clásica (PAGlobalPosition), de donde cuelga el menú
@@ -86,7 +86,7 @@ async function openSavingsDetail(page) {
     // No desplegó: reintenta reasentando la posición global.
   }
   await infra.dump(page, 'no-savings-detail')
-  infra.die(4, 'No se pudo desplegar el plan de ahorro en la posición global')
+  await infra.failScrape(4, 'No se pudo desplegar el plan de ahorro en la posición global')
 }
 
 // Despliega el histórico completo pulsando "Ver más movimientos" mientras sea
@@ -123,7 +123,7 @@ async function main() {
     return
   }
   if (!existsSync(USER_DATA_DIR)) {
-    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell-visa:login')
+    infra.die(1, 'No hay perfil. Ejecuta: pnpm scrape:sabadell:login')
   }
 
   // Serializa con la VISA (comparten el perfil de Chrome).
@@ -157,7 +157,7 @@ async function main() {
     const balance = parseAmount(data.balanceText)
     if (!productCode || !Number.isFinite(balance)) {
       await infra.dump(page, 'savings-extract')
-      infra.die(4, `No se pudo extraer productCode/saldo del plan (code="${data.productCode}", saldo="${data.balanceText}")`)
+      await infra.failScrape(4, `No se pudo extraer productCode/saldo del plan (code="${data.productCode}", saldo="${data.balanceText}")`)
     }
 
     const transactions = []
@@ -195,7 +195,9 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch(async err => {
   console.error('[sabadell-savings-scrape] error inesperado:', err)
+  // Error inesperado = fallo de scraping (exit 4): avisa bajo cron antes de salir.
+  if (CRON_MODE) await infra.notifyExpired('scrape_failed')
   process.exit(4)
 })

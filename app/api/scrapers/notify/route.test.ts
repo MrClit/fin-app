@@ -151,6 +151,27 @@ describe('POST /api/scrapers/notify — envío', () => {
     expect(insInput).toMatchObject({ source: 'edenred', kind: '2fa' })
   })
 
+  it('acepta el kind scrape_failed (#295) y persiste con su contenido de catálogo', async () => {
+    const db = buildMockDb({ data: { user_id: USER_ID }, error: null })
+    vi.mocked(createServiceClient).mockReturnValue(
+      db as unknown as ReturnType<typeof createServiceClient>
+    )
+    vi.mocked(insertNotification).mockResolvedValue(true)
+    vi.mocked(sendPushToUser).mockResolvedValue(1)
+
+    const res = await callRoute({
+      auth: `Bearer ${SABADELL_SECRET}`,
+      body: JSON.stringify({ source: 'sabadell_visa', kind: 'scrape_failed' }),
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ persisted: true, sent: 1 })
+
+    const [, , payload] = vi.mocked(sendPushToUser).mock.calls[0]
+    expect(payload).toMatchObject({ title: 'Sabadell VISA: fallo de sincronización', url: '/accounts' })
+    const [, , insInput] = vi.mocked(insertNotification).mock.calls[0]
+    expect(insInput).toMatchObject({ source: 'sabadell_visa', kind: 'scrape_failed' })
+  })
+
   it('sigue devolviendo 200 (persisted true, sent 0) si el push lanza', async () => {
     const db = buildMockDb({ data: { user_id: USER_ID }, error: null })
     vi.mocked(createServiceClient).mockReturnValue(

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Finanzas Personales',
-    short_name: 'Finanzas',
+    name: 'Nummo',
+    short_name: 'Nummo',
     description: 'Gestiona y analiza tus finanzas personales',
     start_url: '/',
     display: 'standalone',

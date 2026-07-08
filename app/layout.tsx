@@ -23,8 +23,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Finanzas',
-    template: '%s · Finanzas',
+    default: 'Nummo',
+    template: '%s · Nummo',
   },
   description: 'App de gestión financiera personal',
   icons: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     // franja lo define el elemento fijo `StatusBarBackdrop` (ver más abajo), no el
     // `<meta theme-color>` (Safari ya no lo usa en standalone).
     statusBarStyle: 'black-translucent',
-    title: 'Finanzas',
+    title: 'Nummo',
   },
 }
 
