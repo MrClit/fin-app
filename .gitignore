@@ -47,6 +47,9 @@ next-env.d.ts
 scripts/scrapers/edenred/storage-state.json
 scripts/scrapers/edenred/storage-state.json.*
 
+# cron de scrapers — lock de la fase de update en el worktree pinned (#256)
+.cron-update.lock/
+
 # sabadell scraper — sesión/perfil Playwright COMPARTIDO y volcados de investigación
 scripts/scrapers/sabadell-shared/storage-state.json
 scripts/scrapers/sabadell-shared/storage-state.json.*
