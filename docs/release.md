@@ -98,6 +98,7 @@ git checkout develop
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
+| `v0.9.0` | 2026-07-08 | Renombrado de la app a «Nummo» con logo nuevo (#298). Scrapers: el cron ejecuta siempre `origin/main` vía worktree dedicado + wrapper (#256), notificación de fallos de scraping/webhook bajo cron (#295), manejo del modal «Confirmar dispositivo» en el login Sabadell (#286). |
 | `v0.8.0` | 2026-07-05 | Integración del plan de ahorro Sabadell (#197): nuevo tipo de cuenta `savings`, módulo `sabadell-shared` reutilizable + cierre automático del aviso de DNI caducado, endpoint `/api/sabadell-savings` con categorización por concepto (REVALORIZACION→returns, aportación→savings) y scraper del plan de ahorro (Bansabadell Vida). |
 | `v0.7.0` | 2026-07-04 | Bloque-veredicto (ahorro + KPIs) en la cabecera de Análisis (#283). Fix: el proxy exime `/api/scrapers` del chequeo de sesión (#284). |
 | `v0.6.0` | 2026-07-03 | Clientes de Supabase tipados con `Database` generado y tipos de dominio derivados (#269, #268), período inicial de análisis resuelto en servidor (#235), título de pestaña por sección (#238). Seguridad: RLS de `household_members` restringida al owner (#234), endpoint público de error-log endurecido (#233), `setAll` protegido con try/catch (#237). Perf: dedupe de `getUser()`/`household_id` por request con `cache()` (#236). Fixes de analytics/dashboard: total gasto/ingreso unificado (#272), hydration del Donut (#276), contraste del pill semanal (#278). |
