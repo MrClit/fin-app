@@ -41,7 +41,7 @@ async function TransactionsContent({
   cutoff.setDate(cutoff.getDate() - 90)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
-  const [{ data: transactions }, { data: accounts }, { data: manualAcc }] = await Promise.all([
+  const [{ data: transactions }, { data: oldUnread }, { data: accounts }, { data: manualAcc }] = await Promise.all([
     supabase
       .from('transactions')
       .select('*, account:accounts(id, name, color)')
@@ -49,6 +49,18 @@ async function TransactionsContent({
       .order('date', { ascending: false })
       .order('id', { ascending: false })
       .limit(INITIAL_PAGE_SIZE),
+    // No leídos anteriores a la ventana de 90 días (issue #225): el badge cuenta
+    // todos los no leídos sin filtro de fecha, así que la lista debe poder
+    // mostrarlos (y marcarlos) aunque queden fuera de la ventana; si no, el badge
+    // queda >0 sin forma de vaciarlo. `.lt` no solapa con la query de ventana
+    // (`.gte`) y la consulta se apoya en el índice parcial de no leídos (#149).
+    supabase
+      .from('transactions')
+      .select('*, account:accounts(id, name, color)')
+      .eq('is_read', false)
+      .lt('date', cutoffStr)
+      .order('date', { ascending: false })
+      .order('id', { ascending: false }),
     supabase
       .from('accounts')
       .select('id, name, color, number, type')
@@ -79,8 +91,13 @@ async function TransactionsContent({
   const initialAccountIds =
     account && accountsList.some(a => a.id === account) ? [account] : []
 
-  const initialTransactions = (transactions ?? []).map(narrowUnions)
-  const initialCursor = buildNextCursor(initialTransactions, INITIAL_PAGE_SIZE)
+  // El cursor de paginación se calcula solo sobre la ventana de 90 días; los no
+  // leídos antiguos van anexados al final (todos son < cutoff, el orden global
+  // fecha-desc se conserva) y `appendTxs` deduplica por id si la paginación
+  // llega a alcanzarlos.
+  const windowTransactions = (transactions ?? []).map(narrowUnions)
+  const initialCursor = buildNextCursor(windowTransactions, INITIAL_PAGE_SIZE)
+  const initialTransactions = [...windowTransactions, ...(oldUnread ?? []).map(narrowUnions)]
 
   return (
     <TransactionsClient
