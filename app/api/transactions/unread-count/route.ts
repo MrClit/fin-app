@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
-import { logError } from '@/lib/error-log'
+import { withAuth, unwrap } from '@/lib/http/with-auth'
 
 // Conteo de movimientos no leídos para refrescar el badge de la tabBar sin
 // recargar la página. El #149 calculaba el count solo en el server component del
@@ -9,36 +8,13 @@ import { logError } from '@/lib/error-log'
 // `UnreadProvider` consulta este endpoint al volver a primer plano
 // (visibilitychange). RLS limita la consulta al hogar del usuario; `head: true`
 // evita traer filas (solo el conteo, apoyado en el índice parcial de #149).
-export async function GET() {
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const householdId = await getCurrentHouseholdId()
-  if (!householdId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const supabase = await getRequestClient()
-
-  const { count, error } = await supabase
+export const GET = withAuth('/api/transactions/unread-count', async ({ supabase }) => {
+  const res = await supabase
     .from('transactions')
     .select('*', { count: 'exact', head: true })
     .eq('is_read', false)
 
-  if (error) {
-    console.error('[GET /api/transactions/unread-count]', error)
-    await logError({
-      source: 'server',
-      message: error.message,
-      route: '/api/transactions/unread-count',
-      context: { op: 'count', code: error.code },
-      userId: user.id,
-      householdId,
-    })
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
-  }
+  unwrap(res, { op: 'count' })
 
-  return NextResponse.json({ count: count ?? 0 })
-}
+  return NextResponse.json({ count: res.count ?? 0 })
+})

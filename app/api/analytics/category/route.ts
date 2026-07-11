@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
-import { logError } from '@/lib/error-log'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/http/with-auth'
 import { getWindowPeriods, toISODate } from '@/lib/analytics'
 import type { Granularity, CategoryId, CategoryAnalyticsResponse } from '@/types'
 import { CATEGORY_META } from '@/lib/theme'
@@ -8,28 +7,17 @@ import { CATEGORY_META } from '@/lib/theme'
 const VALID_GRANULARITY: Granularity[] = ['week', 'month', 'quarter', 'year']
 const WINDOW = 6
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl
-  const granularity = searchParams.get('granularity') as Granularity
-  const id   = searchParams.get('id') as CategoryId
+export const GET = withAuth(
+  '/api/analytics/category',
+  async ({ supabase, householdId }, request) => {
+    const { searchParams } = request.nextUrl
+    const granularity = searchParams.get('granularity') as Granularity
+    const id   = searchParams.get('id') as CategoryId
 
-  if (!VALID_GRANULARITY.includes(granularity) || !id || !(id in CATEGORY_META)) {
-    return NextResponse.json({ error: 'Invalid params' }, { status: 400 })
-  }
+    if (!VALID_GRANULARITY.includes(granularity) || !id || !(id in CATEGORY_META)) {
+      return NextResponse.json({ error: 'Invalid params' }, { status: 400 })
+    }
 
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const householdId = await getCurrentHouseholdId()
-  if (!householdId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const supabase = await getRequestClient()
-
-  try {
     const allPeriods = getWindowPeriods(granularity, 0)
     const window = allPeriods.slice(-WINDOW)
 
@@ -60,17 +48,5 @@ export async function GET(request: NextRequest) {
       categoryId: id,
       periods,
     } satisfies CategoryAnalyticsResponse)
-  } catch (e) {
-    console.error('[GET /api/analytics/category]', e)
-    await logError({
-      source: 'server',
-      message: e instanceof Error ? e.message : String(e),
-      stack: e instanceof Error ? e.stack : null,
-      route: '/api/analytics/category',
-      context: { granularity, id },
-      userId: user.id,
-      householdId,
-    })
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
-}
+)
