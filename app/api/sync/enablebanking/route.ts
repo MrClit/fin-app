@@ -1,22 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser, getCurrentHouseholdId } from '@/lib/auth/session'
+import { withAuth, unwrap } from '@/lib/http/with-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 
-export async function POST(request: Request) {
-  // Auth: verify user via cookie client (memoizado por request, #236)
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const householdId = await getCurrentHouseholdId()
-  if (!householdId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const POST = withAuth('/api/sync/enablebanking', async ({ user, householdId }, request) => {
   // Body opcional: `{ accountId }` limita la sync a una sola cuenta (issue #79,
   // sync inmediata tras renovar). Sin body, se sincronizan todas.
   let accountId: string | undefined
@@ -51,12 +40,7 @@ export async function POST(request: Request) {
       .order('priority', { ascending: false }),
   ])
 
-  if (accountsResult.error) {
-    console.error('[sync/eb] fetch accounts:', accountsResult.error)
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
-  }
-
-  const accounts = accountsResult.data
+  const accounts = unwrap(accountsResult, { op: 'list-accounts' })
   const dbRules: DbCategorizationRule[] = rulesResult.data ?? []
 
   if (!accounts || accounts.length === 0) {
@@ -147,4 +131,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ synced: totalSynced, accounts: accounts.length })
-}
+})

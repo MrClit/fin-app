@@ -111,7 +111,9 @@ describe('GET /api/analytics/category — validación de params', () => {
     const res = await GET(req(query))
     expect(res.status).toBe(400)
     expect(await res.json()).toEqual({ error: 'Invalid params' })
-    expect(supabase.auth.getUser).not.toHaveBeenCalled()
+    // La validación corre dentro del handler, tras resolver la sesión (#305): la
+    // ruta autentica primero y no llega a consultar datos.
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 })
 

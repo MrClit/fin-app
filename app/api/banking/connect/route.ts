@@ -1,13 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth/session'
+import { NextResponse } from 'next/server'
+import { withUser } from '@/lib/http/with-auth'
 import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 
-export async function POST(request: NextRequest) {
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const POST = withUser('/api/banking/connect', async (_ctx, request) => {
   const { aspspName, aspspCountry } = await request.json()
   if (!aspspName || !aspspCountry) {
     return NextResponse.json({ error: 'aspspName y aspspCountry son obligatorios' }, { status: 400 })
@@ -16,6 +11,8 @@ export async function POST(request: NextRequest) {
   const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/banking/callback`
   const state = encodeBankingState({ aspspName, aspspCountry })
 
+  // Un fallo del proveedor no es un error nuestro: se distingue con un 502 propio
+  // en vez de dejarlo escapar al 500 del envoltorio.
   try {
     const auth = await initiateAuth(redirectUrl, { name: aspspName, country: aspspCountry }, state)
     return NextResponse.json({ url: auth.url })
@@ -26,4 +23,4 @@ export async function POST(request: NextRequest) {
       { status: 502 }
     )
   }
-}
+})
