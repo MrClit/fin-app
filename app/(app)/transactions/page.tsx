@@ -5,7 +5,7 @@ import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/a
 import { TransactionsClient } from '@/components/transactions/TransactionsClient'
 import { TransactionsSkeleton } from '@/components/transactions/TransactionsSkeleton'
 import { listTransactions, listUnreadBeforeWindow } from '@/lib/transactions'
-import { getActiveAccounts, ensureManualAccountId } from '@/lib/accounts'
+import { getActiveAccounts, getManualAccountId } from '@/lib/accounts'
 
 export const metadata: Metadata = { title: 'Movimientos' }
 
@@ -39,7 +39,7 @@ async function TransactionsContent({
     listTransactions(supabase, householdId),
     listUnreadBeforeWindow(supabase, householdId),
     getActiveAccounts(supabase, householdId),
-    ensureManualAccountId(supabase, user.id, householdId),
+    getManualAccountId(supabase, householdId),
   ])
 
   const initialAccountIds =
