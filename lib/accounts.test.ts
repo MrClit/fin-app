@@ -3,7 +3,7 @@ import {
   getConsentStatus,
   getConsentBannerData,
   getActiveAccounts,
-  ensureManualAccountId,
+  getManualAccountId,
 } from './accounts'
 import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
 import type { Account } from '@/types'
@@ -142,30 +142,22 @@ describe('getActiveAccounts', () => {
   })
 })
 
-describe('ensureManualAccountId', () => {
-  it('devuelve la cuenta manual existente sin insertar', async () => {
+describe('getManualAccountId', () => {
+  it('devuelve la cuenta manual del hogar', async () => {
     const { supabase, queries } = createFakeSupabase(() => ({ data: [{ id: 'acc-manual' }] }))
 
-    expect(await ensureManualAccountId(supabase, 'user-1', 'hh-1')).toBe('acc-manual')
-    expect(queries).toHaveLength(1)
+    expect(await getManualAccountId(supabase, 'hh-1')).toBe('acc-manual')
+    expect(argsOf(queries[0], 'eq')).toEqual(['household_id', 'hh-1'])
     expect(called(queries[0], 'insert')).toBe(false)
   })
 
-  it('crea la cuenta manual del hogar cuando no existe', async () => {
-    const { supabase, queries } = createFakeSupabase(query =>
-      query.calls.some(c => c.method === 'insert')
-        ? { data: { id: 'acc-nueva' } }
-        : { data: [] }
-    )
+  // La fila la garantiza el bootstrap del hogar (#307): la lectura nunca escribe,
+  // ni siquiera cuando el hogar no la tiene.
+  it('devuelve null sin insertar cuando el hogar no la tiene', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [] }))
 
-    expect(await ensureManualAccountId(supabase, 'user-1', 'hh-1')).toBe('acc-nueva')
-
-    const insert = argsOf(queries[1], 'insert')
-    expect(insert?.[0]).toMatchObject({
-      user_id: 'user-1',
-      household_id: 'hh-1',
-      source: 'manual',
-      type: 'cash',
-    })
+    expect(await getManualAccountId(supabase, 'hh-1')).toBeNull()
+    expect(queries).toHaveLength(1)
+    expect(called(queries[0], 'insert')).toBe(false)
   })
 })

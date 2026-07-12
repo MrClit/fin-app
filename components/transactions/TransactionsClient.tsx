@@ -186,7 +186,10 @@ export function TransactionsClient({ initialTransactions, initialCursor, account
         onSave={addTx}
       />
 
-      <AddTxFab onClick={() => setShowAddModal(true)} />
+      {/* Sin cuenta «Manual» no hay destino para el alta: el POST fallaría con un
+          toast genérico. El bootstrap del hogar la garantiza (#307), así que esto solo
+          se activa ante una anomalía de datos. */}
+      {manualAccountId && <AddTxFab onClick={() => setShowAddModal(true)} />}
     </div>
   )
 }

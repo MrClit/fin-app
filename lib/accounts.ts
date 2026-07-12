@@ -123,19 +123,19 @@ export async function getActiveAccounts(supabase: Db, householdId: string): Prom
 }
 
 /**
- * `id` de la cuenta «Manual» del hogar, creándola si aún no existe.
+ * `id` de la cuenta «Manual» del hogar, destino por defecto de los movimientos que el
+ * usuario da de alta a mano.
  *
- * Es el destino por defecto de los movimientos que el usuario da de alta a mano,
- * así que la lista de movimientos necesita una siempre. Se crea de forma perezosa
- * en el primer render en lugar de al dar de alta el hogar, para no depender del
- * orden de las migraciones.
+ * Es solo lectura: la fila la crea el bootstrap del hogar (trigger
+ * `trg_household_manual_account` sobre `household_members`, más el backfill de la
+ * migración `20260712000000`, issue #307), no la pantalla que la consume. Devuelve
+ * `null` si el hogar no la tiene — una anomalía de datos, no un caso normal.
  */
-export async function ensureManualAccountId(
+export async function getManualAccountId(
   supabase: Db,
-  userId: string,
   householdId: string
-): Promise<string | undefined> {
-  const existing = unwrap(
+): Promise<string | null> {
+  const rows = unwrap(
     await supabase
       .from('accounts')
       .select('id')
@@ -146,23 +146,5 @@ export async function ensureManualAccountId(
     { op: 'find-manual' }
   )
 
-  if (existing?.[0]) return existing[0].id
-
-  const created = unwrap(
-    await supabase
-      .from('accounts')
-      .insert({
-        user_id: userId,
-        household_id: householdId,
-        name: 'Manual',
-        type: 'cash',
-        source: 'manual',
-        color: '#64748b',
-      })
-      .select('id')
-      .single(),
-    { op: 'create-manual' }
-  )
-
-  return created?.id
+  return rows?.[0]?.id ?? null
 }
