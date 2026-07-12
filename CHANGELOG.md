@@ -1,0 +1,21 @@
+# Changelog
+
+Historial de versiones publicadas en producción. El proyecto usa
+[versionado semántico](https://semver.org/lang/es/) con tags de git anotados, sobre la base de los
+[Conventional Commits](https://www.conventionalcommits.org/) que se usan en los mensajes de commit.
+
+El procedimiento para publicar un release está en la skill `release`
+([.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md)).
+
+| Versión | Fecha | Notas |
+| --- | --- | --- |
+| `v0.9.1` | 2026-07-12 | Fixes: la cuenta «Manual» se crea en el bootstrap del hogar en vez de en el render (#323), los no leídos anteriores a la ventana de 90 días ya se cargan (#302). Refactors: acceso a datos de cuentas y movimientos unificado en `lib/` (#318), preámbulo de auth y manejo de errores extraídos a `withAuth`/`withUser` (#317), fallback de error duplicado a componente compartido (#303), root layout limpiado y escala de z-index ordenada (#304). |
+| `v0.9.0` | 2026-07-08 | Renombrado de la app a «Nummo» con logo nuevo (#298). Scrapers: el cron ejecuta siempre `origin/main` vía worktree dedicado + wrapper (#256), notificación de fallos de scraping/webhook bajo cron (#295), manejo del modal «Confirmar dispositivo» en el login Sabadell (#286). |
+| `v0.8.0` | 2026-07-05 | Integración del plan de ahorro Sabadell (#197): nuevo tipo de cuenta `savings`, módulo `sabadell-shared` reutilizable + cierre automático del aviso de DNI caducado, endpoint `/api/sabadell-savings` con categorización por concepto (REVALORIZACION→returns, aportación→savings) y scraper del plan de ahorro (Bansabadell Vida). |
+| `v0.7.0` | 2026-07-04 | Bloque-veredicto (ahorro + KPIs) en la cabecera de Análisis (#283). Fix: el proxy exime `/api/scrapers` del chequeo de sesión (#284). |
+| `v0.6.0` | 2026-07-03 | Clientes de Supabase tipados con `Database` generado y tipos de dominio derivados (#269, #268), período inicial de análisis resuelto en servidor (#235), título de pestaña por sección (#238). Seguridad: RLS de `household_members` restringida al owner (#234), endpoint público de error-log endurecido (#233), `setAll` protegido con try/catch (#237). Perf: dedupe de `getUser()`/`household_id` por request con `cache()` (#236). Fixes de analytics/dashboard: total gasto/ingreso unificado (#272), hydration del Donut (#276), contraste del pill semanal (#278). |
+| `v0.5.0` | 2026-06-30 | Avisos in-app de fallo de scrapers (#177). Fixes: login de Sabadell VISA y navegación post-login (#212), resolución determinista del owner del hogar en webhooks (#257), Edenred blur antes del click de login (#253). |
+| `v0.4.0` | 2026-06-20 | Cifras tabulares para todos los importes (#243), push al iPhone al fallar el scraper de Sabadell VISA (#213), versión de release en login + acceso solo con Google (#226). Seguridad: RLS en `categories` (#232) y retirada de la MV `transactions_monthly_summary` (#231). |
+| `v0.3.0` | 2026-06-18 | Sección «No leídos» de transacciones: reorganización en vivo (#219) con animación de entrada/salida (#221) y revalidación del badge al volver a primer plano (#214, #217). |
+| `v0.2.0` | 2026-06-17 | Observabilidad (error_log #200) y mejoras del scraper Edenred: auto-relogin (#208) y push accionable ante 2FA (#204). |
+| `v0.1.1` | 2026-06-13 | Primer release con versionado SemVer. 5 fixes de seguridad (#178, #179, #180, #182, #191). |

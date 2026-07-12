@@ -22,7 +22,7 @@ que el usuario haya pedido explícitamente la excepción.
 Crear y actualizar issues; enlazarlas al tablero y moverlas de estado; crear la rama de trabajo;
 commitear (leyendo el diff para redactar un mensaje convencional en castellano); correr `pnpm test`,
 `pnpm lint` y `pnpm build`; pushear; abrir PRs; mergear; cerrar issues y comentar el resumen; y la
-coreografía del release descrita en `docs/release.md`.
+coreografía del release descrita en la skill `release`.
 
 ## Lo que no haces
 
