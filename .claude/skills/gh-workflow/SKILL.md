@@ -115,6 +115,7 @@ funciones, ficheros, rutas, columnas SQL) van **en inglés**.
 
 ## Release a producción
 
-No está aquí: el flujo versionado completo (bump SemVer → PR a `develop` → PR `develop` → `main` con
-merge commit → tag anotado) está en [docs/release.md](../../../docs/release.md). Leerlo antes de
-publicar.
+No está aquí: tiene skill propia, **`release`**. El flujo completo (puerta de aprobación del salto de
+versión → bump SemVer → PR a `develop` → PR `develop` → `main` con merge commit → tag anotado →
+GitHub Release) está en [.claude/skills/release/SKILL.md](../release/SKILL.md). Invocarla antes de
+publicar. El historial de versiones está en [CHANGELOG.md](../../../CHANGELOG.md).

@@ -57,7 +57,7 @@ export const fmt = (n: number, decimals = 0): string => {
 
 ## Flujos de GitHub
 
-**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en `docs/release.md`.
+**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en la skill **`release`** (historial en `CHANGELOG.md`).
 
 Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al tablero y muévela a Ready», o «corre las validaciones, pushea, abre el PR con este título y cuerpo, y mueve a In review».
 
@@ -67,5 +67,6 @@ El hilo principal conserva lo que exige contexto del código: analizar, planific
 - Antes de analizar o planificar una issue, la rama activa debe ser `develop`. Si no, avisar y parar.
 - Nunca trabajar directamente en `develop` ni en `main`: rama `feature/<slug>` o `fix/<slug>`.
 - Antes de abrir PR: `pnpm test`, `pnpm lint` y `pnpm build`. Si algo falla, arreglarlo. Nunca `--no-verify`.
+- **El salto de versión de un release (patch / minor / major) lo aprueba siempre el usuario.** Proponerlo con los commits que entran y su justificación, y esperar respuesta antes de tocar nada.
 
 El análisis y la planificación deben tener siempre en cuenta: `CLAUDE.md`, `docs/finanzas-spec.md` y el prototipo `docs/finanzas-app.jsx`.
