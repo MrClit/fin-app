@@ -2,63 +2,18 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getDefaultHouseholdOwner } from '@/lib/household'
 import { safeBearerMatch } from '@/lib/http/bearer'
+import { badRequest, readJson } from '@/lib/http/validation'
+import { sabadellSavingsPayloadSchema } from '@/lib/schemas/scrapers'
 import { categorizeSavingsMovement } from './categories'
 
 // Webhook de datos del scraper del plan de ahorro Sabadell (Bansabadell Vida,
 // #197). Molde de /api/edenred (una sola cuenta con balance + transacciones),
 // pero con identidad por `external_id` (como /api/sabadell-visa) y tipo 'savings'.
 
-type SavingsTx = {
-  external_id: string
-  amount: number
-  description: string
-  transaction_date: string
-}
-
-type SavingsAccount = {
-  // Identidad estable del plan: `productCode` normalizado (Fase 0), p.ej.
-  // "32000007181690". Se usa como accounts.external_id para tolerar renombrados.
-  account_id: string
-  name: string
-  number?: string
-  // Saldo acumulado del plan (activo → positivo).
-  balance: number
-  transactions: SavingsTx[]
-}
-
-type SavingsPayload = {
-  last_synced_at: string
-  account: SavingsAccount
-}
-
 // sort_order del plan de ahorro: tras la cuenta corriente (bank=10) y antes de
 // las tarjetas (20/30). Ver 20260607000000_accounts_sort_order.sql. Sólo se fija
 // en el INSERT: un re-sync no pisa un reordenamiento manual posterior.
 const SAVINGS_SORT_ORDER = 15
-
-function isValidTx(tx: unknown): tx is SavingsTx {
-  if (!tx || typeof tx !== 'object') return false
-  const t = tx as SavingsTx
-  if (typeof t.external_id !== 'string' || t.external_id === '') return false
-  if (typeof t.amount !== 'number' || !Number.isFinite(t.amount)) return false
-  if (typeof t.description !== 'string') return false
-  if (typeof t.transaction_date !== 'string') return false
-  return true
-}
-
-function isValidPayload(data: unknown): data is SavingsPayload {
-  if (!data || typeof data !== 'object') return false
-  const p = data as Record<string, unknown>
-  if (typeof p.last_synced_at !== 'string') return false
-  const a = p.account as SavingsAccount | undefined
-  if (!a || typeof a !== 'object') return false
-  if (typeof a.account_id !== 'string' || a.account_id === '') return false
-  if (typeof a.name !== 'string') return false
-  if (a.number !== undefined && typeof a.number !== 'string') return false
-  if (typeof a.balance !== 'number' || !Number.isFinite(a.balance)) return false
-  if (!Array.isArray(a.transactions)) return false
-  return a.transactions.every(isValidTx)
-}
 
 export async function POST(req: Request) {
   const secret = process.env.SABADELL_SAVINGS_WEBHOOK_SECRET
@@ -71,15 +26,9 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 401 })
   }
 
-  let payload: unknown
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
-  if (!isValidPayload(payload)) {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
+  const parsed = sabadellSavingsPayloadSchema.safeParse(await readJson(req))
+  if (!parsed.success) return badRequest(parsed.error)
+  const payload = parsed.data
 
   const db = createServiceClient()
 

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { safeBearerMatch } from '@/lib/http/bearer'
+import { badRequest, readJson } from '@/lib/http/validation'
+import { scraperNotifySchema } from '@/lib/schemas/scrapers'
 import { sendPushToUser } from '@/lib/push'
 import {
   insertNotification,
@@ -35,23 +37,13 @@ const SOURCE_SECRET_ENV: Record<NotificationSource, string> = {
 }
 
 export async function POST(req: Request) {
-  let payload: { source?: unknown; kind?: unknown }
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
+  // El body se valida ANTES del bearer porque `source` decide con qué secreto se
+  // autentica la petición (cada scraper usa el suyo).
+  const parsed = scraperNotifySchema.safeParse(await readJson(req))
+  if (!parsed.success) return badRequest(parsed.error)
+  const { source, kind } = parsed.data
 
-  const { source, kind } = payload
-  if (typeof source !== 'string' || typeof kind !== 'string') {
-    return NextResponse.json({ error: 'Missing source/kind' }, { status: 400 })
-  }
-
-  const secretEnv = SOURCE_SECRET_ENV[source as NotificationSource]
-  if (!secretEnv) {
-    return NextResponse.json({ error: 'Unknown source' }, { status: 400 })
-  }
-
+  const secretEnv = SOURCE_SECRET_ENV[source]
   const secret = process.env[secretEnv]
   if (!secret) {
     console.error(`[scrapers/notify] ${secretEnv} no configurado`)
@@ -85,7 +77,9 @@ export async function POST(req: Request) {
   // 1. Persistir la notificación in-app (con dedup). Independiente del push: si el
   //    usuario tiene el push desactivado, igualmente verá el aviso en la campana.
   const persisted = await insertNotification(db, userId, {
-    source: source as NotificationSource,
+    source,
+    // `resolveScraperNotification` ya ha confirmado que el par source/kind existe
+    // en el catálogo; el esquema no puede estrecharlo porque `kind` es libre.
     kind: kind as NotificationKind,
     ...content,
   })

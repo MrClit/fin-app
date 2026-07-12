@@ -2,38 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getDefaultHouseholdOwner } from '@/lib/household'
 import { safeBearerMatch } from '@/lib/http/bearer'
-
-type EdenredTx = {
-  external_id: string
-  amount: number
-  description: string
-  transaction_date: string
-  category?: string
-}
-
-type EdenredPayload = {
-  balance: number
-  last_synced_at: string
-  transactions: EdenredTx[]
-}
-
-function isValidPayload(data: unknown): data is EdenredPayload {
-  if (!data || typeof data !== 'object') return false
-  const p = data as Record<string, unknown>
-  if (typeof p.balance !== 'number') return false
-  if (typeof p.last_synced_at !== 'string') return false
-  if (!Array.isArray(p.transactions)) return false
-  return p.transactions.every(tx => {
-    if (!tx || typeof tx !== 'object') return false
-    const t = tx as EdenredTx
-    if (typeof t.external_id !== 'string') return false
-    if (typeof t.amount !== 'number') return false
-    if (typeof t.description !== 'string') return false
-    if (typeof t.transaction_date !== 'string') return false
-    if (t.category !== undefined && typeof t.category !== 'string') return false
-    return true
-  })
-}
+import { badRequest, readJson } from '@/lib/http/validation'
+import { edenredPayloadSchema } from '@/lib/schemas/scrapers'
 
 export async function POST(req: Request) {
   const secret = process.env.EDENRED_WEBHOOK_SECRET
@@ -46,15 +16,9 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 401 })
   }
 
-  let payload: unknown
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
-  if (!isValidPayload(payload)) {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
+  const parsed = edenredPayloadSchema.safeParse(await readJson(req))
+  if (!parsed.success) return badRequest(parsed.error)
+  const payload = parsed.data
 
   const db = createServiceClient()
 

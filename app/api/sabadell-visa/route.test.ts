@@ -212,7 +212,8 @@ describe('POST /api/sabadell-visa — validación de body', () => {
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
     const res = typeof body === 'string' ? await callRoute(null, { rawBody: body }) : await callRoute(body)
     expect(res.status).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Invalid body' })
+    // El esquema de Zod añade el detalle por campo en `issues` (#308).
+    expect(await res.json()).toMatchObject({ error: 'Invalid body' })
   })
 })
 
