@@ -57,55 +57,15 @@ export const fmt = (n: number, decimals = 0): string => {
 
 ## Flujos de GitHub
 
-**Skill obligatoria:** ante cualquier operación con GitHub issues invocar primero la skill `github-issues`. Si sus ejemplos genéricos chocan con esta sección, **manda esta sección de CLAUDE.md**.
+**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en `docs/release.md`.
 
-**Servidor MCP:** se usa el servidor remoto oficial `github/github-mcp-server` (`https://api.githubcopilot.com/mcp/`). Las escrituras de issues van por la tool consolidada `mcp__github__issue_write` (`method: "create"` o `"update"`). Projects V2 **no** está cubierto por el MCP (toolset no activada), así que el tablero sigue por `gh project`.
+Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al tablero y muévela a Ready», o «corre las validaciones, pushea, abre el PR con este título y cuerpo, y mueve a In review».
 
-**Regla general:** usar MCP siempre que sea posible; CLI `gh` solo para lo que el MCP no cubra.
+El hilo principal conserva lo que exige contexto del código: analizar, planificar, implementar y **redactar** el cuerpo de la issue, el del PR y los comentarios de cierre.
 
-### Crear issues y añadirlas al proyecto
-1. Crear la issue con MCP `mcp__github__issue_write` (`method: "create"`, owner: `MrClit`, repo: `fin-app`)
-2. Vincularla al proyecto FinApp con `gh` (el MCP no soporta la API de Projects):
-   ```bash
-   gh project item-add 2 --owner MrClit --url "https://github.com/MrClit/fin-app/issues/$N"
-   ```
-   El proyecto FinApp tiene ID `2`.
-
-### Ciclo de vida de una issue
-
-Mover el estado de una issue en el proyecto con:
-```bash
-gh project item-edit --id <item-id> --field-id <field-id> --project-id 2 --single-select-option-id <option-id>
-```
-Para obtener `item-id`, `field-id` y `option-id` del estado usar:
-```bash
-gh project item-list 2 --owner MrClit --format json   # → item-id por número de issue
-gh project field-list 2 --owner MrClit --format json  # → field-id y option-ids del campo Status
-```
-
-**Flujo obligatorio al trabajar con issues:**
-
-| Momento | Acción |
-|---|---|
-| Antes de analizar/planificar una issue | Verificar que la rama activa es `develop` (si no, avisar y parar) |
-| Antes de analizar/planificar una issue | Mover a **Ready** (si no lo está ya) |
-| Al aceptar el plan e iniciar implementación | Si el plan difiere significativamente de la descripción original de la issue, actualizarla con `mcp__github__issue_write` (`method: "update"`) antes de empezar |
-| Al aceptar el plan e iniciar implementación | Mover a **In progress** |
-| Al aceptar el plan e iniciar implementación | Crear rama `feature/<issue-slug>` o `fix/<issue-slug>` desde `develop` y trabajar en ella |
-| Antes de abrir PR | Ejecutar **siempre** `pnpm test`, `pnpm lint` y `pnpm build`. Si alguno falla, arreglarlo antes de pushear. No usar `--no-verify` ni saltarse hooks. |
-| Al terminar implementación y validaciones | Hacer push de la rama y abrir PR hacia `develop` con `mcp__github__create_pull_request` |
-| Al terminar implementación y validaciones | Mover a **Review** |
-| Al cerrar la issue | Mover a **Done** + comentar resumen con `mcp__github__add_issue_comment` |
-
-Si el usuario pide mergear la PR, usar **siempre** `gh pr merge` — el MCP devuelve error de permisos:
-```bash
-gh pr merge <número> --squash --subject "título del commit"
-```
-
-Nunca trabajar directamente en `develop` ni en `main` durante la implementación.
-
-### Release a producción
-
-El despliegue a producción (Vercel, rama `main`) sigue el flujo versionado descrito en `docs/release.md`: bump SemVer en rama `release/vX.Y.Z` → PR a `develop` (squash) → PR `develop` → `main` (merge commit, **no** squash) → tag anotado `vX.Y.Z` en `main`. El merge a `main` dispara el deploy automático.
+**Invariantes** (aplican también al hilo principal):
+- Antes de analizar o planificar una issue, la rama activa debe ser `develop`. Si no, avisar y parar.
+- Nunca trabajar directamente en `develop` ni en `main`: rama `feature/<slug>` o `fix/<slug>`.
+- Antes de abrir PR: `pnpm test`, `pnpm lint` y `pnpm build`. Si algo falla, arreglarlo. Nunca `--no-verify`.
 
 El análisis y la planificación deben tener siempre en cuenta: `CLAUDE.md`, `docs/finanzas-spec.md` y el prototipo `docs/finanzas-app.jsx`.
