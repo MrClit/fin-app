@@ -3,30 +3,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getDefaultHouseholdOwner } from '@/lib/household'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { safeBearerMatch } from '@/lib/http/bearer'
-
-type SabadellTx = {
-  external_id: string
-  amount: number
-  description: string
-  transaction_date: string
-}
-
-type SabadellCard = {
-  // Identidad estable de la tarjeta: PAN enmascarado (p.ej. "4106________4014").
-  // Las dos tarjetas comparten descripción ("VISA CLASSIC BSAB"), así que el
-  // número es lo único que las distingue. Se usa como accounts.external_id.
-  card_id: string
-  name: string
-  number?: string
-  // Saldo de la cuenta de tarjeta (pasivo): deuda pendiente en negativo.
-  balance: number
-  transactions: SabadellTx[]
-}
-
-type SabadellPayload = {
-  last_synced_at: string
-  cards: SabadellCard[]
-}
+import { badRequest, readJson } from '@/lib/http/validation'
+import { sabadellVisaPayloadSchema, type SabadellCard } from '@/lib/schemas/scrapers'
 
 // Nombre de presentación por tarjeta (clave = últimos 4 dígitos del card_id).
 // Ambas VISAs comparten descripción en el banco, así que el scraper envía nombres
@@ -41,33 +19,6 @@ function resolveCardName(card: SabadellCard): string {
   return CARD_DISPLAY_NAMES[card.card_id.slice(-4)] ?? card.name
 }
 
-function isValidTx(tx: unknown): tx is SabadellTx {
-  if (!tx || typeof tx !== 'object') return false
-  const t = tx as SabadellTx
-  if (typeof t.external_id !== 'string' || t.external_id === '') return false
-  if (typeof t.amount !== 'number' || !Number.isFinite(t.amount)) return false
-  if (typeof t.description !== 'string') return false
-  if (typeof t.transaction_date !== 'string') return false
-  return true
-}
-
-function isValidPayload(data: unknown): data is SabadellPayload {
-  if (!data || typeof data !== 'object') return false
-  const p = data as Record<string, unknown>
-  if (typeof p.last_synced_at !== 'string') return false
-  if (!Array.isArray(p.cards)) return false
-  return p.cards.every(card => {
-    if (!card || typeof card !== 'object') return false
-    const c = card as SabadellCard
-    if (typeof c.card_id !== 'string' || c.card_id === '') return false
-    if (typeof c.name !== 'string') return false
-    if (c.number !== undefined && typeof c.number !== 'string') return false
-    if (typeof c.balance !== 'number' || !Number.isFinite(c.balance)) return false
-    if (!Array.isArray(c.transactions)) return false
-    return c.transactions.every(isValidTx)
-  })
-}
-
 export async function POST(req: Request) {
   const secret = process.env.SABADELL_VISA_WEBHOOK_SECRET
   if (!secret) {
@@ -79,15 +30,9 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 401 })
   }
 
-  let payload: unknown
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
-  if (!isValidPayload(payload)) {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
+  const parsed = sabadellVisaPayloadSchema.safeParse(await readJson(req))
+  if (!parsed.success) return badRequest(parsed.error)
+  const payload = parsed.data
 
   const db = createServiceClient()
 

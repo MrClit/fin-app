@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
 import { withAuth, unwrap } from '@/lib/http/with-auth'
+import { parseBody } from '@/lib/http/validation'
+import { createTransactionSchema } from '@/lib/schemas/transactions'
 import { listTransactions, TX_PAGE_SIZE, TX_MAX_PAGE_SIZE } from '@/lib/transactions'
 
 export const POST = withAuth(
   '/api/transactions',
   async ({ user, householdId, supabase }, request) => {
-    const body = await request.json()
-    const { amount, description, date, category_manual, account_id } = body
-
-    if (!amount || !description || !date || !account_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+    const { amount, description, date, category_manual, account_id } = await parseBody(
+      request,
+      createTransactionSchema
+    )
 
     const tx = unwrap(
       await supabase

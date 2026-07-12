@@ -81,7 +81,12 @@ describe('POST /api/error-log — validación', () => {
   it('devuelve 400 si falta message', async () => {
     const res = await callRoute({ stack: 'at foo' })
     expect(res.status).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Missing message' })
+    // El 400 del esquema (#308); el JSON no parseable conserva su propio 'Invalid JSON'
+    // porque el body se lee con text() para poder medirlo antes.
+    expect(await res.json()).toMatchObject({
+      error: 'Invalid body',
+      issues: [{ path: 'message' }],
+    })
   })
 })
 

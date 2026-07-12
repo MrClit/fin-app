@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 import { RouteError } from '@/lib/http/route-error'
+import { BadRequest } from '@/lib/http/validation'
 
 export { RouteError, unwrap } from '@/lib/http/route-error'
 
@@ -12,6 +13,10 @@ export { RouteError, unwrap } from '@/lib/http/route-error'
  * Resuelven sesión, hogar y cliente Supabase, capturan cualquier excepción del
  * handler, la registran con `logError` y devuelven el 500. Así un handler solo
  * contiene su lógica: validar entrada, consultar, responder.
+ *
+ * El `BadRequest` que lanza `parseBody` (issue #308) se traduce a un 400 y NO
+ * se registra: un body inválido es culpa del cliente, no un fallo del servidor,
+ * y ensuciaba `error_log` con un 500 espurio.
  *
  * La función devuelta conserva la firma `(request, ctx)` que Next espera: el
  * contexto de auth va como PRIMER argumento del handler, no de la ruta, y los
@@ -43,6 +48,8 @@ async function handleFailure(
   user: User,
   householdId: string | null
 ): Promise<Response> {
+  if (e instanceof BadRequest) return e.toResponse()
+
   console.error(`[${request.method} ${route}]`, e)
   // La query se registra siempre: es la entrada que reprodujo el fallo y ninguna
   // ruta debería tener que repetirla en el `context` de su error.

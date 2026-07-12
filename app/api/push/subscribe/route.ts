@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth, unwrap } from '@/lib/http/with-auth'
+import { parseBody } from '@/lib/http/validation'
+import { pushSubscribeSchema } from '@/lib/schemas/push'
 
 /**
  * Guarda la PushSubscription del navegador para el usuario autenticado
@@ -9,10 +11,7 @@ import { withAuth, unwrap } from '@/lib/http/with-auth'
 export const POST = withAuth(
   '/api/push/subscribe',
   async ({ user, householdId, supabase }, request) => {
-    const { endpoint, keys } = await request.json().catch(() => ({}))
-    if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      return NextResponse.json({ error: 'Suscripción inválida' }, { status: 400 })
-    }
+    const { endpoint, keys } = await parseBody(request, pushSubscribeSchema)
 
     unwrap(
       await supabase

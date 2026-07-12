@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth, unwrap } from '@/lib/http/with-auth'
-import type { CategoryId } from '@/types'
-import { VALID_CATEGORIES } from '@/lib/categories'
+import { parseBody } from '@/lib/http/validation'
+import { updateTransactionSchema } from '@/lib/schemas/transactions'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -9,30 +9,9 @@ export const PATCH = withAuth(
   '/api/transactions/[id]',
   async ({ householdId, supabase }, request, { params }: Params) => {
     const { id } = await params
-    const body = await request.json()
-    const { category_manual, is_read } = body
-
-    // Update parcial: solo se tocan los campos presentes en el body. `category_manual`
-    // (incluido null para "sin categoría") y `is_read` son independientes.
-    const update: { category_manual?: CategoryId | null; is_read?: boolean } = {}
-
-    if ('category_manual' in body) {
-      if (category_manual !== null && !VALID_CATEGORIES.includes(category_manual)) {
-        return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
-      }
-      update.category_manual = category_manual
-    }
-
-    if ('is_read' in body) {
-      if (typeof is_read !== 'boolean') {
-        return NextResponse.json({ error: 'Invalid is_read' }, { status: 400 })
-      }
-      update.is_read = is_read
-    }
-
-    if (Object.keys(update).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
-    }
+    // Update parcial: el esquema solo deja pasar los campos presentes en el body,
+    // así que se escriben tal cual (`category_manual: null` = "sin categoría").
+    const update = await parseBody(request, updateTransactionSchema)
 
     const data = unwrap(
       await supabase

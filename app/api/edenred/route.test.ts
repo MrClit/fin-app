@@ -221,7 +221,8 @@ describe('POST /api/edenred — validación de body', () => {
         : await callRoute(body)
 
     expect(res.status).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Invalid body' })
+    // El esquema de Zod añade el detalle por campo en `issues` (#308).
+    expect(await res.json()).toMatchObject({ error: 'Invalid body' })
   })
 })
 

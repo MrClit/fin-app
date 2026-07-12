@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
+import { BadRequest } from '@/lib/http/validation'
 
 vi.mock('@/lib/auth/session', () => ({
   getCurrentUser: vi.fn(),
@@ -170,6 +172,23 @@ describe('withAuth — manejo de errores', () => {
         },
       })
     )
+  })
+
+  it('convierte un BadRequest en 400 y NO lo registra (es culpa del cliente)', async () => {
+    mockSession()
+    const schema = z.object({ amount: z.number() })
+    const result = schema.safeParse({ amount: 'x' })
+
+    const res = await withAuth('/api/thing', async () => {
+      throw new BadRequest(result.success ? undefined : result.error)
+    })(req('http://test/api/thing', { method: 'POST' }))
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({
+      error: 'Invalid body',
+      issues: [{ path: 'amount', message: expect.any(String) }],
+    })
+    expect(logError).not.toHaveBeenCalled()
   })
 
   it('registra con householdId null cuando el envoltorio es withUser', async () => {

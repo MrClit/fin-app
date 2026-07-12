@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import { withUser } from '@/lib/http/with-auth'
+import { parseBody } from '@/lib/http/validation'
+import { bankingConnectSchema } from '@/lib/schemas/banking'
 import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 
 export const POST = withUser('/api/banking/connect', async (_ctx, request) => {
-  const { aspspName, aspspCountry } = await request.json()
-  if (!aspspName || !aspspCountry) {
-    return NextResponse.json({ error: 'aspspName y aspspCountry son obligatorios' }, { status: 400 })
-  }
+  const { aspspName, aspspCountry } = await parseBody(request, bankingConnectSchema)
 
   const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/banking/callback`
   const state = encodeBankingState({ aspspName, aspspCountry })
