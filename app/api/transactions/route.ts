@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth, unwrap } from '@/lib/http/with-auth'
+import { listTransactions, TX_PAGE_SIZE, TX_MAX_PAGE_SIZE } from '@/lib/transactions'
 
 export const POST = withAuth(
   '/api/transactions',
@@ -42,58 +43,17 @@ export const GET = withAuth(
   async ({ householdId, supabase }, request) => {
     const { searchParams } = request.nextUrl
     const accountsParam = searchParams.get('accounts')
-    const category = searchParams.get('category')
-    const dateFrom = searchParams.get('dateFrom')
-    const dateTo   = searchParams.get('dateTo')
-    const limit = Math.min(Number(searchParams.get('limit') ?? '200'), 500)
     const beforeDate = searchParams.get('before_date')
     const beforeId   = searchParams.get('before_id')
-    const hasCursor  = !!(beforeDate && beforeId)
 
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - 90)
-    const cutoffStr = cutoff.toISOString().slice(0, 10)
-
-    // Pedimos limit + 1 para distinguir "exactamente limit ítems quedan" de "hay más".
-    let query = supabase
-      .from('transactions')
-      .select('*, account:accounts(id, name, color)')
-      .eq('household_id', householdId)
-      .order('date', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(limit + 1)
-
-    if (dateFrom)        query = query.gte('date', dateFrom)
-    else if (!hasCursor) query = query.gte('date', cutoffStr)
-    if (dateTo)          query = query.lte('date', dateTo)
-
-    if (hasCursor) {
-      // Keyset: (date, id) DESC → traer items "después" del cursor.
-      query = query.or(
-        `date.lt.${beforeDate},and(date.eq.${beforeDate},id.lt.${beforeId})`
-      )
-    }
-
-    if (accountsParam) {
-      const ids = accountsParam.split(',').filter(Boolean)
-      if (ids.length > 0) query = query.in('account_id', ids)
-    }
-
-    if (category) {
-      query = query.or(
-        `category_manual.eq.${category},and(category_manual.is.null,category.eq.${category})`
-      )
-    }
-
-    const data = unwrap(await query, { op: 'list' })
-
-    const raw = data ?? []
-    const hasMore = raw.length > limit
-    const items = hasMore ? raw.slice(0, limit) : raw
-    const last = items[items.length - 1]
-    const nextCursor = hasMore && last
-      ? { date: last.date as string, id: last.id as string }
-      : null
+    const { items, nextCursor } = await listTransactions(supabase, householdId, {
+      limit: Math.min(Number(searchParams.get('limit') ?? TX_PAGE_SIZE), TX_MAX_PAGE_SIZE),
+      cursor: beforeDate && beforeId ? { date: beforeDate, id: beforeId } : null,
+      accountIds: accountsParam ? accountsParam.split(',').filter(Boolean) : undefined,
+      category: searchParams.get('category'),
+      dateFrom: searchParams.get('dateFrom'),
+      dateTo:   searchParams.get('dateTo'),
+    })
 
     return NextResponse.json({
       data: items,

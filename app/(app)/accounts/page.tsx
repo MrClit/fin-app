@@ -2,12 +2,12 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { Check, Landmark } from 'lucide-react'
-import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
+import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { AccountCard } from '@/components/accounts/AccountCard'
 import { ConnectBankButton } from '@/components/accounts/ConnectBankButton'
 import { RenewedSyncTrigger } from '@/components/accounts/RenewedSyncTrigger'
 import { AccountsSkeleton } from '@/components/accounts/AccountsSkeleton'
-import { narrowUnions } from '@/lib/supabase/rows'
+import { getActiveAccounts } from '@/lib/accounts'
 
 export const metadata: Metadata = { title: 'Cuentas' }
 
@@ -32,14 +32,12 @@ async function AccountsContent({
 }) {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  const supabase = await getRequestClient()
 
-  const { data: accounts } = await supabase
-    .from('accounts')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true })
+  const householdId = await getCurrentHouseholdId()
+  if (!householdId) redirect('/login')
+
+  const supabase = await getRequestClient()
+  const accounts = await getActiveAccounts(supabase, householdId)
 
   const params = await searchParams
 
@@ -91,7 +89,7 @@ async function AccountsContent({
         </div>
       )}
 
-      {(accounts ?? []).length === 0 ? (
+      {accounts.length === 0 ? (
         <div className="flex flex-col items-center text-center gap-3 py-10">
           <div
             className="size-16 rounded-[20px] flex items-center justify-center"
@@ -111,8 +109,8 @@ async function AccountsContent({
         // que las filas lleguen a los bordes. Cada card lleva su border-y (solo
         // líneas arriba/abajo, sin laterales ni esquinas) y el gap las separa.
         <div className="-mx-4 flex flex-col gap-3">
-          {(accounts ?? []).map((account) => (
-            <AccountCard key={account.id} account={narrowUnions(account)} />
+          {accounts.map((account) => (
+            <AccountCard key={account.id} account={account} />
           ))}
         </div>
       )}

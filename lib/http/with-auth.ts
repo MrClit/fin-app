@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
+import { RouteError } from '@/lib/http/route-error'
+
+export { RouteError, unwrap } from '@/lib/http/route-error'
 
 /**
  * Envoltorios de auth para route handlers (issue #305).
@@ -24,33 +27,6 @@ export type AuthContext = UserContext & { householdId: string }
 export type WithAuthOptions = {
   /** Respuesta alternativa al 401 por defecto (p. ej. redirigir a /login). */
   unauthorized?: (request: NextRequest) => Response
-}
-
-/** Error de handler que transporta contexto extra para `logError`. */
-export class RouteError extends Error {
-  constructor(
-    message: string,
-    readonly context?: Record<string, unknown>
-  ) {
-    super(message)
-    this.name = 'RouteError'
-  }
-}
-
-type PostgrestLike = { message: string; code?: string }
-
-/**
- * Desenvuelve un `{ data, error }` de Supabase. Si hay error lanza un `RouteError`
- * con el `code` de Postgrest, para que el envoltorio lo registre y devuelva el 500.
- */
-export function unwrap<T>(
-  result: { data: T; error: PostgrestLike | null },
-  context?: Record<string, unknown>
-): T {
-  if (result.error) {
-    throw new RouteError(result.error.message, { ...context, code: result.error.code })
-  }
-  return result.data
 }
 
 function unauthorized(request: NextRequest, options?: WithAuthOptions): Response {
