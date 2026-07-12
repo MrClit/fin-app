@@ -1,6 +1,12 @@
 import { Landmark, CreditCard, UtensilsCrossed, Banknote, PiggyBank } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/database.types'
+import { unwrap } from '@/lib/http/route-error'
+import { narrowUnions } from '@/lib/supabase/rows'
 import type { Account, AccountType } from '@/types'
+
+type Db = SupabaseClient<Database>
 
 /**
  * Icono Lucide que representa cada tipo de cuenta en los badges de la UI.
@@ -85,4 +91,60 @@ export function getConsentBannerData(accounts: ConsentAccount[]): ConsentBannerD
   }
 
   return { count: atRisk.length, only: null }
+}
+
+// ─── Acceso a datos ──────────────────────────────────────────────────────────
+//
+// Cliente Supabase por parámetro, como en `lib/transactions.ts` (issue #306). El
+// orden canónico de cuentas vive sólo aquí: `sort_order` explícito (#159) y
+// `created_at` como desempate estable.
+
+/**
+ * Cuentas activas del hogar, en el orden canónico de la UI.
+ *
+ * Devuelve la fila completa: es el único shape de cuenta de la app. Los
+ * consumidores que sólo necesitan unas columnas (el filtro de la lista de
+ * movimientos, el banner PSD2) reciben un superconjunto, que sus `Pick<Account, …>`
+ * aceptan sin conversión.
+ */
+export async function getActiveAccounts(supabase: Db, householdId: string): Promise<Account[]> {
+  const rows = unwrap(
+    await supabase
+      .from('accounts')
+      .select('*')
+      .eq('household_id', householdId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true }),
+    { op: 'list' }
+  )
+
+  return (rows ?? []).map(narrowUnions)
+}
+
+/**
+ * `id` de la cuenta «Manual» del hogar, destino por defecto de los movimientos que el
+ * usuario da de alta a mano.
+ *
+ * Es solo lectura: la fila la crea el bootstrap del hogar (trigger
+ * `trg_household_manual_account` sobre `household_members`, más el backfill de la
+ * migración `20260712000000`, issue #307), no la pantalla que la consume. Devuelve
+ * `null` si el hogar no la tiene — una anomalía de datos, no un caso normal.
+ */
+export async function getManualAccountId(
+  supabase: Db,
+  householdId: string
+): Promise<string | null> {
+  const rows = unwrap(
+    await supabase
+      .from('accounts')
+      .select('id')
+      .eq('household_id', householdId)
+      .eq('source', 'manual')
+      .order('created_at', { ascending: true })
+      .limit(1),
+    { op: 'find-manual' }
+  )
+
+  return rows?.[0]?.id ?? null
 }

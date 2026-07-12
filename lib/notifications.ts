@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { unwrap } from '@/lib/http/route-error'
 
 /**
  * Notificaciones in-app (issue #177).
@@ -156,4 +157,22 @@ export async function insertNotification(
     return false
   }
   return true
+}
+
+/**
+ * Conteo de notificaciones in-app no leídas para el badge de la campana (#177).
+ * `head: true` evita traer filas: sólo el conteo.
+ */
+export async function getUnreadNotificationsCount(
+  db: SupabaseClient,
+  userId: string
+): Promise<number> {
+  const res = await db
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('read_at', null)
+
+  unwrap(res, { op: 'count-unread-notifications' })
+  return res.count ?? 0
 }

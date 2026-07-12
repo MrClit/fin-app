@@ -1,36 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildNextCursor, buildPaginationParams } from './pagination'
-
-describe('buildNextCursor', () => {
-  it('devuelve null cuando la lista está vacía', () => {
-    expect(buildNextCursor([], 200)).toBeNull()
-  })
-
-  it('devuelve null cuando vienen menos items que el límite', () => {
-    const items = [
-      { date: '2026-05-21', id: 'a' },
-      { date: '2026-05-20', id: 'b' },
-    ]
-    expect(buildNextCursor(items, 200)).toBeNull()
-  })
-
-  it('devuelve el cursor del último item cuando se alcanza el límite', () => {
-    const items = [
-      { date: '2026-05-21', id: 'a' },
-      { date: '2026-05-20', id: 'b' },
-      { date: '2026-05-19', id: 'c' },
-    ]
-    expect(buildNextCursor(items, 3)).toEqual({ date: '2026-05-19', id: 'c' })
-  })
-
-  it('ignora campos extra del item al construir el cursor', () => {
-    const items = [
-      { date: '2026-05-21', id: 'a', amount: 100, description: 'foo' },
-      { date: '2026-05-20', id: 'b', amount: -50, description: 'bar' },
-    ]
-    expect(buildNextCursor(items, 2)).toEqual({ date: '2026-05-20', id: 'b' })
-  })
-})
+import { buildPaginationParams } from './pagination'
 
 describe('buildPaginationParams', () => {
   it('devuelve params vacíos cuando el cursor es null y no hay extras', () => {

@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     template: '%s · Nummo',
   },
   description: 'App de gestión financiera personal',
+  // Safari en iOS convierte secuencias de dígitos en enlaces `tel:`; en una app
+  // de importes, fechas e IBANs eso es siempre un falso positivo.
+  formatDetection: { telephone: false },
   icons: {
     apple: '/icons/apple-touch-icon.png',
   },
@@ -48,17 +51,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={dmSans.variable} suppressHydrationWarning>
-      <body className="min-h-full antialiased">
+      <body className="min-h-dvh">
         {/*
           Franja de la status bar (PWA iOS standalone). Safari muestrea el color
           de un elemento `position: fixed` superior; al pintarlo con `--background`
           (color sólido vía variable CSS) la franja coincide con el fondo y se
           actualiza en vivo al alternar tema. Solo color sólido — gradientes/imagen
-          no funcionan.
+          no funcionan: cualquier sticky translúcido que se pinte encima rompe el
+          muestreo (de ahí el z-90; ver la escala de z-index en `globals.css`).
         */}
         <div
           aria-hidden
-          className="fixed inset-x-0 top-0 z-50 h-[env(safe-area-inset-top)] bg-background"
+          className="fixed inset-x-0 top-0 z-90 h-[env(safe-area-inset-top)] bg-background"
         />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeColorSync />

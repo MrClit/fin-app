@@ -98,6 +98,7 @@ git checkout develop
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
+| `v0.9.1` | 2026-07-12 | Fixes: la cuenta «Manual» se crea en el bootstrap del hogar en vez de en el render (#323), los no leídos anteriores a la ventana de 90 días ya se cargan (#302). Refactors: acceso a datos de cuentas y movimientos unificado en `lib/` (#318), preámbulo de auth y manejo de errores extraídos a `withAuth`/`withUser` (#317), fallback de error duplicado a componente compartido (#303), root layout limpiado y escala de z-index ordenada (#304). |
 | `v0.9.0` | 2026-07-08 | Renombrado de la app a «Nummo» con logo nuevo (#298). Scrapers: el cron ejecuta siempre `origin/main` vía worktree dedicado + wrapper (#256), notificación de fallos de scraping/webhook bajo cron (#295), manejo del modal «Confirmar dispositivo» en el login Sabadell (#286). |
 | `v0.8.0` | 2026-07-05 | Integración del plan de ahorro Sabadell (#197): nuevo tipo de cuenta `savings`, módulo `sabadell-shared` reutilizable + cierre automático del aviso de DNI caducado, endpoint `/api/sabadell-savings` con categorización por concepto (REVALORIZACION→returns, aportación→savings) y scraper del plan de ahorro (Bansabadell Vida). |
 | `v0.7.0` | 2026-07-04 | Bloque-veredicto (ahorro + KPIs) en la cabecera de Análisis (#283). Fix: el proxy exime `/api/scrapers` del chequeo de sesión (#284). |

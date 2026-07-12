@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { ErrorFallback } from '@/components/error-fallback'
+import { reportClientError } from '@/lib/error-log-client'
 
 /**
  * Error boundary del App Router (issue #200). Captura errores de renderizado en
@@ -15,36 +17,8 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    fetch('/api/error-log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-        route: window.location.pathname,
-        context: { digest: error.digest },
-      }),
-    }).catch(() => {
-      // best-effort: si la ingesta falla, no hay nada más que hacer
-    })
+    reportClientError(error)
   }, [error])
 
-  return (
-    <div className="grid min-h-dvh place-items-center px-6 text-center">
-      <div className="flex max-w-sm flex-col items-center gap-4">
-        <h1 className="text-lg font-semibold">Algo salió mal</h1>
-        <p className="text-sm text-muted-foreground">
-          Se ha producido un error inesperado. Puedes reintentar; si vuelve a
-          ocurrir, ya hemos registrado el fallo.
-        </p>
-        <button
-          type="button"
-          onClick={reset}
-          className="rounded-2xl bg-foreground px-5 py-2.5 text-sm font-medium text-background"
-        >
-          Reintentar
-        </button>
-      </div>
-    </div>
-  )
+  return <ErrorFallback onRetry={reset} />
 }

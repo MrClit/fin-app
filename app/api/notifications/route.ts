@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
-import { logError } from '@/lib/error-log'
+import { withUser, unwrap } from '@/lib/http/with-auth'
 
 // Lista de notificaciones in-app del usuario para la campana del header (#177).
 // RLS limita la consulta a las filas propias (auth.uid() = user_id). Se devuelven
@@ -8,30 +7,15 @@ import { logError } from '@/lib/error-log'
 // /unread-count aparte.
 const LIST_LIMIT = 30
 
-export async function GET() {
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  const supabase = await getRequestClient()
-
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('id, source, kind, title, body, url, read_at, created_at')
-    .order('created_at', { ascending: false })
-    .limit(LIST_LIMIT)
-
-  if (error) {
-    console.error('[GET /api/notifications]', error)
-    await logError({
-      source: 'server',
-      message: error.message,
-      route: '/api/notifications',
-      context: { op: 'list', code: error.code },
-      userId: user.id,
-    })
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
-  }
+export const GET = withUser('/api/notifications', async ({ supabase }) => {
+  const data = unwrap(
+    await supabase
+      .from('notifications')
+      .select('id, source, kind, title, body, url, read_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(LIST_LIMIT),
+    { op: 'list' }
+  )
 
   return NextResponse.json({ notifications: data ?? [] })
-}
+})

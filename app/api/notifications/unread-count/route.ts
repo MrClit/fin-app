@@ -1,35 +1,18 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
-import { logError } from '@/lib/error-log'
+import { withUser, unwrap } from '@/lib/http/with-auth'
 
 // Conteo de notificaciones no leídas para el badge de la campana (#177). Calco de
 // /api/transactions/unread-count: el badge vive en el layout y no se recomputa con
 // la navegación soft, así que el NotificationsProvider revalida contra este
 // endpoint. RLS limita la consulta a las filas propias; `head: true` evita traer
 // filas (solo el conteo, apoyado en el índice parcial de read_at IS NULL).
-export async function GET() {
-  const user = await getCurrentUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  const supabase = await getRequestClient()
-
-  const { count, error } = await supabase
+export const GET = withUser('/api/notifications/unread-count', async ({ supabase }) => {
+  const res = await supabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .is('read_at', null)
 
-  if (error) {
-    console.error('[GET /api/notifications/unread-count]', error)
-    await logError({
-      source: 'server',
-      message: error.message,
-      route: '/api/notifications/unread-count',
-      context: { op: 'count', code: error.code },
-      userId: user.id,
-    })
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
-  }
+  unwrap(res, { op: 'count' })
 
-  return NextResponse.json({ count: count ?? 0 })
-}
+  return NextResponse.json({ count: res.count ?? 0 })
+})

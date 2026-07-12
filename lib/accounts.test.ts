@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getConsentStatus, getConsentBannerData } from './accounts'
+import {
+  getConsentStatus,
+  getConsentBannerData,
+  getActiveAccounts,
+  getManualAccountId,
+} from './accounts'
+import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
 import type { Account } from '@/types'
 
 const DAY_MS = 86_400_000
@@ -104,5 +110,54 @@ describe('getConsentBannerData', () => {
         account({ source: 'scraper', consent_expires_at: null }),
       ])
     ).toBeNull()
+  })
+})
+
+// ─── Acceso a datos (issue #306) ─────────────────────────────────────────────
+
+describe('getActiveAccounts', () => {
+  it('filtra por hogar y activas, y ordena por sort_order → created_at', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [] }))
+
+    await getActiveAccounts(supabase, 'hh-1')
+
+    const [q] = queries
+    expect(q.table).toBe('accounts')
+    expect(q.calls.filter(c => c.method === 'eq')).toEqual([
+      { method: 'eq', args: ['household_id', 'hh-1'] },
+      { method: 'eq', args: ['is_active', true] },
+    ])
+    expect(q.calls.filter(c => c.method === 'order')).toEqual([
+      { method: 'order', args: ['sort_order', { ascending: true }] },
+      { method: 'order', args: ['created_at', { ascending: true }] },
+    ])
+  })
+
+  it('propaga el error de BD en vez de renderizar el estado vacío', async () => {
+    const { supabase } = createFakeSupabase(() => ({
+      error: { message: 'permission denied', code: '42501' },
+    }))
+
+    await expect(getActiveAccounts(supabase, 'hh-1')).rejects.toThrow('permission denied')
+  })
+})
+
+describe('getManualAccountId', () => {
+  it('devuelve la cuenta manual del hogar', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [{ id: 'acc-manual' }] }))
+
+    expect(await getManualAccountId(supabase, 'hh-1')).toBe('acc-manual')
+    expect(argsOf(queries[0], 'eq')).toEqual(['household_id', 'hh-1'])
+    expect(called(queries[0], 'insert')).toBe(false)
+  })
+
+  // La fila la garantiza el bootstrap del hogar (#307): la lectura nunca escribe,
+  // ni siquiera cuando el hogar no la tiene.
+  it('devuelve null sin insertar cuando el hogar no la tiene', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [] }))
+
+    expect(await getManualAccountId(supabase, 'hh-1')).toBeNull()
+    expect(queries).toHaveLength(1)
+    expect(called(queries[0], 'insert')).toBe(false)
   })
 })

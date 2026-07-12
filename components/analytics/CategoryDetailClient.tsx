@@ -159,7 +159,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
     <div>
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-50 border-b border-border px-4 pb-3"
+        className="sticky top-0 z-40 border-b border-border px-4 pb-3"
         style={{
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
