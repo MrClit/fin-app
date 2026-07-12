@@ -3,15 +3,6 @@ export interface TransactionCursor {
   id: string
 }
 
-export function buildNextCursor<T extends { date: string; id: string }>(
-  items: T[],
-  limit: number,
-): TransactionCursor | null {
-  if (items.length < limit) return null
-  const last = items[items.length - 1]
-  return { date: last.date, id: last.id }
-}
-
 export function buildPaginationParams(
   cursor: TransactionCursor | null,
   extras: Record<string, string | number | undefined> = {},

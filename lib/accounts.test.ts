@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getConsentStatus, getConsentBannerData } from './accounts'
+import {
+  getConsentStatus,
+  getConsentBannerData,
+  getActiveAccounts,
+  ensureManualAccountId,
+} from './accounts'
+import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
 import type { Account } from '@/types'
 
 const DAY_MS = 86_400_000
@@ -104,5 +110,62 @@ describe('getConsentBannerData', () => {
         account({ source: 'scraper', consent_expires_at: null }),
       ])
     ).toBeNull()
+  })
+})
+
+// ─── Acceso a datos (issue #306) ─────────────────────────────────────────────
+
+describe('getActiveAccounts', () => {
+  it('filtra por hogar y activas, y ordena por sort_order → created_at', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [] }))
+
+    await getActiveAccounts(supabase, 'hh-1')
+
+    const [q] = queries
+    expect(q.table).toBe('accounts')
+    expect(q.calls.filter(c => c.method === 'eq')).toEqual([
+      { method: 'eq', args: ['household_id', 'hh-1'] },
+      { method: 'eq', args: ['is_active', true] },
+    ])
+    expect(q.calls.filter(c => c.method === 'order')).toEqual([
+      { method: 'order', args: ['sort_order', { ascending: true }] },
+      { method: 'order', args: ['created_at', { ascending: true }] },
+    ])
+  })
+
+  it('propaga el error de BD en vez de renderizar el estado vacío', async () => {
+    const { supabase } = createFakeSupabase(() => ({
+      error: { message: 'permission denied', code: '42501' },
+    }))
+
+    await expect(getActiveAccounts(supabase, 'hh-1')).rejects.toThrow('permission denied')
+  })
+})
+
+describe('ensureManualAccountId', () => {
+  it('devuelve la cuenta manual existente sin insertar', async () => {
+    const { supabase, queries } = createFakeSupabase(() => ({ data: [{ id: 'acc-manual' }] }))
+
+    expect(await ensureManualAccountId(supabase, 'user-1', 'hh-1')).toBe('acc-manual')
+    expect(queries).toHaveLength(1)
+    expect(called(queries[0], 'insert')).toBe(false)
+  })
+
+  it('crea la cuenta manual del hogar cuando no existe', async () => {
+    const { supabase, queries } = createFakeSupabase(query =>
+      query.calls.some(c => c.method === 'insert')
+        ? { data: { id: 'acc-nueva' } }
+        : { data: [] }
+    )
+
+    expect(await ensureManualAccountId(supabase, 'user-1', 'hh-1')).toBe('acc-nueva')
+
+    const insert = argsOf(queries[1], 'insert')
+    expect(insert?.[0]).toMatchObject({
+      user_id: 'user-1',
+      household_id: 'hh-1',
+      source: 'manual',
+      type: 'cash',
+    })
   })
 })
