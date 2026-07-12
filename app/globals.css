@@ -3,6 +3,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Escala de z-index (issue #304). Consultarla antes de introducir un valor nuevo:
+   z-30   Sticky de sección          AnalyticsClient, AnalyticsSkeleton
+   z-40   Headers de página          AppHeader, CategoryDetailClient
+   z-90   Franja de status bar iOS   app/layout.tsx — debe quedar sobre todo el
+                                     contenido de página: si un sticky translúcido
+                                     la tapa, Safari muestrea el color equivocado
+                                     y el tinte de los iconos se rompe.
+   z-100  BottomNav
+   z-110  Sheet (overlay + content)
+   z-120  Toast                                                                  */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
