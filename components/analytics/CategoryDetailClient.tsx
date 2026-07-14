@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAnalytics } from '@/contexts/AnalyticsContext'
+import { useAnalytics } from './AnalyticsContext'
 import { getCategoryMeta } from '@/lib/categories'
 import { Amount } from '@/components/ui/amount'
 import { PERIOD_LABELS } from '@/lib/analytics'

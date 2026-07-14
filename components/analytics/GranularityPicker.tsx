@@ -2,7 +2,7 @@
 
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import type { Granularity } from '@/types'
-import { useAnalytics } from '@/contexts/AnalyticsContext'
+import { useAnalytics } from './AnalyticsContext'
 
 const OPTIONS: { id: Granularity; label: string }[] = [
   { id: 'week', label: 'Semana' },
