@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { ZodError, ZodType, z } from 'zod'
+import { toIssues } from '@/lib/schemas/issues'
 
 /**
  * Validación de bodies con Zod (issue #308).
@@ -14,14 +15,7 @@ import type { ZodError, ZodType, z } from 'zod'
  *   de scrapers, que se autentican por bearer y no tienen sesión).
  */
 
-export type ValidationIssue = { path: string; message: string }
-
-function toIssues(error: ZodError): ValidationIssue[] {
-  return error.issues.map(issue => ({
-    path: issue.path.join('.'),
-    message: issue.message,
-  }))
-}
+export type { ValidationIssue } from '@/lib/schemas/issues'
 
 /**
  * Lee el body como JSON. Un body ausente, vacío o ilegible se resuelve a

@@ -11,7 +11,7 @@ import type { SwipeSide } from '@/hooks/useHorizontalSwipe'
 import { TxModal } from '@/components/transactions/TxModal'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
 import { TxDayGroupCard } from '@/components/transactions/TxDayGroupCard'
-import { useUnread } from '@/components/transactions/UnreadProvider'
+import { useTxMutations } from '@/components/transactions/useTxMutations'
 import { groupTxByDate } from '@/lib/transactions'
 import GranularityPicker from './GranularityPicker'
 import CategoryBarChart from './CategoryBarChart'
@@ -43,36 +43,18 @@ export default function CategoryDetailClient({ categoryId }: Props) {
 
   const [periods, setPeriods] = useState<CategoryPeriodData[]>([])
   const [selectedBarIdx, setSelectedBarIdx] = useState(5)
-  const [transactions, setTransactions] = useState<TransactionWithAccount[]>([])
   const [loadingPeriods, setLoadingPeriods] = useState(true)
   const [loadingTxs, setLoadingTxs] = useState(true)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
   const [swiped, setSwiped] = useState<{ id: string; side: SwipeSide } | null>(null)
-  const { increment, decrement } = useUnread()
+  // Mutaciones compartidas con la lista de Movimientos (#311): optimistas con
+  // rollback + toast de reintento, y ajuste del badge de no leídas. La lista se
+  // siembra vacía y se reemplaza con cada fetch de período (replaceTxs).
+  const { transactions, replaceTxs, deleteTx, recategorize, markRead, markUnread } =
+    useTxMutations([])
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
-
-  // Marca leído/no leído optimista, ajustando el badge (UnreadProvider). Estilo
-  // best-effort coherente con handleDelete de este fichero: rollback + log si falla.
-  function setRead(tx: TransactionWithAccount, isRead: boolean) {
-    if (tx.is_read === isRead) return
-    setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, is_read: isRead } : t)))
-    if (isRead) decrement()
-    else increment()
-    fetch(`/api/transactions/${tx.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_read: isRead }),
-    })
-      .then(res => { if (!res.ok) throw new Error('PATCH is_read failed') })
-      .catch(err => {
-        setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, is_read: tx.is_read } : t)))
-        if (isRead) increment()
-        else decrement()
-        console.error('[CategoryDetailClient.setRead]', err)
-      })
-  }
 
   // Mark loading during render when inputs change (React 19: setState in effect body is disallowed)
   const periodsKey = `${granularity}|${categoryId}`
@@ -123,30 +105,16 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       .then(r => r.json())
       .then(d => {
         if (!cancelled) {
-          setTransactions(d.data ?? [])
+          replaceTxs(d.data ?? [])
           setLoadingTxs(false)
         }
       })
     return () => { cancelled = true }
-  }, [selectedBarIdx, periods, categoryId])
+  }, [selectedBarIdx, periods, categoryId, replaceTxs])
 
-  async function handleDelete(txId: string) {
+  function handleDelete(txId: string) {
     setSelectedTxId(null)
-    setTransactions(prev => prev.filter(t => t.id !== txId))
-    const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
-    if (!res.ok) console.error('[handleDelete]', await res.text())
-  }
-
-  async function handleSelect(txId: string, category: CategoryId) {
-    setTransactions(prev => prev.map(t =>
-      t.id === txId ? { ...t, category_manual: category } : t
-    ))
-    const res = await fetch(`/api/transactions/${txId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category_manual: category }),
-    })
-    if (!res.ok) console.error('[handleSelect]', await res.text())
+    void deleteTx(txId)
   }
 
   // Group transactions by date (helper compartido con la lista de Movimientos)
@@ -283,8 +251,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
                 onOpenSwipe={(id, side) => setSwiped({ id, side })}
                 onCloseSwipe={() => setSwiped(null)}
                 onRecategorize={tx => { setCatPickerTx(tx); setSwiped(null) }}
-                onToggleRead={tx => { setSwiped(null); setRead(tx, !tx.is_read) }}
-                onTap={tx => { setSelectedTxId(tx.id); setSwiped(null); if (!tx.is_read) setRead(tx, true) }}
+                onToggleRead={tx => { setSwiped(null); void (tx.is_read ? markUnread(tx.id) : markRead(tx.id)) }}
+                onTap={tx => { setSelectedTxId(tx.id); setSwiped(null); if (!tx.is_read) void markRead(tx.id) }}
               />
             ))}
           </div>
@@ -306,7 +274,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           tx={catPickerTx}
           open
           onOpenChange={o => { if (!o) setCatPickerTx(null) }}
-          onSelect={handleSelect}
+          onSelect={recategorize}
         />
       )}
 
