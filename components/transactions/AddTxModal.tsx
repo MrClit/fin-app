@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { FileText, Calendar, CreditCard } from 'lucide-react'
+import { createTransaction } from '@/app/actions/transactions'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 import { CATEGORY_META } from '@/lib/theme'
@@ -98,20 +99,15 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
     setSaving(true)
     try {
       const sign = type === 'gasto' ? -1 : 1
-      const res = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: sign * parsedAmount,
-          description,
-          date,
-          category_manual: category,
-          account_id: manualAccountId,
-        }),
+      const res = await createTransaction({
+        amount: sign * parsedAmount,
+        description,
+        date,
+        category_manual: category,
+        account_id: manualAccountId,
       })
-      if (!res.ok) throw new Error(await res.text())
-      const { data: tx } = await res.json()
-      onSave(tx)
+      if (res.error) throw new Error(res.error.code)
+      onSave(res.data)
       onOpenChange(false)
     } catch (err) {
       console.error('[AddTxModal] Error guardando:', err)

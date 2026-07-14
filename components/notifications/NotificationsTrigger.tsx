@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { markAllNotificationsRead } from '@/app/actions/notifications'
 import { useNotifications } from '@/components/notifications/NotificationsProvider'
 
 /**
@@ -66,9 +67,9 @@ export function NotificationsTrigger() {
 
       if (count > 0) {
         setCount(0)
-        fetch('/api/notifications/mark-read', { method: 'POST' }).catch(() => {
-          // Si falla, el provider revalidará el conteo real en el próximo ciclo.
-        })
+        // Fire-and-forget: si falla (transporte o error devuelto por la acción),
+        // el provider revalidará el conteo real en el próximo ciclo.
+        markAllNotificationsRead().catch(() => {})
       }
     },
     [count, setCount]
