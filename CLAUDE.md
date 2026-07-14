@@ -23,6 +23,8 @@ El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el pro
 - Estado `gran` (período de análisis) vive en el layout/contexto compartido,
   no dentro de cada pantalla
 - Lógica de agregación SQL siempre en servidor, nunca en cliente
+- Hooks y providers colocados por feature en `components/<feature>/`;
+  `hooks/` solo para hooks transversales agnósticos de dominio. No existe `contexts/`
 
 ## Formato de números
 Siempre usar esta función (formato español: punto miles, coma decimal):
