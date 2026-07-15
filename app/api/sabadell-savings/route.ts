@@ -29,7 +29,6 @@ const connector: Connector<SabadellSavingsPayload> = {
         balance: payload.account.balance,
         number: payload.account.number ?? null,
         sortOrder: SAVINGS_SORT_ORDER,
-        updateName: true,
         transactions: payload.account.transactions.map(tx => ({
           externalId: tx.external_id,
           amount: tx.amount,

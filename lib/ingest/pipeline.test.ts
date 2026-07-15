@@ -131,7 +131,6 @@ function minimalAccount(overrides: Partial<NormalizedAccount> = {}): NormalizedA
     type: 'edenred',
     isLiability: false,
     balance: 100,
-    updateName: false,
     transactions: [tx('ext-1')],
     ...overrides,
   }
@@ -257,7 +256,6 @@ describe('ingest — columnas divergentes del INSERT', () => {
           type: 'savings',
           number: null,
           sortOrder: 15,
-          updateName: true,
         }),
       ]),
       undefined
@@ -274,29 +272,13 @@ describe('ingest — columnas divergentes del INSERT', () => {
 })
 
 describe('ingest — UPDATE de una cuenta existente', () => {
-  it('con updateName: false no reescribe el nombre', async () => {
+  it('nunca reescribe el nombre: sólo balance y last_synced (#313)', async () => {
     const { db, updates, inserts } = buildMockDb({ accountSelects: [{ data: { id: 'acc-1' } }] })
 
-    await ingest(db, fakeConnector([minimalAccount({ updateName: false })]), undefined)
+    await ingest(db, fakeConnector([minimalAccount({ name: 'Renombrada en BD' })]), undefined)
 
     expect(inserts).toHaveLength(0)
     expect(updates[0]).toEqual({ balance: 100, last_synced: '2026-07-01T10:00:00Z' })
-  })
-
-  it('con updateName: true sí lo reescribe', async () => {
-    const { db, updates } = buildMockDb({ accountSelects: [{ data: { id: 'acc-1' } }] })
-
-    await ingest(
-      db,
-      fakeConnector([minimalAccount({ name: 'Sabadell VISA Víctor', updateName: true })]),
-      undefined
-    )
-
-    expect(updates[0]).toEqual({
-      balance: 100,
-      last_synced: '2026-07-01T10:00:00Z',
-      name: 'Sabadell VISA Víctor',
-    })
   })
 })
 
