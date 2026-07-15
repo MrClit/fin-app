@@ -45,14 +45,13 @@ export type NormalizedTx = {
  */
 export type NormalizedAccount = {
   identity: AccountIdentity
+  /** Sólo se emite en el INSERT: el nombre es propiedad de la BD y un re-sync no lo pisa (#313). */
   name: string
   type: string
   isLiability: boolean
   balance: number
   number?: string | null
   sortOrder?: number
-  /** `false` en Edenred: el UPDATE de un re-sync no debe reescribir el nombre. */
-  updateName: boolean
   transactions: NormalizedTx[]
 }
 

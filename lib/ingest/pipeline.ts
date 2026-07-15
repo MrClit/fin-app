@@ -49,12 +49,14 @@ async function resolveAccount(
 
   if (existing) {
     const id = existing.id as string
+    // `name` no se incluye a propósito: sólo se fija en el INSERT, de modo que
+    // un re-sync no pisa un renombrado hecho en BD (#313, mismo patrón que
+    // `sort_order`).
     const { error: updErr } = await db
       .from('accounts')
       .update({
         balance: account.balance,
         last_synced: ctx.lastSyncedAt,
-        ...(account.updateName && { name: account.name }),
       })
       .eq('id', id)
     if (updErr) {

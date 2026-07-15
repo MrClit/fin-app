@@ -243,8 +243,8 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
     expect(insertSpy).toHaveBeenCalledTimes(2)
     expect(insertSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
       household_id: HOUSEHOLD_ID,
-      // El nombre se mapea por los últimos 4 dígitos del card_id (4014 → Mesalina)
-      name: 'Sabadell VISA Mesalina',
+      // El INSERT usa el nombre genérico del scraper tal cual (#313)
+      name: 'Sabadell VISA •••• 4014',
       type: 'card',
       source: 'scraper',
       is_liability: true,
@@ -267,7 +267,7 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
 })
 
 describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () => {
-  it('actualiza balance/last_synced/name de cada cuenta existente sin insertar', async () => {
+  it('actualiza balance/last_synced de cada cuenta existente sin insertar ni tocar el nombre', async () => {
     const { db, insertSpy, updateSpy } = buildMockDb({
       householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelects: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
@@ -279,47 +279,16 @@ describe('POST /api/sabadell-visa — POST siguiente (actualiza cuentas)', () =>
     expect(await res.json()).toEqual({ cards: 2, created_accounts: 0, upserted: 2 })
     expect(insertSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalledTimes(2)
-    // El nombre se reescribe mapeado en cada sync (4014 → Mesalina), de modo que
-    // se autocorrige sin edición manual en BD.
+    // El nombre no viaja en el UPDATE: es propiedad de la BD y un re-sync no
+    // pisa un renombrado manual (#313).
     expect(updateSpy).toHaveBeenNthCalledWith(1, {
       balance: -156.2,
       last_synced: validPayload.last_synced_at,
-      name: 'Sabadell VISA Mesalina',
     })
     expect(updateSpy).toHaveBeenNthCalledWith(2, {
       balance: -14.99,
       last_synced: validPayload.last_synced_at,
-      name: 'Sabadell VISA Víctor',
     })
-  })
-})
-
-describe('POST /api/sabadell-visa — nombre de tarjeta desconocida', () => {
-  it('conserva el nombre del webhook si el card_id no está mapeado', async () => {
-    const { db, insertSpy } = buildMockDb({
-      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
-      accountSelects: [{ data: null }],
-      accountInserts: [{ data: { id: ACCOUNT_A } }],
-    })
-    vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
-
-    const unknownCard = {
-      last_synced_at: '2026-06-06T10:00:00Z',
-      cards: [
-        {
-          card_id: '4106________9999',
-          name: 'Sabadell VISA •••• 9999',
-          number: '4106 •••• 9999',
-          balance: -10,
-          transactions: [],
-        },
-      ],
-    }
-    const res = await callRoute(unknownCard)
-    expect(res.status).toBe(200)
-    expect(insertSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      name: 'Sabadell VISA •••• 9999',
-    }))
   })
 })
 

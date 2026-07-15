@@ -5,8 +5,7 @@ import { edenredPayloadSchema, type EdenredPayload } from '@/lib/schemas/scraper
 
 // Adaptador del scraper de Edenred sobre el pipeline común (issue #309).
 //
-// La cuenta se identifica por NOMBRE, no por external_id: nunca lo tuvo. Y el
-// re-sync no reescribe el nombre (`updateName: false`), que es constante.
+// La cuenta se identifica por NOMBRE, no por external_id: nunca lo tuvo.
 const connector: Connector<EdenredPayload> = {
   source: 'edenred',
   normalize: payload => ({
@@ -18,7 +17,6 @@ const connector: Connector<EdenredPayload> = {
         type: 'edenred',
         isLiability: false,
         balance: payload.balance,
-        updateName: false,
         transactions: payload.transactions.map(tx => ({
           externalId: tx.external_id,
           amount: tx.amount,

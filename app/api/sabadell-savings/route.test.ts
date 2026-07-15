@@ -225,7 +225,7 @@ describe('POST /api/sabadell-savings — primer POST (crea cuenta)', () => {
 })
 
 describe('POST /api/sabadell-savings — POST siguiente (actualiza cuenta)', () => {
-  it('actualiza balance/last_synced/name de la cuenta existente sin insertar', async () => {
+  it('actualiza balance/last_synced de la cuenta existente sin insertar ni tocar el nombre', async () => {
     const { db, insertSpy, updateSpy } = buildMockDb({
       householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
@@ -240,7 +240,6 @@ describe('POST /api/sabadell-savings — POST siguiente (actualiza cuenta)', () 
     expect(updateSpy).toHaveBeenCalledWith({
       balance: 21462.28,
       last_synced: validPayload.last_synced_at,
-      name: 'Plan Ahorro Trimestral',
     })
   })
 })

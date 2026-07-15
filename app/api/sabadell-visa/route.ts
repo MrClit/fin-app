@@ -4,24 +4,14 @@ import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories
 import { ingest, ingestErrorResponse, webhookGuard, type Connector } from '@/lib/ingest'
 import {
   sabadellVisaPayloadSchema,
-  type SabadellCard,
   type SabadellVisaPayload,
 } from '@/lib/schemas/scrapers'
 
 // Adaptador del scraper de las VISA Sabadell sobre el pipeline común (#309).
 
-// Nombre de presentación por tarjeta (clave = últimos 4 dígitos del card_id).
-// Ambas VISAs comparten descripción en el banco, así que el scraper envía nombres
-// genéricos ("Sabadell VISA •••• NNNN"); aquí se fija el nombre real del titular.
-// Una tarjeta no listada conserva el nombre que venga del webhook.
-const CARD_DISPLAY_NAMES: Record<string, string> = {
-  '5011': 'Sabadell VISA Víctor',
-  '4014': 'Sabadell VISA Mesalina',
-}
-
-function resolveCardName(card: SabadellCard): string {
-  return CARD_DISPLAY_NAMES[card.card_id.slice(-4)] ?? card.name
-}
+// El nombre de presentación de cada tarjeta vive en `accounts.name` y sólo se
+// fija en el INSERT con el genérico del scraper ("Sabadell VISA •••• NNNN");
+// un re-sync nunca lo pisa, así que renombrar es editar la fila en BD (#313).
 
 const connector: Connector<SabadellVisaPayload> = {
   source: 'sabadell-visa',
@@ -31,12 +21,11 @@ const connector: Connector<SabadellVisaPayload> = {
       // Identidad por external_id (no por nombre), para tolerar renombrados y
       // porque ambas tarjetas comparten descripción en el banco.
       identity: { by: 'external_id', value: card.card_id },
-      name: resolveCardName(card),
+      name: card.name,
       type: 'card',
       isLiability: true,
       balance: card.balance,
       number: card.number ?? null,
-      updateName: true,
       transactions: card.transactions.map(tx => ({
         externalId: tx.external_id,
         amount: tx.amount,
