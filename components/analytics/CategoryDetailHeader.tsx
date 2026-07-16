@@ -47,14 +47,14 @@ export default function CategoryDetailHeader({
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <button
             onClick={onBack}
-            className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-secondary text-foreground"
+            className="flex size-8.5 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-secondary text-foreground"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
           <div
-            className="flex size-[30px] shrink-0 items-center justify-center rounded-[8px]"
+            className="flex size-7.5 shrink-0 items-center justify-center rounded-[8px]"
             style={{ background: color + '20' }}
           >
             <Icon size={15} color={color} strokeWidth={2} />
