@@ -22,6 +22,9 @@ interface Props {
   categoryId: CategoryId
 }
 
+// Debe coincidir con la duración de .animate-slide-out-right (globals.css).
+const SLIDE_OUT_MS = 250
+
 export default function CategoryDetailClient({ categoryId }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -47,6 +50,21 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
   const [catPickerTx, setCatPickerTx] = useState<TransactionWithAccount | null>(null)
   const [swiped, setSwiped] = useState<{ id: string; side: SwipeSide } | null>(null)
+  const [isLeaving, setIsLeaving] = useState(false)
+
+  // Pop del detalle (#315): el slide de salida tiene que correr ANTES de
+  // navegar (Next desmonta la página al hacerlo). Con «reducir movimiento»
+  // activo se navega directo — la clase de salida está anulada en CSS y
+  // esperar dejaría la pantalla congelada 250 ms.
+  function handleBack() {
+    if (isLeaving) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.back()
+      return
+    }
+    setIsLeaving(true)
+    setTimeout(() => router.back(), SLIDE_OUT_MS)
+  }
 
   const selectedTx = selectedTxId ? transactions.find(t => t.id === selectedTxId) ?? null : null
 
@@ -62,11 +80,11 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const periodTotal = selectedPeriod?.amount ?? 0
 
   return (
-    <div>
+    <div className={isLeaving ? 'animate-slide-out-right' : undefined}>
       <CategoryDetailHeader
         meta={meta}
         granularity={granularity}
-        onBack={() => router.back()}
+        onBack={handleBack}
         onOpenPicker={() => setShowPicker(true)}
         showSummary={!loadingTxs && !!selectedPeriod}
         txCount={transactions.length}

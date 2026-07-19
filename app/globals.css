@@ -200,11 +200,37 @@
   animation: rowIn 0.2s ease-out forwards;
 }
 
-/* Con «reducir movimiento» activo, las entradas con fade aparecen de
-   inmediato: sin animación, los elementos quedan en su opacity natural (1). */
+/* Push/pop del detalle de categoría (#315): la pantalla entra deslizando
+   desde la derecha y sale hacia la derecha. La entrada no lleva fill-mode:
+   al terminar, transform vuelve a `none` y no deja containing block para
+   descendientes fixed (modales). La salida sí usa forwards porque el
+   elemento se desmonta justo después de navegar. */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s ease-out;
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.animate-slide-out-right {
+  animation: slideOutRight 0.25s ease-in forwards;
+}
+
+/* Con «reducir movimiento» activo, las entradas y salidas animadas se
+   resuelven de inmediato: sin animación, los elementos quedan en su estado
+   natural (opacity 1, sin transform). */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-row-in {
+  .animate-row-in,
+  .animate-slide-in-right,
+  .animate-slide-out-right {
     animation: none;
   }
 }
