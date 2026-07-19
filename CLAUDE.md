@@ -3,8 +3,9 @@
 ## Contexto del proyecto
 App web personal (usuario único) de gestión y análisis de finanzas.
 Lee `docs/finanzas-spec.md` para la especificación completa.
-El fichero `docs/finanzas-app.jsx` es el prototipo visual de referencia —
-es la fuente de verdad para todas las decisiones de UI/UX.
+El fichero `docs/finanzas-app.jsx` fue el prototipo visual con el que arrancó
+el desarrollo; ya **no** es referencia para la evolución de la app — las
+decisiones de UI/UX se toman por el spec y por mejores prácticas.
 El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el prototipo y el spec al desarrollo real.
 
 ## Stack
@@ -18,7 +19,10 @@ El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el pro
 ## Convenciones críticas
 - `overflow: clip` en el contenedor raíz (nunca `overflow: hidden` — rompe sticky)
 - Nunca `transform` en contenedores con hijos `position: fixed`
-- Transiciones de pantalla solo con `opacity`, nunca con `transform`
+- Transiciones de pantalla con `opacity`; slide con `transform` solo si ningún
+  descendiente `position: fixed` está montado durante la animación y sin dejar
+  transform persistente al acabar (sin fill-mode en entradas) —
+  patrón en `app/(app)/analytics/template.tsx` (#315)
 - Server Components por defecto; `'use client'` solo cuando haya estado o touch events
 - Estado `gran` (período de análisis) vive en el layout/contexto compartido,
   no dentro de cada pantalla
