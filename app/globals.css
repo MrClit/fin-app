@@ -199,3 +199,12 @@
 .animate-row-in {
   animation: rowIn 0.2s ease-out forwards;
 }
+
+/* Con «reducir movimiento» activo, las entradas con fade aparecen de
+   inmediato: sin animación, los elementos quedan en su opacity natural (1). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-row-in {
+    animation: none;
+  }
+}
