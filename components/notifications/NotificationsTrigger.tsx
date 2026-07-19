@@ -17,8 +17,9 @@ import { useNotifications } from '@/components/notifications/NotificationsProvid
 /**
  * Campana del header como centro de notificaciones in-app (#177). Muestra un badge
  * con el nº de no leídas (alimentado por NotificationsProvider) y, al abrir el
- * Sheet, la lista de avisos. Al abrir se marcan todas como leídas (badge a 0). El
- * toggle de activar/desactivar push vive ahora en el menú de usuario (PushToggleRow).
+ * Sheet, la lista de avisos con las no leídas resaltadas (#314). Al abrir se marcan
+ * todas como leídas (badge a 0). El toggle de activar/desactivar push vive ahora en
+ * el menú de usuario (PushToggleRow).
  */
 
 interface NotificationItem {
@@ -50,6 +51,11 @@ export function NotificationsTrigger() {
   const { count, setCount } = useNotifications()
 
   // Al abrir: cargar la lista y marcar todas como leídas (badge optimista a 0).
+  // El mark-read se dispara SOLO cuando el GET ya ha respondido (#314): si
+  // corriera en paralelo y su UPDATE ganara la carrera, la lista llegaría toda
+  // con read_at no nulo y el resaltado de no leídas no se vería nunca. Como
+  // `items` es un snapshot que no se refetchea mientras el sheet está abierto,
+  // el resaltado sobrevive toda la apertura y desaparece en la siguiente.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setOpen(next)
@@ -58,19 +64,22 @@ export function NotificationsTrigger() {
         return
       }
 
+      const hadUnread = count > 0
+      if (hadUnread) setCount(0)
+
       setLoading(true)
       fetch('/api/notifications', { cache: 'no-store' })
         .then(res => (res.ok ? res.json() : null))
         .then(json => setItems(json?.notifications ?? []))
         .catch(() => setItems([]))
-        .finally(() => setLoading(false))
-
-      if (count > 0) {
-        setCount(0)
-        // Fire-and-forget: si falla (transporte o error devuelto por la acción),
-        // el provider revalidará el conteo real en el próximo ciclo.
-        markAllNotificationsRead().catch(() => {})
-      }
+        .finally(() => {
+          setLoading(false)
+          if (hadUnread) {
+            // Fire-and-forget: si falla (transporte o error devuelto por la
+            // acción), el provider revalidará el conteo real en el próximo ciclo.
+            markAllNotificationsRead().catch(() => {})
+          }
+        })
     },
     [count, setCount]
   )
@@ -125,6 +134,9 @@ export function NotificationsTrigger() {
           )}
 
           {items?.map(item => {
+            // Según el snapshot del GET (congelado durante la apertura), no
+            // según el estado en BD, que el mark-read ya habrá actualizado.
+            const unread = item.read_at === null
             const Inner = (
               <>
                 <AlertTriangle
@@ -132,7 +144,12 @@ export function NotificationsTrigger() {
                   strokeWidth={2}
                 />
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-sm font-medium text-foreground">{item.title}</span>
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    {unread && (
+                      <span aria-hidden className="size-2 shrink-0 rounded-full bg-primary" />
+                    )}
+                    {item.title}
+                  </span>
                   <span className="text-xs text-muted-foreground">{item.body}</span>
                   <span className="text-2xs text-muted-foreground/70">
                     {timeAgo(item.created_at)}
@@ -140,8 +157,9 @@ export function NotificationsTrigger() {
                 </span>
               </>
             )
-            const className =
-              'flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3 text-left'
+            const className = `flex items-start gap-3 rounded-xl border border-border px-3 py-3 text-left ${
+              unread ? 'bg-accent' : 'bg-card'
+            }`
             return item.url ? (
               <Link
                 key={item.id}
