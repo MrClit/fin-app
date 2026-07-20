@@ -37,7 +37,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
   const effectiveIdx = selectedCatIdx !== null && selectedCatIdx >= 0 ? selectedCatIdx : null
 
   const handleSelect = (idx: number | null) => {
-    setSelectedKey(idx === null ? null : items[idx].key)
+    setSelectedKey(idx === null ? null : items[idx]?.key ?? null)
   }
 
   const isEmpty = items.length === 0 && credits.length === 0
