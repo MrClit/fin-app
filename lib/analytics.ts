@@ -115,6 +115,13 @@ export const PERIOD_LABELS: Record<Granularity, string> = {
   year:    'Año',
 }
 
+// Valida un valor arbitrario (de la query string `?g=`) contra las granularidades
+// reales; devuelve null si no es válida. Fuente única compartida por el provider
+// y por el Server Component de Análisis para no duplicar la lista de valores.
+export function parseGranularity(v: string | null | undefined): Granularity | null {
+  return v != null && v in PERIOD_LABELS ? (v as Granularity) : null
+}
+
 // Totales de período (KPIs) derivados del desglose `by_category`, que es la ÚNICA
 // fuente de verdad tanto del KPI como del donut (#272). Se clasifica por el catálogo
 // (`CATEGORY_META`, fuente única de tipos) y se aplica la matemática del spec §5.4:

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { CategoryBreakdown } from '@/types'
+import type { CategoryBreakdown, Granularity } from '@/types'
 import { Amount } from '@/components/ui/amount'
 import DonutChart from './DonutChart'
 import { buildDonutModel, REST_KEY } from './donutModel'
@@ -15,9 +15,11 @@ interface CategoryBreakdownSectionProps {
   expense: number
   /** Inicio (ISO) del período activo en Análisis; se propaga al detalle para abrirlo en el mismo período. */
   periodStart: string
+  /** Granularidad activa; se propaga al detalle (?g=) para que sobreviva a un F5 estando en él. */
+  granularity: Granularity
 }
 
-export default function CategoryBreakdownSection({ byCategory, income, expense, periodStart }: CategoryBreakdownSectionProps) {
+export default function CategoryBreakdownSection({ byCategory, income, expense, periodStart, granularity }: CategoryBreakdownSectionProps) {
   const router = useRouter()
   const [catView, setCatView] = useState<'gastos' | 'ingresos'>('gastos')
   // Tracked by key instead of index — auto-deselects when byCategory changes and the
@@ -100,7 +102,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                   key={item.key}
                   onClick={() => {
                     if (isNavigable) {
-                      router.push(`/analytics/category/${item.categoryId}?period=${periodStart}`)
+                      router.push(`/analytics/category/${item.categoryId}?period=${periodStart}&g=${granularity}`)
                     } else {
                       handleSelect(effectiveIdx === i ? null : i)
                     }
@@ -154,7 +156,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
               return (
                 <div
                   key={credit.categoryId}
-                  onClick={() => router.push(`/analytics/category/${credit.categoryId}?period=${periodStart}`)}
+                  onClick={() => router.push(`/analytics/category/${credit.categoryId}?period=${periodStart}&g=${granularity}`)}
                   style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >
                   <div className="flex items-center justify-between">
