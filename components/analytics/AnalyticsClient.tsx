@@ -50,7 +50,8 @@ interface PageState {
 }
 
 export default function AnalyticsClient({ initialData }: { initialData: AnalyticsResponse }) {
-  const { granularity, setShowPicker } = useAnalytics()
+  const { granularity } = useAnalytics()
+  const [showPicker, setShowPicker] = useState(false)
   const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
     data: initialData, selectedBarIdx: null, showYoY: false,
   })
@@ -192,11 +193,12 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             income={activeBar.income}
             expense={activeBar.expense}
             periodStart={activeBar.start}
+            granularity={granularity}
           />
         )}
       </div>
 
-      <GranularityPicker />
+      <GranularityPicker open={showPicker} onOpenChange={setShowPicker} />
     </div>
   )
 }

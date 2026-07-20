@@ -30,7 +30,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const searchParams = useSearchParams()
   // Período de origen (inicio ISO) al llegar desde Análisis; abrimos el detalle en él.
   const periodParam = searchParams.get('period')
-  const { granularity, setShowPicker } = useAnalytics()
+  const { granularity } = useAnalytics()
+  const [showPicker, setShowPicker] = useState(false)
   const meta = getCategoryMeta(categoryId)
   const { color } = meta
 
@@ -179,7 +180,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         onSelect={recategorize}
       />
 
-      <GranularityPicker />
+      <GranularityPicker open={showPicker} onOpenChange={setShowPicker} />
     </div>
   )
 }
