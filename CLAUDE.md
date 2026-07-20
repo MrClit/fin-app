@@ -3,8 +3,9 @@
 ## Contexto del proyecto
 App web personal (usuario único) de gestión y análisis de finanzas.
 Lee `docs/finanzas-spec.md` para la especificación completa.
-El fichero `docs/finanzas-app.jsx` es el prototipo visual de referencia —
-es la fuente de verdad para todas las decisiones de UI/UX.
+El fichero `docs/finanzas-app.jsx` fue el prototipo visual con el que arrancó
+el desarrollo; ya **no** es referencia para la evolución de la app — las
+decisiones de UI/UX se toman por el spec y por mejores prácticas.
 El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el prototipo y el spec al desarrollo real.
 
 ## Stack
@@ -18,11 +19,16 @@ El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el pro
 ## Convenciones críticas
 - `overflow: clip` en el contenedor raíz (nunca `overflow: hidden` — rompe sticky)
 - Nunca `transform` en contenedores con hijos `position: fixed`
-- Transiciones de pantalla solo con `opacity`, nunca con `transform`
+- Transiciones de pantalla con `opacity`; slide con `transform` solo si ningún
+  descendiente `position: fixed` está montado durante la animación y sin dejar
+  transform persistente al acabar (sin fill-mode en entradas) —
+  patrón en `app/(app)/analytics/template.tsx` (#315)
 - Server Components por defecto; `'use client'` solo cuando haya estado o touch events
 - Estado `gran` (período de análisis) vive en el layout/contexto compartido,
   no dentro de cada pantalla
 - Lógica de agregación SQL siempre en servidor, nunca en cliente
+- Hooks y providers colocados por feature en `components/<feature>/`;
+  `hooks/` solo para hooks transversales agnósticos de dominio. No existe `contexts/`
 
 ## Formato de números
 Siempre usar esta función (formato español: punto miles, coma decimal):
@@ -57,7 +63,7 @@ export const fmt = (n: number, decimals = 0): string => {
 
 ## Flujos de GitHub
 
-**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en `docs/release.md`.
+**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en la skill **`release`** (historial en `CHANGELOG.md`).
 
 Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al tablero y muévela a Ready», o «corre las validaciones, pushea, abre el PR con este título y cuerpo, y mueve a In review».
 
@@ -67,5 +73,6 @@ El hilo principal conserva lo que exige contexto del código: analizar, planific
 - Antes de analizar o planificar una issue, la rama activa debe ser `develop`. Si no, avisar y parar.
 - Nunca trabajar directamente en `develop` ni en `main`: rama `feature/<slug>` o `fix/<slug>`.
 - Antes de abrir PR: `pnpm test`, `pnpm lint` y `pnpm build`. Si algo falla, arreglarlo. Nunca `--no-verify`.
+- **El salto de versión de un release (patch / minor / major) lo aprueba siempre el usuario.** Proponerlo con los commits que entran y su justificación, y esperar respuesta antes de tocar nada.
 
 El análisis y la planificación deben tener siempre en cuenta: `CLAUDE.md`, `docs/finanzas-spec.md` y el prototipo `docs/finanzas-app.jsx`.

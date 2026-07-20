@@ -1,7 +1,7 @@
 'use client'
 
 import { Bell, BellRing, Loader2 } from 'lucide-react'
-import { usePushSubscription } from '@/hooks/usePushSubscription'
+import { usePushSubscription } from './usePushSubscription'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 
 /**

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { AnalyticsResponse, Granularity } from '@/types'
-import { useAnalytics } from '@/contexts/AnalyticsContext'
+import { useAnalytics } from './AnalyticsContext'
 import { PERIOD_LABELS } from '@/lib/analytics'
 import GranularityPicker from './GranularityPicker'
 import PeriodVerdict from './PeriodVerdict'

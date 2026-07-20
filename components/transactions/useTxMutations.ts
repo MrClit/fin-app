@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { deleteTransaction, updateTransaction } from '@/app/actions/transactions'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 import { useUnread } from '@/components/transactions/UnreadProvider'
 import type { CategoryId, TransactionWithAccount } from '@/types'
@@ -12,6 +13,14 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
 
   const addTx = useCallback((tx: TransactionWithAccount) => {
     setTransactions(prev => [tx, ...prev])
+  }, [])
+
+  // Re-siembra la lista completa (p. ej. al cambiar de período en el detalle de
+  // categoría). Si una mutación en vuelo falla después, su rollback restaura el
+  // snapshot capturado al mutar, que puede ser el de la lista anterior: carrera
+  // de milisegundos equivalente a la ya aceptada con la paginación.
+  const replaceTxs = useCallback((items: TransactionWithAccount[]) => {
+    setTransactions(items)
   }, [])
 
   // Anexa una página paginada al final de la lista, dedup por id para
@@ -41,9 +50,21 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
         return prev.filter(t => t.id !== id)
       })
       try {
-        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' })
-        if (!res.ok) throw new Error(await res.text())
+        const res = await deleteTransaction(id)
+        if (res.error) {
+          setTransactions(snapshot)
+          console.error('[useTxMutations.deleteTx] Error eliminando:', res.error)
+          // Sin Reintentar en los errores que un reintento no puede arreglar.
+          if (res.error.code === 'imported_transaction') {
+            showToast('No se pueden eliminar los movimientos importados')
+          } else if (res.error.code === 'not_found') {
+            showToast('No se pudo eliminar el movimiento')
+          } else {
+            showToast('No se pudo eliminar el movimiento', () => { void attempt() })
+          }
+        }
       } catch (err) {
+        // Fallo de transporte (p. ej. offline): reintentable.
         setTransactions(snapshot)
         console.error('[useTxMutations.deleteTx] Error eliminando:', err)
         showToast('No se pudo eliminar el movimiento', () => { void attempt() })
@@ -61,12 +82,8 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
         )
       })
       try {
-        const res = await fetch(`/api/transactions/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category_manual: category }),
-        })
-        if (!res.ok) throw new Error(await res.text())
+        const res = await updateTransaction(id, { category_manual: category })
+        if (res.error) throw new Error(res.error.code)
       } catch (err) {
         setTransactions(snapshot)
         console.error('[useTxMutations.recategorize] Error recategorizando:', err)
@@ -93,12 +110,8 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
       if (isRead) decrement()
       else increment()
       try {
-        const res = await fetch(`/api/transactions/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_read: isRead }),
-        })
-        if (!res.ok) throw new Error(await res.text())
+        const res = await updateTransaction(id, { is_read: isRead })
+        if (res.error) throw new Error(res.error.code)
       } catch (err) {
         setTransactions(snapshot)
         if (isRead) increment()
@@ -112,5 +125,5 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
   const markRead = useCallback((id: string) => setRead(id, true), [setRead])
   const markUnread = useCallback((id: string) => setRead(id, false), [setRead])
 
-  return { transactions, addTx, appendTxs, deleteTx, recategorize, markRead, markUnread }
+  return { transactions, addTx, appendTxs, replaceTxs, deleteTx, recategorize, markRead, markUnread }
 }

@@ -170,7 +170,8 @@ describe('POST /api/sabadell-savings — validación de body', () => {
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
     const res = typeof body === 'string' ? await callRoute(null, { rawBody: body }) : await callRoute(body)
     expect(res.status).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Invalid body' })
+    // El esquema de Zod añade el detalle por campo en `issues` (#308).
+    expect(await res.json()).toMatchObject({ error: 'Invalid body' })
   })
 })
 
@@ -224,7 +225,7 @@ describe('POST /api/sabadell-savings — primer POST (crea cuenta)', () => {
 })
 
 describe('POST /api/sabadell-savings — POST siguiente (actualiza cuenta)', () => {
-  it('actualiza balance/last_synced/name de la cuenta existente sin insertar', async () => {
+  it('actualiza balance/last_synced de la cuenta existente sin insertar ni tocar el nombre', async () => {
     const { db, insertSpy, updateSpy } = buildMockDb({
       householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
       accountSelect: { data: { id: ACCOUNT_ID }, error: null },
@@ -239,7 +240,6 @@ describe('POST /api/sabadell-savings — POST siguiente (actualiza cuenta)', () 
     expect(updateSpy).toHaveBeenCalledWith({
       balance: 21462.28,
       last_synced: validPayload.last_synced_at,
-      name: 'Plan Ahorro Trimestral',
     })
   })
 })

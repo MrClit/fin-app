@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/http/with-auth'
+import { parseBody } from '@/lib/http/validation'
+import { bankingRenewSchema } from '@/lib/schemas/banking'
 import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 
 /**
@@ -11,10 +13,7 @@ import { initiateAuth, encodeBankingState } from '@/lib/enablebanking'
 export const POST = withAuth(
   '/api/banking/renew',
   async ({ householdId, supabase }, request) => {
-    const { accountId } = await request.json()
-    if (!accountId) {
-      return NextResponse.json({ error: 'accountId es obligatorio' }, { status: 400 })
-    }
+    const { accountId } = await parseBody(request, bankingRenewSchema)
 
     const { data: account } = await supabase
       .from('accounts')

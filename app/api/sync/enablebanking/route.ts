@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth, unwrap } from '@/lib/http/with-auth'
+import { parseBody } from '@/lib/http/validation'
+import { syncEnablebankingSchema } from '@/lib/schemas/banking'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
@@ -8,13 +10,7 @@ import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 export const POST = withAuth('/api/sync/enablebanking', async ({ user, householdId }, request) => {
   // Body opcional: `{ accountId }` limita la sync a una sola cuenta (issue #79,
   // sync inmediata tras renovar). Sin body, se sincronizan todas.
-  let accountId: string | undefined
-  try {
-    const body = await request.json()
-    accountId = typeof body?.accountId === 'string' ? body.accountId : undefined
-  } catch {
-    accountId = undefined
-  }
+  const { accountId } = await parseBody(request, syncEnablebankingSchema)
 
   // All DB writes via service client (bypasses RLS)
   const db = createServiceClient()

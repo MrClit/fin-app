@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, getCurrentHouseholdId } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
 import { rateLimit, clientIp } from '@/lib/http/rate-limit'
+import { badRequest } from '@/lib/http/validation'
+import { errorLogSchema } from '@/lib/schemas/error-log'
 
 /**
  * Endpoint de ingesta de errores de cliente (issue #200). Lo invocan los error
@@ -40,6 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
   }
 
+  // El body se lee con `text()` (no `json()`) para poder medirlo antes de parsearlo,
+  // así que el JSON.parse se queda aquí en vez de usar `readJson`.
   let body: unknown
   try {
     body = JSON.parse(raw)
@@ -47,15 +51,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  if (!body || typeof body !== 'object') {
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
-  }
-
-  const { message, stack, route, context } = body as Record<string, unknown>
-
-  if (typeof message !== 'string' || message.trim() === '') {
-    return NextResponse.json({ error: 'Missing message' }, { status: 400 })
-  }
+  const parsed = errorLogSchema.safeParse(body)
+  if (!parsed.success) return badRequest(parsed.error)
+  const { message, stack, route, context } = parsed.data
 
   // Resolver usuario/hogar de forma best-effort: nunca bloquea el registro.
   let userId: string | null = null
@@ -73,9 +71,9 @@ export async function POST(request: NextRequest) {
   await logError({
     source: 'client',
     message,
-    stack: typeof stack === 'string' ? stack : null,
-    route: typeof route === 'string' ? route : null,
-    context: context && typeof context === 'object' ? (context as Record<string, unknown>) : null,
+    stack,
+    route,
+    context,
     userId,
     householdId,
   })
