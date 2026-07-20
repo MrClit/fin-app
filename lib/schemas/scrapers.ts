@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { NotificationSource } from '@/lib/notifications'
-import { amountSchema, isoDateSchema, isoDateTimeSchema } from './common'
+import { amountSchema, categoryIdSchema, isoDateSchema, isoDateTimeSchema } from './common'
 
 /**
  * Payloads de los webhooks de scrapers (issue #308). Sustituyen a los type
@@ -24,8 +24,12 @@ export const edenredPayloadSchema = z.object({
   balance: amountSchema,
   last_synced_at: isoDateTimeSchema,
   // El scraper de Edenred es el único que propone categoría (emite 'restaurant'
-  // o 'payroll'); la ruta aplica 'restaurant' como fallback.
-  transactions: z.array(scraperTxSchema.extend({ category: z.string().optional() })),
+  // o 'payroll'); la ruta aplica 'restaurant' como fallback. Se valida contra el
+  // catálogo (`categoryIdSchema`, derivado de `VALID_CATEGORIES`), no como string
+  // libre: `transactions.category` tiene FK a `categories.id` (#174), así que un
+  // id desconocido reventaba luego en la BD con un `500 DB error` opaco. Ahora es
+  // un 400 con `path: ['transactions', N, 'category']` (#329).
+  transactions: z.array(scraperTxSchema.extend({ category: categoryIdSchema.optional() })),
 })
 export type EdenredPayload = z.infer<typeof edenredPayloadSchema>
 

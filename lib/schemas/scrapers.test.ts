@@ -55,8 +55,22 @@ describe('edenredPayloadSchema', () => {
       'un movimiento tiene el importe como string',
       { balance: 0, last_synced_at: LAST_SYNCED, transactions: [{ ...tx(), amount: '-12.5' }] },
     ],
+    [
+      'un movimiento tiene una categoría fuera del catálogo',
+      { balance: 0, last_synced_at: LAST_SYNCED, transactions: [{ ...tx(), category: 'not-a-category' }] },
+    ],
   ])('rechaza el payload si %s', (_label, payload) => {
     expect(edenredPayloadSchema.safeParse(payload).success).toBe(false)
+  })
+
+  it('una categoría fuera del catálogo señala el campo exacto (#329)', () => {
+    const result = edenredPayloadSchema.safeParse({
+      balance: 0,
+      last_synced_at: LAST_SYNCED,
+      transactions: [{ ...tx(), category: 'not-a-category' }],
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.path).toEqual(['transactions', 0, 'category'])
   })
 })
 
