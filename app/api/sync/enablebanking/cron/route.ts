@@ -179,6 +179,8 @@ async function notifyExpiringConsents(db: CronDb, accounts: NotifiableAccount[])
 
   for (const [userId, userAccounts] of byUser) {
     const first = userAccounts[0]
+    // Por construcción del agrupado nunca está vacío, pero el guard es barato.
+    if (!first) continue
     const daysLeft = getConsentStatus(first.consent_expires_at).daysLeft
     const body =
       userAccounts.length === 1

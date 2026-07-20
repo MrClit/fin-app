@@ -12,15 +12,15 @@ const { POST } = await import('./route')
 type CallOpts = { headers?: Record<string, string>; rawBody?: string }
 
 function callRoute(body: unknown, opts: CallOpts = {}) {
-  return POST(
-    new Request('http://test/api/error-log', {
-      method: 'POST',
-      headers: opts.headers ?? {},
-      body: opts.rawBody ?? JSON.stringify(body),
-      // @ts-expect-error NextRequest extiende Request; el handler sólo usa
-      // headers/text, así que un Request plano es suficiente.
-    })
-  )
+  const request = new Request('http://test/api/error-log', {
+    method: 'POST',
+    headers: opts.headers ?? {},
+    body: opts.rawBody ?? JSON.stringify(body),
+  })
+  // NextRequest extiende Request; el handler sólo usa headers/text, así que un
+  // Request plano basta.
+  // @ts-expect-error — Request no es NextRequest, pero el handler no usa lo extra.
+  return POST(request)
 }
 
 beforeEach(() => {

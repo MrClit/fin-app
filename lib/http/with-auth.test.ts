@@ -36,7 +36,9 @@ function mockSession({ user = USER, householdId = HOUSEHOLD_ID }: Session = {}) 
   )
 }
 
-function req(url = 'http://test/api/thing', init?: RequestInit) {
+// El init tipado desde el propio constructor: NextRequest usa el RequestInit de
+// Next, no el del DOM.
+function req(url = 'http://test/api/thing', init?: ConstructorParameters<typeof NextRequest>[1]) {
   return new NextRequest(url, init)
 }
 

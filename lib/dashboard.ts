@@ -1,4 +1,5 @@
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
+import { monthLabel } from '@/lib/dates'
 import { narrowUnions } from '@/lib/supabase/rows'
 import type { Account } from '@/types'
 
@@ -9,6 +10,72 @@ export interface DashboardData {
   accounts: Account[]
   netWorthData: { label: string; value: number }[]
   annualDelta: number | null
+}
+
+/**
+ * Serie de saldos diarios (más antiguo → más reciente), reconstruida hacia atrás
+ * desde el saldo actual: el saldo de un día es el del día siguiente menos lo que
+ * se movió en ese día siguiente.
+ *
+ * Itera sobre la copia invertida en vez de por índice (`days[i + 1]`), que es lo
+ * que obligaba a asumir accesos definidos que TS no puede probar (#270).
+ */
+export function buildDailyBalances(
+  balance: number,
+  days: readonly string[],
+  txByDay: Record<string, number>
+): number[] {
+  const newestFirst: number[] = []
+  let running = balance
+  for (const day of [...days].reverse()) {
+    newestFirst.push(running)
+    running -= txByDay[day] ?? 0
+  }
+  return newestFirst.reverse()
+}
+
+/**
+ * Variación de los últimos 7 días.
+ *
+ * Equivale al `balance − saldo de hace 7 días` de la serie diaria, pero
+ * expresado como lo que realmente es: la suma de lo movido en ese tramo.
+ */
+export function weeklyDeltaFrom(
+  days: readonly string[],
+  txByDay: Record<string, number>
+): number {
+  return days.slice(-7).reduce((sum, day) => sum + (txByDay[day] ?? 0), 0)
+}
+
+/**
+ * Serie mensual de patrimonio neto (más antiguo → más reciente) y variación
+ * anual, reconstruidas hacia atrás desde el saldo actual con el mismo criterio
+ * que `buildDailyBalances`.
+ *
+ * `annualDelta` sólo tiene sentido con los 12 meses completos; si la ventana
+ * activa es más corta, es `null`.
+ */
+export function buildNetWorthSeries(
+  balance: number,
+  activeMonths: readonly string[],
+  txByMonth: Record<string, number>
+): { netWorthData: { label: string; value: number }[]; annualDelta: number | null } {
+  const newestFirst: { label: string; value: number }[] = []
+  let running = balance
+  // El último valor visitado es el del mes más antiguo: el que fija annualDelta.
+  let oldestValue = balance
+
+  for (const month of [...activeMonths].reverse()) {
+    oldestValue = running
+    // `month` es 'YYYY-MM': el mes ocupa siempre las posiciones 5-6.
+    newestFirst.push({ label: monthLabel(Number(month.slice(5, 7)) - 1), value: Math.round(running) })
+    running -= txByMonth[month] ?? 0
+  }
+
+  return {
+    netWorthData: newestFirst.reverse(),
+    annualDelta: activeMonths.length === 12 ? Math.round(balance - oldestValue) : null,
+  }
 }
 
 // Patrimonio neto = activos − |Σ pasivos|. Ver spec §5.5.
@@ -58,25 +125,18 @@ export async function getDashboardData(): Promise<DashboardData> {
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(today)
     d.setDate(d.getDate() - (29 - i))
-    return d.toISOString().split('T')[0]
+    return d.toISOString().slice(0, 10)
   })
 
   // Aggregate transaction amounts by calendar day
   const txByDay: Record<string, number> = {}
   for (const tx of transactions ?? []) {
-    const day = tx.date.split('T')[0]
+    const day = tx.date.slice(0, 10)
     txByDay[day] = (txByDay[day] ?? 0) + tx.amount
   }
 
-  // Reconstruct historical net balance working backwards from today
-  const dailyBalances: number[] = new Array(30)
-  dailyBalances[29] = balance
-  for (let i = 28; i >= 0; i--) {
-    dailyBalances[i] = dailyBalances[i + 1] - (txByDay[days[i + 1]] ?? 0)
-  }
-
-  // Index 22 = 7 days ago (29 - 7 = 22)
-  const weeklyDelta = balance - dailyBalances[22]
+  const dailyBalances = buildDailyBalances(balance, days, txByDay)
+  const weeklyDelta = weeklyDeltaFrom(days, txByDay)
 
   // ── Patrimonio neto mensual (últimos 12 meses) ────────────────────────────
   const twelveMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1)
@@ -85,7 +145,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     .from('transactions')
     .select('date, amount')
     .eq('household_id', householdId)
-    .gte('date', twelveMonthsAgo.toISOString().split('T')[0])
+    .gte('date', twelveMonthsAgo.toISOString().slice(0, 10))
 
   const txByMonth: Record<string, number> = {}
   for (const tx of monthlyTxData ?? []) {
@@ -99,23 +159,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   })
 
   const firstIdx = allMonths.findIndex(m => txByMonth[m] !== undefined)
-  const activeMonths = firstIdx === -1
-    ? [allMonths[allMonths.length - 1]]
-    : allMonths.slice(firstIdx)
+  // `slice(-1)` en vez de `[allMonths[allMonths.length - 1]]`: mismo último mes,
+  // pero sin acceso por índice.
+  const activeMonths = firstIdx === -1 ? allMonths.slice(-1) : allMonths.slice(firstIdx)
 
-  const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const values = new Array<number>(activeMonths.length)
-  values[activeMonths.length - 1] = balance
-  for (let i = activeMonths.length - 2; i >= 0; i--) {
-    values[i] = values[i + 1] - (txByMonth[activeMonths[i + 1]] ?? 0)
-  }
-
-  const netWorthData = activeMonths.map((m, i) => ({
-    label: MONTH_LABELS[Number(m.split('-')[1]) - 1],
-    value: Math.round(values[i]),
-  }))
-
-  const annualDelta = activeMonths.length === 12 ? Math.round(balance - values[0]) : null
+  const { netWorthData, annualDelta } = buildNetWorthSeries(balance, activeMonths, txByMonth)
 
   return { balance, weeklyDelta, dailyBalances, accounts: accounts.map(narrowUnions), netWorthData, annualDelta }
 }

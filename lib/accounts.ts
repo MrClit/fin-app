@@ -78,8 +78,9 @@ export function getConsentBannerData(accounts: ConsentAccount[]): ConsentBannerD
 
   if (atRisk.length === 0) return null
 
-  if (atRisk.length === 1) {
-    const { account, consent } = atRisk[0]
+  const [only] = atRisk
+  if (atRisk.length === 1 && only) {
+    const { account, consent } = only
     return {
       count: 1,
       only: {

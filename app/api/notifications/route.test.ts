@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
-import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
+import { at } from '@/tests/helpers'
+import { argsOf, called, createFakeSupabase, queryAt } from '@/tests/supabase-fake'
 
 vi.mock('@/lib/auth/session', () => ({
   getCurrentUser: vi.fn(),
@@ -36,17 +37,17 @@ describe('GET /api/notifications', () => {
     const res = await listNotifications(req('/api/notifications'))
 
     expect(res.status).toBe(200)
-    expect(queries[0].table).toBe('notifications')
+    expect(queryAt(queries, 0).table).toBe('notifications')
 
-    const orArg = argsOf(queries[0], 'or')![0] as string
+    const orArg = argsOf(queryAt(queries, 0), 'or')![0] as string
     const match = orArg.match(/^created_at\.gte\.(.+),read_at\.is\.null$/)
     expect(match).not.toBeNull()
     // El corte es "ahora − 30 días" calculado en la petición (tolerancia 1 min).
-    const cutoffMs = new Date(match![1]).getTime()
+    const cutoffMs = new Date(at(match ?? [], 1, 'el grupo capturado')).getTime()
     expect(Math.abs(cutoffMs - (Date.now() - 30 * DAY_MS))).toBeLessThan(60_000)
 
-    expect(argsOf(queries[0], 'order')).toEqual(['created_at', { ascending: false }])
-    expect(argsOf(queries[0], 'limit')).toEqual([30])
+    expect(argsOf(queryAt(queries, 0), 'order')).toEqual(['created_at', { ascending: false }])
+    expect(argsOf(queryAt(queries, 0), 'limit')).toEqual([30])
   })
 
   it('devuelve las notificaciones de la consulta', async () => {
@@ -85,9 +86,9 @@ describe('GET /api/notifications/unread-count', () => {
     const res = await unreadCount(req('/api/notifications/unread-count'))
 
     expect(await res.json()).toEqual({ count: 3 })
-    expect(queries[0].table).toBe('notifications')
-    expect(argsOf(queries[0], 'is')).toEqual(['read_at', null])
-    expect(called(queries[0], 'or')).toBe(false)
-    expect(called(queries[0], 'gte')).toBe(false)
+    expect(queryAt(queries, 0).table).toBe('notifications')
+    expect(argsOf(queryAt(queries, 0), 'is')).toEqual(['read_at', null])
+    expect(called(queryAt(queries, 0), 'or')).toBe(false)
+    expect(called(queryAt(queries, 0), 'gte')).toBe(false)
   })
 })

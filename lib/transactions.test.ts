@@ -8,7 +8,8 @@ import {
   getUnreadCount,
   TX_PAGE_SIZE,
 } from './transactions'
-import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
+import { at } from '@/tests/helpers'
+import { argsOf, called, createFakeSupabase, queryAt } from '@/tests/supabase-fake'
 import type { TransactionWithAccount } from '@/types'
 
 const ORIG_TZ = process.env.TZ
@@ -35,6 +36,7 @@ function tx(over: Partial<TransactionWithAccount> = {}): TransactionWithAccount 
   return {
     id: `tx-${nextId}`,
     user_id: 'user-1',
+    household_id: 'hh-1',
     account_id: 'acc-1',
     date: '2026-05-21',
     amount: 0,
@@ -44,6 +46,7 @@ function tx(over: Partial<TransactionWithAccount> = {}): TransactionWithAccount 
     source: 'manual',
     external_id: null,
     notes: null,
+    is_read: true,
     created_at: '2026-05-21T12:00:00.000Z',
     account: { id: 'acc-1', name: 'Cuenta', color: null },
     ...over,
@@ -68,9 +71,9 @@ describe('groupTxByDate', () => {
     const c = tx({ date: '2026-05-21', amount: -10.5 })
     const result = groupTxByDate([a, b, c])
     expect(result).toHaveLength(1)
-    expect(result[0].date).toBe('2026-05-21')
-    expect(result[0].transactions).toEqual([a, b, c])
-    expect(result[0].net).toBeCloseTo(59.5, 2)
+    expect(at(result, 0).date).toBe('2026-05-21')
+    expect(at(result, 0).transactions).toEqual([a, b, c])
+    expect(at(result, 0).net).toBeCloseTo(59.5, 2)
   })
 
   it('ordena los grupos por fecha descendente aunque la entrada no esté ordenada', () => {
@@ -144,7 +147,7 @@ describe('listTransactions', () => {
 
     await listTransactions(supabase, HOUSEHOLD, { now: NOW })
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(q.table).toBe('transactions')
     expect(argsOf(q, 'eq')).toEqual(['household_id', HOUSEHOLD])
     expect(argsOf(q, 'gte')).toEqual(['date', '2026-02-20'])
@@ -156,7 +159,7 @@ describe('listTransactions', () => {
 
     await listTransactions(supabase, HOUSEHOLD, { dateFrom: '2025-01-01', now: NOW })
 
-    expect(argsOf(queries[0], 'gte')).toEqual(['date', '2025-01-01'])
+    expect(argsOf(queryAt(queries, 0), 'gte')).toEqual(['date', '2025-01-01'])
   })
 
   it('no aplica el cutoff al paginar: recortaría las páginas siguientes', async () => {
@@ -167,7 +170,7 @@ describe('listTransactions', () => {
       now: NOW,
     })
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(called(q, 'gte')).toBe(false)
     expect(argsOf(q, 'or')).toEqual([
       'date.lt.2026-02-25,and(date.eq.2026-02-25,id.lt.tx-9)',
@@ -181,7 +184,7 @@ describe('listTransactions', () => {
     const page = await listTransactions(full.supabase, HOUSEHOLD, { limit: 2, now: NOW })
     // Se pidieron 3 (limit + 1) y llegaron 3 → hay más: se recorta y hay cursor.
     expect(page.items).toHaveLength(2)
-    expect(page.nextCursor).toEqual({ date: rows[1].date, id: rows[1].id })
+    expect(page.nextCursor).toEqual({ date: at(rows, 1).date, id: at(rows, 1).id })
 
     const partial = createFakeSupabase(() => ({ data: rows.slice(0, 2) }))
     const last = await listTransactions(partial.supabase, HOUSEHOLD, { limit: 2, now: NOW })
@@ -198,7 +201,7 @@ describe('listTransactions', () => {
       now: NOW,
     })
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(argsOf(q, 'in')).toEqual(['account_id', ['acc-1', 'acc-2']])
     expect(argsOf(q, 'or')).toEqual([
       'category_manual.eq.groceries,and(category_manual.is.null,category.eq.groceries)',
@@ -222,7 +225,7 @@ describe('listUnreadBeforeWindow', () => {
 
     await listUnreadBeforeWindow(supabase, 'hh-1', new Date('2026-05-21T12:00:00+02:00'))
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(argsOf(q, 'lt')).toEqual(['date', '2026-02-20'])
     expect(q.calls.filter(c => c.method === 'eq')).toEqual([
       { method: 'eq', args: ['household_id', 'hh-1'] },
@@ -237,7 +240,7 @@ describe('getUnreadCount', () => {
 
     expect(await getUnreadCount(supabase, 'hh-1')).toBe(7)
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(argsOf(q, 'select')).toEqual(['*', { count: 'exact', head: true }])
     expect(called(q, 'gte')).toBe(false)
     expect(called(q, 'lt')).toBe(false)

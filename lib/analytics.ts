@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Granularity, PeriodData, AnalyticsResponse, CategoryBreakdown } from '@/types'
+import { monthLabel } from '@/lib/dates'
 import { CATEGORY_META } from '@/lib/theme'
 
 export interface PeriodRange {
@@ -19,8 +20,6 @@ const WINDOW_SIZE: Record<Granularity, number> = {
   year: 8,
 }
 
-const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-
 // Semana lun–dom que contiene hoy, desplazada `offset` semanas atrás (§5.1)
 function getWeekRange(offset: number): PeriodRange {
   const now = new Date()
@@ -34,7 +33,7 @@ function getWeekRange(offset: number): PeriodRange {
   sunday.setHours(23, 59, 59, 999)
 
   const d = monday.getDate()
-  const m = MONTH_LABELS[monday.getMonth()]
+  const m = monthLabel(monday.getMonth())
   const label = `${d} ${m}`
 
   return { start: monday, end: sunday, label }
@@ -46,7 +45,8 @@ function getMonthRange(offset: number): PeriodRange {
   const month = now.getMonth() - offset
   const start = new Date(year, month, 1)
   const end = new Date(year, month + 1, 0, 23, 59, 59, 999)
-  const label = MONTH_LABELS[((month % 12) + 12) % 12]
+  // `monthLabel` ya normaliza el índice: `month` puede ser negativo al retroceder.
+  const label = monthLabel(month)
   return { start, end, label }
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ingest } from './pipeline'
 import type { Connector, IngestDb, NormalizedAccount } from './types'
+import { at } from '@/tests/helpers'
 
 /**
  * Mock de Supabase para el pipeline (#309). Más simple que el de los route
@@ -180,7 +181,7 @@ describe('ingest — upsert de transacciones', () => {
     expect(result).toEqual({ ok: true, data: { accounts: 2, createdAccounts: 0, upserted: 3 } })
 
     expect(upserts).toHaveLength(1)
-    const [rows, options] = upserts[0]
+    const [rows, options] = at(upserts, 0)
     expect(options).toEqual({
       onConflict: 'household_id,external_id',
       ignoreDuplicates: false,
@@ -199,7 +200,7 @@ describe('ingest — upsert de transacciones', () => {
 
     await ingest(db, fakeConnector([minimalAccount()]), undefined)
 
-    const [rows] = upserts[0]
+    const [rows] = at(upserts, 0)
     expect((rows as unknown[])[0]).not.toHaveProperty('is_read')
   })
 
@@ -293,8 +294,8 @@ describe('ingest — categorización', () => {
     )
 
     expect(tables).not.toContain('categorization_rules')
-    const [rows] = upserts[0]
-    expect((rows as Array<{ category: string }>)[0].category).toBe('restaurant')
+    const [rows] = at(upserts, 0)
+    expect(at(rows as Array<{ category: string }>, 0).category).toBe('restaurant')
   })
 
   it('el prefetch async se resuelve una sola vez y se aplica a todas las cuentas', async () => {
@@ -329,7 +330,7 @@ describe('ingest — categorización', () => {
 
     expect(prepare).toHaveBeenCalledTimes(1)
     expect(tables.filter(t => t === 'categorization_rules')).toHaveLength(1)
-    const [rows] = upserts[0]
+    const [rows] = at(upserts, 0)
     expect(rows).toMatchObject([{ category: 'groceries' }, { category: 'groceries' }])
   })
 
@@ -338,8 +339,8 @@ describe('ingest — categorización', () => {
 
     await ingest(db, fakeConnector([minimalAccount()], () => () => null), undefined)
 
-    const [rows] = upserts[0]
-    expect((rows as Array<{ category: string | null }>)[0].category).toBeNull()
+    const [rows] = at(upserts, 0)
+    expect(at(rows as Array<{ category: string | null }>, 0).category).toBeNull()
   })
 })
 

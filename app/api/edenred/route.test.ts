@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServiceClient } from '@/lib/supabase/service'
+import { callAt } from '@/tests/helpers'
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
@@ -268,7 +269,7 @@ describe('POST /api/edenred — primer POST (crea cuenta)', () => {
     })
 
     // La cuenta nueva debe quedar asociada a las txns insertadas
-    const [rows] = upsertSpy.mock.calls[0]
+    const [rows] = callAt(upsertSpy, 0)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       user_id: USER_ID,
@@ -296,14 +297,14 @@ describe('POST /api/edenred — POST siguiente (actualiza cuenta)', () => {
 
     expect(insertSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalledTimes(1)
-    const [updatePayload] = updateSpy.mock.calls[0]
+    const [updatePayload] = callAt(updateSpy, 0)
     expect(updatePayload).toEqual({
       balance: validPayload.balance,
       last_synced: validPayload.last_synced_at,
     })
 
     // Asegurar que la cuenta usada es la existente
-    const [rows] = upsertSpy.mock.calls[0]
+    const [rows] = callAt(upsertSpy, 0)
     expect(rows[0]).toMatchObject({ account_id: ACCOUNT_ID })
   })
 })
@@ -321,7 +322,7 @@ describe('POST /api/edenred — idempotencia', () => {
     await callRoute(validPayload)
 
     expect(upsertSpy).toHaveBeenCalledTimes(1)
-    const [, options] = upsertSpy.mock.calls[0]
+    const [, options] = callAt(upsertSpy, 0)
     expect(options).toEqual({
       onConflict: 'household_id,external_id',
       ignoreDuplicates: false,
@@ -351,7 +352,7 @@ describe('POST /api/edenred — mapeo de category', () => {
       ],
     })
 
-    const [rows] = upsertSpy.mock.calls[0]
+    const [rows] = callAt(upsertSpy, 0)
     expect(rows[0].category).toBe('restaurant')
   })
 
@@ -383,7 +384,7 @@ describe('POST /api/edenred — mapeo de category', () => {
       ],
     })
 
-    const [rows] = upsertSpy.mock.calls[0]
+    const [rows] = callAt(upsertSpy, 0)
     expect(rows).toHaveLength(2)
     expect(rows[0].category).toBe('payroll')
     expect(rows[1].category).toBe('restaurant')
