@@ -9,6 +9,7 @@ import {
   yoyDelta,
   type PeriodRange,
 } from './analytics'
+import { at } from '@/tests/helpers'
 import type { CategoryBreakdown } from '@/types'
 
 // NOW = jueves 21 mayo 2026, 12:00 local. Suficientemente lejos de bordes
@@ -226,21 +227,21 @@ describe('getWindowPeriods', () => {
   it('ordena del más antiguo al más reciente; el último elemento es el período actual', () => {
     const w = getWindowPeriods('month', 0)
     // último = mes actual
-    expect(toISODate(w[w.length - 1].start)).toBe('2026-05-01')
+    expect(toISODate(at(w, w.length - 1).start)).toBe('2026-05-01')
     // primero = 11 meses antes (mayo 2025)
-    expect(toISODate(w[0].start)).toBe('2025-06-01')
+    expect(toISODate(at(w, 0).start)).toBe('2025-06-01')
     // monotonía estricta
     for (let i = 1; i < w.length; i++) {
-      expect(w[i].start.getTime()).toBeGreaterThan(w[i - 1].start.getTime())
+      expect(at(w, i).start.getTime()).toBeGreaterThan(at(w, i - 1).start.getTime())
     }
   })
 
   it('aplica offset desplazando la ventana entera hacia atrás', () => {
     const w = getWindowPeriods('month', 3)
     // Último elemento = mes actual - 3 = febrero 2026
-    expect(toISODate(w[w.length - 1].start)).toBe('2026-02-01')
+    expect(toISODate(at(w, w.length - 1).start)).toBe('2026-02-01')
     // Primero = 11 meses antes = marzo 2025
-    expect(toISODate(w[0].start)).toBe('2025-03-01')
+    expect(toISODate(at(w, 0).start)).toBe('2025-03-01')
   })
 })
 

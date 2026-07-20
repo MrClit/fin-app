@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServiceClient } from '@/lib/supabase/service'
+import { callAt } from '@/tests/helpers'
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
@@ -254,7 +255,7 @@ describe('POST /api/sabadell-visa — primer POST (crea cuentas)', () => {
       currency: 'EUR',
     }))
 
-    const [rows] = upsertSpy.mock.calls[0]
+    const [rows] = callAt(upsertSpy, 0)
     expect(rows).toHaveLength(2)
     expect(rows[0]).toMatchObject({ account_id: ACCOUNT_A, external_id: 'ref-1', source: 'scraper' })
     expect(rows[1]).toMatchObject({ account_id: ACCOUNT_B, external_id: 'ref-2' })
@@ -300,7 +301,7 @@ describe('POST /api/sabadell-visa — idempotencia', () => {
     })
     vi.mocked(createServiceClient).mockReturnValue(db as unknown as ReturnType<typeof createServiceClient>)
     await callRoute(validPayload)
-    const [, options] = upsertSpy.mock.calls[0]
+    const [, options] = callAt(upsertSpy, 0)
     expect(options).toEqual({ onConflict: 'household_id,external_id', ignoreDuplicates: false })
   })
 })

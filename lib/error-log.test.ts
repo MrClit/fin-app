@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { callAt } from '@/tests/helpers'
 
 // Mock del service client: capturamos los argumentos del insert para inspeccionarlos.
 const insert = vi.fn()
@@ -62,7 +63,7 @@ describe('logError', () => {
       stack: 's'.repeat(20_000),
     })
 
-    const arg = insert.mock.calls[0][0]
+    const arg = callAt(insert, 0)[0]
     expect(arg.message.length).toBe(2_000)
     expect(arg.stack.length).toBe(8_000)
   })
@@ -71,14 +72,14 @@ describe('logError', () => {
     const context = { op: 'insert', digest: 'abc123' }
     await logError({ source: 'client', message: 'boom', context })
 
-    expect(insert.mock.calls[0][0].context).toEqual(context)
+    expect(callAt(insert, 0)[0].context).toEqual(context)
   })
 
   it('sustituye un context demasiado grande por un marcador con el tamaño', async () => {
     const context = { blob: 'x'.repeat(20_000) }
     await logError({ source: 'client', message: 'boom', context })
 
-    const arg = insert.mock.calls[0][0]
+    const arg = callAt(insert, 0)[0]
     expect(arg.context._truncated).toBe(true)
     expect(typeof arg.context._bytes).toBe('number')
     expect(arg.context._bytes).toBeGreaterThan(8_000)
@@ -93,7 +94,7 @@ describe('logError', () => {
       logError({ source: 'client', message: 'boom', context })
     ).resolves.toBeUndefined()
 
-    expect(insert.mock.calls[0][0].context).toEqual({ _unserializable: true })
+    expect(callAt(insert, 0)[0].context).toEqual({ _unserializable: true })
   })
 
   it('nunca lanza aunque el insert rechace', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CategoryBreakdown } from '@/types'
 import { buildDonutModel, REST_KEY } from './donutModel'
+import { at } from '@/tests/helpers'
 
 const bc = (category: string | null, amount: number): CategoryBreakdown =>
   ({ category, amount } as CategoryBreakdown)
@@ -25,7 +26,7 @@ describe('buildDonutModel (#272)', () => {
 
     // groceries es crédito, no aparece en el anillo
     expect(credits.map(c => c.categoryId)).toEqual(['groceries'])
-    expect(credits[0].amount).toBeCloseTo(18.55, 2)
+    expect(at(credits, 0).amount).toBeCloseTo(18.55, 2)
     expect(slices.find(s => s.categoryId === 'groceries')).toBeUndefined()
 
     // El centro es el neto (= KPI); el anillo reparte el gasto bruto

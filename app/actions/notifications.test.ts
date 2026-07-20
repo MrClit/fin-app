@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCurrentUser, getRequestClient } from '@/lib/auth/session'
-import { argsOf, createFakeSupabase } from '@/tests/supabase-fake'
+import { argsOf, createFakeSupabase, queryAt } from '@/tests/supabase-fake'
 
 vi.mock('@/lib/auth/session', () => ({
   getCurrentUser: vi.fn(),
@@ -31,9 +31,9 @@ describe('markAllNotificationsRead', () => {
     const res = await markAllNotificationsRead()
 
     expect(res.error).toBeUndefined()
-    expect(queries[0].table).toBe('notifications')
-    expect(argsOf(queries[0], 'update')![0]).toMatchObject({ read_at: expect.any(String) })
-    expect(argsOf(queries[0], 'is')).toEqual(['read_at', null])
+    expect(queryAt(queries, 0).table).toBe('notifications')
+    expect(argsOf(queryAt(queries, 0), 'update')![0]).toMatchObject({ read_at: expect.any(String) })
+    expect(argsOf(queryAt(queries, 0), 'is')).toEqual(['read_at', null])
   })
 
   it('devuelve unauthorized sin sesión, sin tocar la BD', async () => {

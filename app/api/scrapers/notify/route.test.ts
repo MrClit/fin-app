@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendPushToUser } from '@/lib/push'
 import { insertNotification } from '@/lib/notifications'
+import { callAt } from '@/tests/helpers'
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
@@ -138,7 +139,7 @@ describe('POST /api/scrapers/notify — envío', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ persisted: true, sent: 2 })
 
-    const [, userId, payload] = vi.mocked(sendPushToUser).mock.calls[0]
+    const [, userId, payload] = callAt(vi.mocked(sendPushToUser), 0)
     expect(userId).toBe(USER_ID)
     expect(payload).toEqual({
       title: 'Edenred requiere 2FA',
@@ -146,7 +147,7 @@ describe('POST /api/scrapers/notify — envío', () => {
       url: '/accounts',
     })
 
-    const [, insUser, insInput] = vi.mocked(insertNotification).mock.calls[0]
+    const [, insUser, insInput] = callAt(vi.mocked(insertNotification), 0)
     expect(insUser).toBe(USER_ID)
     expect(insInput).toMatchObject({ source: 'edenred', kind: '2fa' })
   })
@@ -166,9 +167,9 @@ describe('POST /api/scrapers/notify — envío', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ persisted: true, sent: 1 })
 
-    const [, , payload] = vi.mocked(sendPushToUser).mock.calls[0]
+    const [, , payload] = callAt(vi.mocked(sendPushToUser), 0)
     expect(payload).toMatchObject({ title: 'Sabadell VISA: fallo de sincronización', url: '/accounts' })
-    const [, , insInput] = vi.mocked(insertNotification).mock.calls[0]
+    const [, , insInput] = callAt(vi.mocked(insertNotification), 0)
     expect(insInput).toMatchObject({ source: 'sabadell_visa', kind: 'scrape_failed' })
   })
 

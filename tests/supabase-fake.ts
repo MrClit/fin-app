@@ -7,6 +7,8 @@
  * devuelve lo que diga el `responder`.
  */
 
+import { at } from '@/tests/helpers'
+
 export interface FakeCall {
   method: string
   args: unknown[]
@@ -25,6 +27,11 @@ export function argsOf(query: FakeQuery, method: string): unknown[] | undefined 
 /** `true` si la cadena incluyó una llamada a `method`. */
 export function called(query: FakeQuery, method: string): boolean {
   return query.calls.some(c => c.method === method)
+}
+
+/** La query en la posición `i`, fallando el test si no se construyeron tantas. */
+export function queryAt(queries: FakeQuery[], i: number): FakeQuery {
+  return at(queries, i, 'una query')
 }
 
 export type FakeResult = { data?: unknown; error?: unknown; count?: number }
