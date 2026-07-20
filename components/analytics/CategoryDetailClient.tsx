@@ -164,24 +164,20 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         )}
       </div>
 
-      {selectedTx && (
-        <TxModal
-          tx={selectedTx}
-          open
-          onOpenChange={o => { if (!o) setSelectedTxId(null) }}
-          onRecategorize={tx => { setCatPickerTx(tx); setSelectedTxId(null) }}
-          onDelete={handleDelete}
-        />
-      )}
+      <TxModal
+        tx={selectedTx}
+        open={!!selectedTx}
+        onOpenChange={o => { if (!o) setSelectedTxId(null) }}
+        onRecategorize={tx => { setCatPickerTx(tx); setSelectedTxId(null) }}
+        onDelete={handleDelete}
+      />
 
-      {catPickerTx && (
-        <CategoryPicker
-          tx={catPickerTx}
-          open
-          onOpenChange={o => { if (!o) setCatPickerTx(null) }}
-          onSelect={recategorize}
-        />
-      )}
+      <CategoryPicker
+        tx={catPickerTx}
+        open={!!catPickerTx}
+        onOpenChange={o => { if (!o) setCatPickerTx(null) }}
+        onSelect={recategorize}
+      />
 
       <GranularityPicker />
     </div>
