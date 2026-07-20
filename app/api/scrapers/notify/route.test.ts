@@ -21,17 +21,25 @@ const { POST } = await import('./route')
 const EDENRED_SECRET = 'edenred-secret'
 const SABADELL_SECRET = 'sabadell-secret'
 const USER_ID = '00000000-0000-0000-0000-000000000001'
+const HOUSEHOLD_ID = '00000000-0000-0000-0000-0000000000aa'
 
-function buildMockDb(userConfig: { data: { user_id: string } | null; error?: unknown }) {
-  const userConfigBuilder: Record<string, unknown> = {}
-  Object.assign(userConfigBuilder, {
-    select: vi.fn(() => userConfigBuilder),
-    limit: vi.fn(() => userConfigBuilder),
-    maybeSingle: vi.fn(() => Promise.resolve(userConfig)),
+function buildMockDb(householdOwner: {
+  data: { household_id: string; user_id: string } | null
+  error?: unknown
+}) {
+  // Resuelve el owner del hogar (getDefaultHouseholdOwner): cadena
+  // select → eq → order → limit → maybeSingle sobre household_members.
+  const householdMembersBuilder: Record<string, unknown> = {}
+  Object.assign(householdMembersBuilder, {
+    select: vi.fn(() => householdMembersBuilder),
+    eq: vi.fn(() => householdMembersBuilder),
+    order: vi.fn(() => householdMembersBuilder),
+    limit: vi.fn(() => householdMembersBuilder),
+    maybeSingle: vi.fn(() => Promise.resolve(householdOwner)),
   })
   const db = {
     from: vi.fn((table: string) => {
-      if (table === 'user_config') return userConfigBuilder
+      if (table === 'household_members') return householdMembersBuilder
       throw new Error(`Unmocked table: ${table}`)
     }),
   }
@@ -115,7 +123,7 @@ describe('POST /api/scrapers/notify — auth', () => {
 })
 
 describe('POST /api/scrapers/notify — envío', () => {
-  it('500 si no hay user_config', async () => {
+  it('500 si no hay owner de hogar', async () => {
     const db = buildMockDb({ data: null, error: null })
     vi.mocked(createServiceClient).mockReturnValue(
       db as unknown as ReturnType<typeof createServiceClient>
@@ -128,7 +136,7 @@ describe('POST /api/scrapers/notify — envío', () => {
   })
 
   it('persiste la notificación y envía el push, devolviendo el conteo', async () => {
-    const db = buildMockDb({ data: { user_id: USER_ID }, error: null })
+    const db = buildMockDb({ data: { household_id: HOUSEHOLD_ID, user_id: USER_ID }, error: null })
     vi.mocked(createServiceClient).mockReturnValue(
       db as unknown as ReturnType<typeof createServiceClient>
     )
@@ -153,7 +161,7 @@ describe('POST /api/scrapers/notify — envío', () => {
   })
 
   it('acepta el kind scrape_failed (#295) y persiste con su contenido de catálogo', async () => {
-    const db = buildMockDb({ data: { user_id: USER_ID }, error: null })
+    const db = buildMockDb({ data: { household_id: HOUSEHOLD_ID, user_id: USER_ID }, error: null })
     vi.mocked(createServiceClient).mockReturnValue(
       db as unknown as ReturnType<typeof createServiceClient>
     )
@@ -174,7 +182,7 @@ describe('POST /api/scrapers/notify — envío', () => {
   })
 
   it('sigue devolviendo 200 (persisted true, sent 0) si el push lanza', async () => {
-    const db = buildMockDb({ data: { user_id: USER_ID }, error: null })
+    const db = buildMockDb({ data: { household_id: HOUSEHOLD_ID, user_id: USER_ID }, error: null })
     vi.mocked(createServiceClient).mockReturnValue(
       db as unknown as ReturnType<typeof createServiceClient>
     )
