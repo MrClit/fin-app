@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import type { TransactionCursor } from '@/lib/pagination'
+import { monthLabel, parseISODate } from '@/lib/dates'
 import { unwrap } from '@/lib/http/route-error'
 import { narrowUnions } from '@/lib/supabase/rows'
 import type { TransactionWithAccount } from '@/types'
@@ -27,8 +28,6 @@ export function groupTxByDate(txs: TransactionWithAccount[]): TxDayGroup[] {
   return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date))
 }
 
-const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-
 export const toLocalISODate = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -40,8 +39,8 @@ export function formatDayLabel(dateStr: string): string {
   const yesterdayStr = toLocalISODate(yest)
   if (dateStr === today) return 'Hoy'
   if (dateStr === yesterdayStr) return 'Ayer'
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return `${d} ${MONTHS[m - 1]} ${y}`
+  const { year, month, day } = parseISODate(dateStr)
+  return `${day} ${monthLabel(month - 1)} ${year}`
 }
 
 // ─── Acceso a datos ──────────────────────────────────────────────────────────
