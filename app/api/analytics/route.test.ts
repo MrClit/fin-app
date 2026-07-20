@@ -430,16 +430,10 @@ describe('GET /api/analytics — defensa frente a datos faltantes', () => {
 
   it('si by_category llega null, se normaliza a []', async () => {
     const { supabase } = buildSupabase({
+      // El RPC puede devolver by_category null, que PeriodRow no admite pero el
+      // handler debe tolerar normalizándolo a []. El cast simula esa respuesta.
       rpc: async () => ({
-        data: [
-          {
-            income: 10,
-            expense: 5,
-            savings: 5,
-            // @ts-expect-error – simulando respuesta del RPC con null
-            by_category: null,
-          },
-        ],
+        data: [{ income: 10, expense: 5, savings: 5, by_category: null }] as unknown as PeriodRow[],
         error: null,
       }),
     })
