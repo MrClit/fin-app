@@ -7,7 +7,8 @@ import { edenredPayloadSchema, type EdenredPayload } from '@/lib/schemas/scraper
 //
 // La cuenta se identifica por NOMBRE, no por external_id: nunca lo tuvo.
 const connector: Connector<EdenredPayload> = {
-  source: 'edenred',
+  tag: 'edenred',
+  source: 'scraper',
   normalize: payload => ({
     lastSyncedAt: payload.last_synced_at,
     accounts: [

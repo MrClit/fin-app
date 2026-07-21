@@ -3,9 +3,14 @@ import { withAuth, unwrap } from '@/lib/http/with-auth'
 import { parseBody } from '@/lib/http/validation'
 import { syncEnablebankingSchema } from '@/lib/schemas/banking'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { syncEbAccount } from '@/lib/ingest'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
+
+// Sync manual de Enable Banking. La ingesta en sí (pedir movimientos, upsertear
+// y actualizar saldo) la hace `lib/ingest/enablebanking`, compartida con el cron
+// (#331); aquí quedan la sesión, la selección de cuentas y el cooldown.
+const TAG = '[sync/eb]'
 
 export const POST = withAuth('/api/sync/enablebanking', async ({ user, householdId }, request) => {
   // Body opcional: `{ accountId }` limita la sync a una sola cuenta (issue #79,
@@ -58,72 +63,18 @@ export const POST = withAuth('/api/sync/enablebanking', async ({ user, household
     }
   }
 
+  // Los movimientos se atribuyen al usuario de la sesión, no al `user_id` de la
+  // fila de cuenta (que es quien la conectó): en un hogar compartido, sincroniza
+  // quien pulsa.
+  const owner = { userId: user.id, householdId }
+  const categorize = (tx: { description: string; merchant?: string }) =>
+    categorizeWithRules(dbRules, tx.description, tx.merchant)
+
   let totalSynced = 0
 
   for (const account of accounts) {
-    if (!account.external_id || !account.session_id) continue
-
-    const dateFrom = account.last_synced
-      ? (account.last_synced as string).slice(0, 10)
-      : undefined
-
-    let ebTransactions
-    try {
-      ebTransactions = await getAccountTransactions(
-        account.external_id,
-        account.session_id,
-        dateFrom
-      )
-    } catch (err) {
-      console.error(`[sync/eb] getTransactions ${account.external_id}:`, err)
-      continue
-    }
-
-    if (ebTransactions.length > 0) {
-      const rows = ebTransactions.map(tx => {
-        const externalId = tx.entry_reference ?? tx.transaction_id
-        const description =
-          tx.remittance_information?.[0]?.trim() ||
-          tx.creditor?.name ||
-          tx.debtor?.name ||
-          'Sin descripción'
-        const merchant = tx.creditor?.name ?? tx.debtor?.name ?? undefined
-        const sign = tx.credit_debit_indicator === 'DBIT' ? -1 : 1
-        const amount = parseFloat(tx.transaction_amount.amount) * sign
-
-        return {
-          user_id:              user.id,
-          household_id:         householdId,
-          account_id:           account.id,
-          date:                 tx.booking_date,
-          amount,
-          description,
-          category:             categorizeWithRules(dbRules, description, merchant ?? undefined),
-          source:               'enablebanking' as const,
-          external_id:          externalId,
-        }
-      })
-
-      const { error: upsertError } = await db
-        .from('transactions')
-        .upsert(rows, { onConflict: 'household_id,external_id', ignoreDuplicates: true })
-
-      if (upsertError) {
-        console.error(`[sync/eb] upsert ${account.external_id}:`, upsertError)
-      } else {
-        totalSynced += rows.length
-      }
-    }
-
-    // Update balance from last transaction's balance_after_transaction
-    const lastTx = ebTransactions.at(-1)
-    const balance = lastTx?.balance_after_transaction
-      ? parseFloat(lastTx.balance_after_transaction.amount)
-      : null
-    await db
-      .from('accounts')
-      .update({ ...(balance !== null && { balance }), last_synced: new Date().toISOString() })
-      .eq('id', account.id)
+    const result = await syncEbAccount(db, { account, owner, categorize, tag: TAG })
+    if (result.ok) totalSynced += result.upserted
   }
 
   return NextResponse.json({ synced: totalSynced, accounts: accounts.length })

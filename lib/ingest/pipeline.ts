@@ -1,11 +1,12 @@
 import type { TablesInsert } from '@/lib/supabase/database.types'
 import { getDefaultHouseholdOwner } from '@/lib/household'
+import { toTransactionRow, upsertTransactions } from './rows'
 import type {
   Connector,
   IngestDb,
+  IngestSource,
   IngestOutcome,
   NormalizedAccount,
-  NormalizedTx,
 } from './types'
 
 /**
@@ -20,6 +21,7 @@ type OwnerContext = {
   userId: string
   householdId: string
   lastSyncedAt: string
+  source: IngestSource
 }
 
 type ResolvedAccount =
@@ -39,7 +41,7 @@ async function resolveAccount(
     .from('accounts')
     .select('id')
     .eq('household_id', ctx.householdId)
-    .eq('source', 'scraper')
+    .eq('source', ctx.source)
     .eq(account.identity.by, account.identity.value)
     .maybeSingle()
   if (selErr) {
@@ -72,7 +74,7 @@ async function resolveAccount(
     household_id: ctx.householdId,
     name: account.name,
     type: account.type,
-    source: 'scraper',
+    source: ctx.source,
     is_liability: account.isLiability,
     balance: account.balance,
     ...(account.number !== undefined && { number: account.number }),
@@ -94,35 +96,12 @@ async function resolveAccount(
   return { ok: true, id: inserted.id as string, created: true }
 }
 
-function toTxRow(
-  ctx: OwnerContext,
-  accountId: string,
-  tx: NormalizedTx,
-  category: string | null
-): TablesInsert<'transactions'> {
-  // `is_read` se omite a propósito (issue #149): los inserts nuevos toman el
-  // DEFAULT false (nacen "no leídos") y, como el upsert usa `ignoreDuplicates:
-  // false` (actualiza las filas existentes), NO incluirlo evita que un re-sync
-  // reescriba el estado de lectura de un movimiento ya leído.
-  return {
-    user_id: ctx.userId,
-    household_id: ctx.householdId,
-    account_id: accountId,
-    date: tx.date,
-    amount: tx.amount,
-    description: tx.description,
-    category,
-    source: 'scraper',
-    external_id: tx.externalId,
-  }
-}
-
 export async function ingest<P>(
   db: IngestDb,
   connector: Connector<P>,
   payload: P
 ): Promise<IngestOutcome> {
-  const tag = `[${connector.source}]`
+  const tag = `[${connector.tag}]`
 
   // El webhook no tiene sesión: se resuelve el hogar (y un user_id de
   // creador/auditoría) de forma determinista a partir del owner del hogar
@@ -134,7 +113,7 @@ export async function ingest<P>(
   }
 
   const { lastSyncedAt, accounts } = connector.normalize(payload)
-  const ctx: OwnerContext = { ...owner, lastSyncedAt }
+  const ctx: OwnerContext = { ...owner, lastSyncedAt, source: connector.source }
 
   const categorize = await connector.prepareCategorizer(db, owner.householdId)
 
@@ -149,21 +128,28 @@ export async function ingest<P>(
     if (resolved.created) createdAccounts++
 
     for (const tx of account.transactions) {
-      txRows.push(toTxRow(ctx, resolved.id, tx, categorize(tx, account)))
+      txRows.push(
+        toTransactionRow(
+          {
+            userId: ctx.userId,
+            householdId: ctx.householdId,
+            accountId: resolved.id,
+            source: ctx.source,
+          },
+          tx,
+          categorize(tx, account)
+        )
+      )
     }
   }
 
-  let upserted = 0
-  if (txRows.length > 0) {
-    const { error: upsertErr } = await db
-      .from('transactions')
-      .upsert(txRows, { onConflict: 'household_id,external_id', ignoreDuplicates: false })
-    if (upsertErr) {
-      console.error(`${tag} upsert transactions:`, upsertErr)
-      return DB_ERROR
-    }
-    upserted = txRows.length
-  }
+  // `ignoreDuplicates: false`: el payload del scraper es la lectura más reciente
+  // del banco, así que un re-sync reescribe la fila que ya existiera.
+  const upsert = await upsertTransactions(db, txRows, { tag, ignoreDuplicates: false })
+  if (!upsert.ok) return DB_ERROR
 
-  return { ok: true, data: { accounts: accounts.length, createdAccounts, upserted } }
+  return {
+    ok: true,
+    data: { accounts: accounts.length, createdAccounts, upserted: upsert.upserted },
+  }
 }

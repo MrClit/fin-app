@@ -143,7 +143,8 @@ function fakeConnector(
   categorize: Connector<void>['prepareCategorizer'] = () => () => 'restaurant'
 ): Connector<void> {
   return {
-    source: 'test',
+    tag: 'test',
+    source: 'scraper',
     normalize: () => ({ lastSyncedAt: '2026-07-01T10:00:00Z', accounts }),
     prepareCategorizer: categorize,
   }
