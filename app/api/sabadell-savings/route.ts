@@ -16,7 +16,8 @@ import { categorizeSavingsMovement } from './categories'
 const SAVINGS_SORT_ORDER = 15
 
 const connector: Connector<SabadellSavingsPayload> = {
-  source: 'sabadell-savings',
+  tag: 'sabadell-savings',
+  source: 'scraper',
   normalize: payload => ({
     lastSyncedAt: payload.last_synced_at,
     accounts: [
