@@ -14,7 +14,8 @@ import {
 // un re-sync nunca lo pisa, así que renombrar es editar la fila en BD (#313).
 
 const connector: Connector<SabadellVisaPayload> = {
-  source: 'sabadell-visa',
+  tag: 'sabadell-visa',
+  source: 'scraper',
   normalize: payload => ({
     lastSyncedAt: payload.last_synced_at,
     accounts: payload.cards.map(card => ({

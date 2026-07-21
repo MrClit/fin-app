@@ -78,32 +78,44 @@ export function useHorizontalSwipe({ actionWidth, openSide, onOpen, onClose }: O
   // contenido se posiciona según `openSide` y se anima la transición.
   const [dragX, setDragX] = useState(0)
 
+  // Las listas de toques pueden llegar vacías (cancelaciones, gestos del
+  // sistema): el guard es una mejora real, no ruido para el compilador.
   const onTouchStart = (e: TouchEvent) => {
-    startX.current = e.touches[0].clientX
+    const touch = e.touches[0]
+    if (!touch) return
+    startX.current = touch.clientX
     didMoveRef.current = false
   }
 
   const onTouchMove = (e: TouchEvent) => {
-    if (startX.current === null) return
-    const dx = e.touches[0].clientX - startX.current
+    const touch = e.touches[0]
+    if (startX.current === null || !touch) return
+    const dx = touch.clientX - startX.current
     if (!isTap(dx)) didMoveRef.current = true
     setDragX(computeDragX(dx, openSide, actionWidth))
-  }
-
-  const onTouchEnd = (e: TouchEvent) => {
-    if (startX.current === null) return
-    const dx = e.changedTouches[0].clientX - startX.current
-    const decision = decideCommit(dx, openSide)
-    if (decision === 'left' || decision === 'right') onOpen(decision)
-    else if (decision === 'close') onClose()
-    setDragX(0)
-    startX.current = null
   }
 
   const onTouchCancel = () => {
     startX.current = null
     didMoveRef.current = false
     setDragX(0)
+  }
+
+  const onTouchEnd = (e: TouchEvent) => {
+    if (startX.current === null) return
+    const touch = e.changedTouches[0]
+    // Sin toque no hay desplazamiento que evaluar: se trata como cancelación en
+    // vez de salir sin limpiar, que dejaría la fila encallada a medio arrastre.
+    if (!touch) {
+      onTouchCancel()
+      return
+    }
+    const dx = touch.clientX - startX.current
+    const decision = decideCommit(dx, openSide)
+    if (decision === 'left' || decision === 'right') onOpen(decision)
+    else if (decision === 'close') onClose()
+    setDragX(0)
+    startX.current = null
   }
 
   const settledX = openSide === 'left' ? actionWidth : openSide === 'right' ? -actionWidth : 0

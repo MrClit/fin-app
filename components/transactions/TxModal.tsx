@@ -5,6 +5,7 @@ import { Trash2, Calendar, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { CATEGORY_META, UNCATEGORIZED } from '@/lib/theme'
 import { getEffectiveCategory } from '@/lib/categories'
+import { parseISODate } from '@/lib/dates'
 import { Amount, amountColorClass } from '@/components/ui/amount'
 import { cn } from '@/lib/utils'
 import type { TransactionWithAccount } from '@/types'
@@ -65,8 +66,8 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
   const Icon = meta.Icon
 
   const dateStr = (() => {
-    const [y, m, d] = renderTx.date.split('-').map(Number)
-    return new Date(y, m - 1, d).toLocaleDateString('es-ES', {
+    const { year, month, day } = parseISODate(renderTx.date)
+    return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',

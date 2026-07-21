@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getAccountTransactions } from '@/lib/enablebanking'
 import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
 import { getConsentStatus } from '@/lib/accounts'
+import { syncEbAccount } from '@/lib/ingest'
 import { sendPushToUser, selectAccountsToNotify, type NotifiableAccount } from '@/lib/push'
 import { safeBearerMatch } from '@/lib/http/bearer'
+
+// Barrido nocturno de todas las conexiones de Enable Banking. La ingesta por
+// cuenta la hace `lib/ingest/enablebanking`, compartida con el sync manual
+// (#331); aquí quedan el barrido multi-hogar, el reporte de fallos y el aviso de
+// caducidad — notificar no es responsabilidad de la ingesta (#309).
+const TAG = '[sync/eb/cron]'
 
 export async function POST(req: Request) {
   const secret = process.env.ENABLEBANKING_WEBHOOK_SECRET
   if (!secret) {
-    console.error('[sync/eb/cron] ENABLEBANKING_WEBHOOK_SECRET no configurado')
+    console.error(`${TAG} ENABLEBANKING_WEBHOOK_SECRET no configurado`)
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
@@ -26,7 +32,7 @@ export async function POST(req: Request) {
     .eq('is_active', true)
 
   if (accountsError) {
-    console.error('[sync/eb/cron] fetch accounts:', accountsError)
+    console.error(`${TAG} fetch accounts:`, accountsError)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
@@ -58,7 +64,7 @@ export async function POST(req: Request) {
     .order('priority', { ascending: false })
 
   if (rulesError) {
-    console.error('[sync/eb/cron] fetch rules:', rulesError)
+    console.error(`${TAG} fetch rules:`, rulesError)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
@@ -74,75 +80,22 @@ export async function POST(req: Request) {
   const failed: { account_id: string; error: string }[] = []
 
   for (const account of syncable) {
-    if (!account.external_id || !account.session_id) continue
-
-    const userId = account.user_id as string
-    const householdId = account.household_id as string
-    const dbRules = rulesByHousehold.get(householdId) ?? []
-    const dateFrom = account.last_synced
-      ? (account.last_synced as string).slice(0, 10)
-      : undefined
-
-    let ebTransactions
-    try {
-      ebTransactions = await getAccountTransactions(
-        account.external_id,
-        account.session_id,
-        dateFrom
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error(`[sync/eb/cron] getTransactions ${account.external_id}:`, message)
-      failed.push({ account_id: account.id as string, error: message })
-      continue
+    // Cada cuenta se atribuye a su propio dueño: el cron barre todos los hogares.
+    const owner = {
+      userId: account.user_id as string,
+      householdId: account.household_id as string,
     }
+    const dbRules = rulesByHousehold.get(owner.householdId) ?? []
 
-    if (ebTransactions.length > 0) {
-      const rows = ebTransactions.map(tx => {
-        const externalId = tx.entry_reference ?? tx.transaction_id
-        const description =
-          tx.remittance_information?.[0]?.trim() ||
-          tx.creditor?.name ||
-          tx.debtor?.name ||
-          'Sin descripción'
-        const merchant = tx.creditor?.name ?? tx.debtor?.name ?? undefined
-        const sign = tx.credit_debit_indicator === 'DBIT' ? -1 : 1
-        const amount = parseFloat(tx.transaction_amount.amount) * sign
+    const result = await syncEbAccount(db, {
+      account,
+      owner,
+      categorize: tx => categorizeWithRules(dbRules, tx.description, tx.merchant),
+      tag: TAG,
+    })
 
-        return {
-          user_id:      userId,
-          household_id: householdId,
-          account_id:   account.id,
-          date:         tx.booking_date,
-          amount,
-          description,
-          category:     categorizeWithRules(dbRules, description, merchant ?? undefined),
-          source:       'enablebanking' as const,
-          external_id:  externalId,
-        }
-      })
-
-      const { error: upsertError } = await db
-        .from('transactions')
-        .upsert(rows, { onConflict: 'household_id,external_id', ignoreDuplicates: true })
-
-      if (upsertError) {
-        console.error(`[sync/eb/cron] upsert ${account.external_id}:`, upsertError)
-        failed.push({ account_id: account.id as string, error: upsertError.message })
-        continue
-      }
-
-      totalSynced += rows.length
-    }
-
-    const lastTx = ebTransactions.at(-1)
-    const balance = lastTx?.balance_after_transaction
-      ? parseFloat(lastTx.balance_after_transaction.amount)
-      : null
-    await db
-      .from('accounts')
-      .update({ ...(balance !== null && { balance }), last_synced: new Date().toISOString() })
-      .eq('id', account.id)
+    if (result.ok) totalSynced += result.upserted
+    else failed.push({ account_id: account.id as string, error: result.error })
   }
 
   // Aviso de caducidad PSD2 (≤7 días, issue #115). Se evalúa sobre todas las
@@ -179,6 +132,8 @@ async function notifyExpiringConsents(db: CronDb, accounts: NotifiableAccount[])
 
   for (const [userId, userAccounts] of byUser) {
     const first = userAccounts[0]
+    // Por construcción del agrupado nunca está vacío, pero el guard es barato.
+    if (!first) continue
     const daysLeft = getConsentStatus(first.consent_expires_at).daysLeft
     const body =
       userAccounts.length === 1
@@ -192,7 +147,7 @@ async function notifyExpiringConsents(db: CronDb, accounts: NotifiableAccount[])
         url: '/accounts',
       })
     } catch (err) {
-      console.error('[sync/eb/cron] push caducidad:', err)
+      console.error(`${TAG} push caducidad:`, err)
       continue
     }
 

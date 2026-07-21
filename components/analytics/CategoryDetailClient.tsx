@@ -30,7 +30,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
   const searchParams = useSearchParams()
   // Período de origen (inicio ISO) al llegar desde Análisis; abrimos el detalle en él.
   const periodParam = searchParams.get('period')
-  const { granularity, setShowPicker } = useAnalytics()
+  const { granularity } = useAnalytics()
+  const [showPicker, setShowPicker] = useState(false)
   const meta = getCategoryMeta(categoryId)
   const { color } = meta
 
@@ -164,26 +165,22 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         )}
       </div>
 
-      {selectedTx && (
-        <TxModal
-          tx={selectedTx}
-          open
-          onOpenChange={o => { if (!o) setSelectedTxId(null) }}
-          onRecategorize={tx => { setCatPickerTx(tx); setSelectedTxId(null) }}
-          onDelete={handleDelete}
-        />
-      )}
+      <TxModal
+        tx={selectedTx}
+        open={!!selectedTx}
+        onOpenChange={o => { if (!o) setSelectedTxId(null) }}
+        onRecategorize={tx => { setCatPickerTx(tx); setSelectedTxId(null) }}
+        onDelete={handleDelete}
+      />
 
-      {catPickerTx && (
-        <CategoryPicker
-          tx={catPickerTx}
-          open
-          onOpenChange={o => { if (!o) setCatPickerTx(null) }}
-          onSelect={recategorize}
-        />
-      )}
+      <CategoryPicker
+        tx={catPickerTx}
+        open={!!catPickerTx}
+        onOpenChange={o => { if (!o) setCatPickerTx(null) }}
+        onSelect={recategorize}
+      />
 
-      <GranularityPicker />
+      <GranularityPicker open={showPicker} onOpenChange={setShowPicker} />
     </div>
   )
 }

@@ -13,6 +13,9 @@ import type { Database } from '@/lib/supabase/database.types'
 /** Cliente service-role: los webhooks no tienen sesión, así que no hay RLS. */
 export type IngestDb = SupabaseClient<Database>
 
+/** Valor que se persiste en `accounts.source` y `transactions.source`. */
+export type IngestSource = 'scraper' | 'enablebanking'
+
 /**
  * Cómo se localiza la cuenta dentro del hogar.
  *
@@ -24,7 +27,7 @@ export type AccountIdentity =
   | { by: 'name'; value: string }
   | { by: 'external_id'; value: string }
 
-/** Movimiento ya normalizado, sea cual sea el scraper que lo emitió. */
+/** Movimiento ya normalizado, sea cual sea el origen que lo emitió. */
 export type NormalizedTx = {
   externalId: string
   amount: number
@@ -33,6 +36,11 @@ export type NormalizedTx = {
   date: string
   /** Sugerencia del scraper. Sólo Edenred la emite. */
   category?: string
+  /**
+   * Comercio (acreedor o deudor). Sólo Enable Banking lo emite; se usa como
+   * segundo campo de las reglas de categorización, junto a la descripción.
+   */
+  merchant?: string
 }
 
 /**
@@ -70,7 +78,13 @@ export type Categorizer = (tx: NormalizedTx, account: NormalizedAccount) => stri
 
 export type Connector<P> = {
   /** Prefijo de los logs: 'edenred' | 'sabadell-visa' | 'sabadell-savings'. */
-  source: string
+  tag: string
+  /**
+   * Valor de `source` con el que se persisten la cuenta y sus movimientos, y por
+   * el que se localiza la cuenta del conector dentro del hogar. Era un literal
+   * `'scraper'` dentro del pipeline hasta #331.
+   */
+  source: IngestSource
   normalize: (payload: P) => NormalizedPayload
   /**
    * Único punto asíncrono propio del conector, resuelto UNA vez por petición y

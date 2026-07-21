@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { callAt } from '@/tests/helpers'
 
 import { reportClientError } from './error-log-client'
 
@@ -17,7 +18,7 @@ afterEach(() => {
 })
 
 function sentBody() {
-  const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+  const [, init] = callAt(fetchMock, 0) as [string, RequestInit]
   return JSON.parse(init.body as string)
 }
 
@@ -28,7 +29,7 @@ describe('reportClientError', () => {
     reportClientError(error)
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/error-log')
+    expect(callAt(fetchMock, 0)[0]).toBe('/api/error-log')
     expect(sentBody()).toEqual({
       message: 'boom',
       stack: 'at foo',

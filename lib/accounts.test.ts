@@ -5,7 +5,7 @@ import {
   getActiveAccounts,
   getManualAccountId,
 } from './accounts'
-import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
+import { argsOf, called, createFakeSupabase, queryAt } from '@/tests/supabase-fake'
 import type { Account } from '@/types'
 
 const DAY_MS = 86_400_000
@@ -121,7 +121,7 @@ describe('getActiveAccounts', () => {
 
     await getActiveAccounts(supabase, 'hh-1')
 
-    const [q] = queries
+    const q = queryAt(queries, 0)
     expect(q.table).toBe('accounts')
     expect(q.calls.filter(c => c.method === 'eq')).toEqual([
       { method: 'eq', args: ['household_id', 'hh-1'] },
@@ -147,8 +147,8 @@ describe('getManualAccountId', () => {
     const { supabase, queries } = createFakeSupabase(() => ({ data: [{ id: 'acc-manual' }] }))
 
     expect(await getManualAccountId(supabase, 'hh-1')).toBe('acc-manual')
-    expect(argsOf(queries[0], 'eq')).toEqual(['household_id', 'hh-1'])
-    expect(called(queries[0], 'insert')).toBe(false)
+    expect(argsOf(queryAt(queries, 0), 'eq')).toEqual(['household_id', 'hh-1'])
+    expect(called(queryAt(queries, 0), 'insert')).toBe(false)
   })
 
   // La fila la garantiza el bootstrap del hogar (#307): la lectura nunca escribe,
@@ -158,6 +158,6 @@ describe('getManualAccountId', () => {
 
     expect(await getManualAccountId(supabase, 'hh-1')).toBeNull()
     expect(queries).toHaveLength(1)
-    expect(called(queries[0], 'insert')).toBe(false)
+    expect(called(queryAt(queries, 0), 'insert')).toBe(false)
   })
 })

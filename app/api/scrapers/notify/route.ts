@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getDefaultHouseholdOwner } from '@/lib/household'
 import { safeBearerMatch } from '@/lib/http/bearer'
 import { badRequest, readJson } from '@/lib/http/validation'
 import { scraperNotifySchema } from '@/lib/schemas/scrapers'
@@ -61,18 +62,16 @@ export async function POST(req: Request) {
 
   const db = createServiceClient()
 
-  // App personal con un único hogar: el destinatario es el único registro de
-  // user_config (mismo patrón que /api/edenred y /api/sabadell-visa).
-  const { data: userRow, error: userErr } = await db
-    .from('user_config')
-    .select('user_id')
-    .limit(1)
-    .maybeSingle()
-  if (userErr || !userRow?.user_id) {
-    console.error('[scrapers/notify] no user_config:', userErr)
+  // El webhook no tiene sesión: el destinatario se resuelve de forma determinista
+  // a partir del owner más antiguo del hogar (getDefaultHouseholdOwner, issue
+  // #196), igual que los tres webhooks de ingesta. Antes se usaba
+  // user_config.limit(1), que devolvía una fila arbitraria (#330).
+  const owner = await getDefaultHouseholdOwner(db)
+  if (!owner) {
+    console.error('[scrapers/notify] no household owner')
     return NextResponse.json({ error: 'No user configured' }, { status: 500 })
   }
-  const userId = userRow.user_id as string
+  const userId = owner.userId
 
   // 1. Persistir la notificación in-app (con dedup). Independiente del push: si el
   //    usuario tiene el push desactivado, igualmente verá el aviso en la campana.

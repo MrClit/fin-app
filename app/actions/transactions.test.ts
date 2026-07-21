@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { logError } from '@/lib/error-log'
-import { argsOf, called, createFakeSupabase } from '@/tests/supabase-fake'
+import { argsOf, called, createFakeSupabase, queryAt } from '@/tests/supabase-fake'
 import type { FakeQuery, FakeResult } from '@/tests/supabase-fake'
 import type { CreateTransactionBody } from '@/lib/schemas/transactions'
 
@@ -59,7 +59,7 @@ describe('createTransaction', () => {
 
     expect(res.error).toBeUndefined()
     expect(res.data).toMatchObject({ id: TX_ID, amount: -42.5 })
-    expect(argsOf(queries[0], 'insert')![0]).toEqual({
+    expect(argsOf(queryAt(queries, 0), 'insert')![0]).toEqual({
       user_id: USER_ID,
       household_id: HOUSEHOLD_ID,
       account_id: ACCOUNT_ID,
@@ -71,7 +71,7 @@ describe('createTransaction', () => {
       is_read: true,
     })
     // La fila vuelve con la cuenta embebida: es la forma que consume la UI.
-    expect(argsOf(queries[0], 'select')).toEqual(['*, account:accounts(id, name, color)'])
+    expect(argsOf(queryAt(queries, 0), 'select')).toEqual(['*, account:accounts(id, name, color)'])
   })
 
   it('acepta el importe 0 (issue #308: el chequeo por falsy lo rechazaba)', async () => {
@@ -80,7 +80,7 @@ describe('createTransaction', () => {
     const res = await createTransaction({ ...validBody, amount: 0 })
 
     expect(res.error).toBeUndefined()
-    expect(argsOf(queries[0], 'insert')![0]).toMatchObject({ amount: 0 })
+    expect(argsOf(queryAt(queries, 0), 'insert')![0]).toMatchObject({ amount: 0 })
   })
 
   it('guarda la categoría como null cuando no viene', async () => {
@@ -88,7 +88,7 @@ describe('createTransaction', () => {
 
     await createTransaction(bodySinCategoria as CreateTransactionBody)
 
-    expect(argsOf(queries[0], 'insert')![0]).toMatchObject({ category_manual: null })
+    expect(argsOf(queryAt(queries, 0), 'insert')![0]).toMatchObject({ category_manual: null })
   })
 
   it.each([
@@ -127,8 +127,8 @@ describe('updateTransaction', () => {
 
     expect(res.error).toBeUndefined()
     expect(res.data).toMatchObject({ id: TX_ID })
-    expect(argsOf(queries[0], 'update')).toEqual([{ is_read: true }])
-    expect(eqFilters(queries[0])).toEqual([
+    expect(argsOf(queryAt(queries, 0), 'update')).toEqual([{ is_read: true }])
+    expect(eqFilters(queryAt(queries, 0))).toEqual([
       ['id', TX_ID],
       ['household_id', HOUSEHOLD_ID],
     ])
@@ -140,7 +140,7 @@ describe('updateTransaction', () => {
     const res = await updateTransaction(TX_ID, { category_manual: null })
 
     expect(res.error).toBeUndefined()
-    expect(argsOf(queries[0], 'update')).toEqual([{ category_manual: null }])
+    expect(argsOf(queryAt(queries, 0), 'update')).toEqual([{ category_manual: null }])
   })
 
   it('devuelve invalid_input con el body vacío, sin tocar la BD', async () => {
@@ -188,8 +188,8 @@ describe('deleteTransaction', () => {
 
     expect(res.error).toBeUndefined()
     expect(res.data).toEqual({ id: TX_ID })
-    expect(called(queries[1], 'delete')).toBe(true)
-    expect(eqFilters(queries[1])).toEqual([
+    expect(called(queryAt(queries, 1), 'delete')).toBe(true)
+    expect(eqFilters(queryAt(queries, 1))).toEqual([
       ['id', TX_ID],
       ['household_id', HOUSEHOLD_ID],
     ])

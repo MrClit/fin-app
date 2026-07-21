@@ -11,16 +11,21 @@ const OPTIONS: { id: Granularity; label: string }[] = [
   { id: 'year', label: 'Año' },
 ]
 
-export default function GranularityPicker() {
-  const { granularity, setGranularity, showPicker, setShowPicker } = useAnalytics()
+interface GranularityPickerProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}
+
+export default function GranularityPicker({ open, onOpenChange }: GranularityPickerProps) {
+  const { granularity, setGranularity } = useAnalytics()
 
   function select(g: Granularity) {
     setGranularity(g)
-    setShowPicker(false)
+    onOpenChange(false)
   }
 
   return (
-    <Sheet open={showPicker} onOpenChange={setShowPicker}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         showCloseButton={false}
