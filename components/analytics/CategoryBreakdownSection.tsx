@@ -2,10 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronDown } from 'lucide-react'
 import type { CategoryBreakdown, Granularity } from '@/types'
 import { Amount } from '@/components/ui/amount'
 import DonutChart from './DonutChart'
 import { buildDonutModel, REST_KEY } from './donutModel'
+
+/** Evita que una categoría marginal del bucket se muestre como "0%" (#345). */
+const fmtPct = (pct: number) => (pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`)
 
 interface CategoryBreakdownSectionProps {
   byCategory: CategoryBreakdown[]
@@ -22,22 +26,28 @@ interface CategoryBreakdownSectionProps {
 export default function CategoryBreakdownSection({ byCategory, income, expense, periodStart, granularity }: CategoryBreakdownSectionProps) {
   const router = useRouter()
   const [catView, setCatView] = useState<'gastos' | 'ingresos'>('gastos')
-  // Tracked by key instead of index — auto-deselects when byCategory changes and the
-  // category is no longer present, without needing a useEffect setState.
+  // Tracked by slice key instead of index — auto-deselects when byCategory changes and the
+  // slice is no longer present, without needing a useEffect setState.
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  // El bucket "Resto" se despliega en la lista para llegar a sus categorías (#345).
+  const [restExpanded, setRestExpanded] = useState(false)
 
   const typeFilter = catView === 'gastos' ? 'expense' : 'income'
   const accentColor = catView === 'gastos' ? '#6366f1' : '#22c55e'
   const netTotal = catView === 'gastos' ? expense : income
 
-  const { slices: items, credits, netTotal: centerTotal } = buildDonutModel(byCategory, typeFilter, netTotal)
+  const { slices: items, restRows, credits, netTotal: centerTotal } = buildDonutModel(byCategory, typeFilter, netTotal)
 
   // Derive index from tracked key — null if category not present in current items
   const selectedCatIdx = selectedKey === null ? null : items.findIndex(i => i.key === selectedKey)
   const effectiveIdx = selectedCatIdx !== null && selectedCatIdx >= 0 ? selectedCatIdx : null
 
   const handleSelect = (idx: number | null) => {
-    setSelectedKey(idx === null ? null : items[idx]?.key ?? null)
+    const key = idx === null ? null : items[idx]?.key ?? null
+    setSelectedKey(key)
+    // Seleccionar el arco "Resto" abre su detalle; deseleccionarlo lo cierra.
+    if (key === REST_KEY) setRestExpanded(true)
+    else if (key === null) setRestExpanded(false)
   }
 
   const isEmpty = items.length === 0 && credits.length === 0
@@ -51,7 +61,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
           {(['gastos', 'ingresos'] as const).map(v => (
             <button
               key={v}
-              onClick={() => { setCatView(v); setSelectedKey(null) }}
+              onClick={() => { setCatView(v); setSelectedKey(null); setRestExpanded(false) }}
               style={{
                 padding: '4px 12px',
                 borderRadius: 20,
@@ -95,55 +105,113 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
             {items.map((item, i) => {
               const isSelected = effectiveIdx === i
               const isDimmed = effectiveIdx !== null && !isSelected
-              const isNavigable = item.categoryId !== null && item.key !== REST_KEY
+              const isRest = item.key === REST_KEY
               const { Icon } = item
               return (
                 <div
                   key={item.key}
-                  onClick={() => {
-                    if (isNavigable) {
-                      router.push(`/analytics/category/${item.categoryId}?period=${periodStart}&g=${granularity}`)
-                    } else {
-                      handleSelect(effectiveIdx === i ? null : i)
-                    }
-                  }}
-                  style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
+                  style={{ opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                        background: isSelected ? item.color : `${item.color}22`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'background 0.2s',
-                      }}>
-                        <Icon size={16} color={isSelected ? 'white' : item.color} />
+                  <div
+                    onClick={() => {
+                      if (isRest) {
+                        // La fila "Resto" y su arco son lo mismo: se abren y se resaltan juntos.
+                        setRestExpanded(!restExpanded)
+                        setSelectedKey(restExpanded ? null : REST_KEY)
+                      } else {
+                        router.push(`/analytics/category/${item.categoryId}?period=${periodStart}&g=${granularity}`)
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div style={{
+                          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                          background: isSelected ? item.color : `${item.color}22`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'background 0.2s',
+                        }}>
+                          <Icon size={16} color={isSelected ? 'white' : item.color} />
+                        </div>
+                        <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
+                          {isRest ? `${item.label} (${restRows.length})` : item.label}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
-                        {item.label}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
+                          {fmtPct(item.pct)}
+                        </span>
+                        <span style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--foreground)' }}>
+                          <Amount value={item.amount} />
+                        </span>
+                        {isRest ? (
+                          <ChevronDown
+                            size={16}
+                            color={accentColor}
+                            style={{
+                              transform: restExpanded ? 'rotate(180deg)' : 'none',
+                              transition: 'transform 0.2s',
+                            }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
-                        {Math.round(item.pct)}%
-                      </span>
-                      <span style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--foreground)' }}>
-                        <Amount value={item.amount} />
-                      </span>
-                      {isNavigable && <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>}
-                    </div>
-                  </div>
-                  <div style={{
-                    height: 7, borderRadius: 3.5,
-                    background: 'color-mix(in srgb, currentColor 6%, transparent)',
-                    overflow: 'hidden',
-                  }}>
                     <div style={{
-                      width: `${Math.round(item.pct * 100) / 100}%`, height: '100%',
-                      background: item.color, borderRadius: 3,
-                      transition: 'width 0.6s ease',
-                    }} />
+                      height: 7, borderRadius: 3.5,
+                      background: 'color-mix(in srgb, currentColor 6%, transparent)',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${Math.round(item.pct * 100) / 100}%`, height: '100%',
+                        minWidth: 3, // que el color siga siendo legible con porcentajes marginales
+                        background: item.color, borderRadius: 3,
+                        transition: 'width 0.6s ease',
+                      }} />
+                    </div>
                   </div>
+
+                  {/* Categorías dentro de "Resto": compactas y sin barra, para que desplegarlas
+                      no reproduzca el problema de longitud que motivó agruparlas (#345). */}
+                  {isRest && restExpanded && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14, paddingLeft: 14 }}>
+                      {restRows.map(sub => {
+                        const SubIcon = sub.Icon
+                        return (
+                          <div
+                            key={sub.key}
+                            onClick={() => router.push(`/analytics/category/${sub.categoryId}?period=${periodStart}&g=${granularity}`)}
+                            className="flex items-center justify-between"
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div style={{
+                                width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                                background: `${sub.color}22`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                <SubIcon size={13} color={sub.color} />
+                              </div>
+                              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--foreground)', fontWeight: 500 }}>
+                                {sub.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted-foreground)' }}>
+                                {fmtPct(sub.pct)}
+                              </span>
+                              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--foreground)' }}>
+                                <Amount value={sub.amount} />
+                              </span>
+                              <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}
