@@ -5,8 +5,8 @@ import { CATEGORY_META } from '@/lib/theme'
 import { getCategoryMeta } from '@/lib/categories'
 import type { DonutItem } from './DonutChart'
 
-// Categorías por debajo de este % del gasto bruto se agrupan en "Resto".
-export const MIN_PCT = 5
+// Categorías por debajo de este % del gasto bruto se agrupan en "Resto" — sólo en el anillo.
+export const MIN_PCT = 3
 export const REST_KEY = '__rest__'
 const REST_COLOR = '#94a3b8'
 
@@ -19,9 +19,18 @@ export interface CreditRow {
   amount: number // magnitud del neto (positiva); se muestra como crédito que reduce el total
 }
 
+/** Fila de una categoría real de la lista; nunca el bucket "Resto". */
+export type CategoryRow = DonutItem & { categoryId: CategoryId }
+
 export interface DonutModel {
-  /** Categorías de gasto/ingreso real: llevan porción en el anillo y barra. Incluye el bucket "Resto". */
+  /** Categorías por encima del umbral más el bucket "Resto": porciones del anillo y filas de la lista. */
   slices: DonutItem[]
+  /**
+   * Categorías absorbidas por el bucket "Resto", orden desc por importe. La lista las
+   * despliega bajo la fila "Resto" para que ninguna quede inalcanzable (#345); vacío si
+   * no se llegó a agrupar.
+   */
+  restRows: CategoryRow[]
   /** Categorías con neto de signo contrario (reembolsos): filas de crédito, sin anillo ni barra. */
   credits: CreditRow[]
   /** Total neto del tipo (= KPI). Es el "Total" central del donut (#272). */
@@ -63,10 +72,7 @@ export function buildDonutModel(
     ...c,
     pct: grossSpend > 0 ? (c.amount / grossSpend) * 100 : 0,
   }))
-  const main = withPct.filter(c => c.pct >= MIN_PCT)
-  const rest = withPct.filter(c => c.pct < MIN_PCT)
-
-  const toSlice = (c: (typeof withPct)[number]): DonutItem => {
+  const toRow = (c: (typeof withPct)[number]): CategoryRow => {
     const meta = getCategoryMeta(c.category)
     return {
       key: c.category,
@@ -79,10 +85,18 @@ export function buildDonutModel(
     }
   }
 
-  const slices: DonutItem[] = [
-    ...main.map(toSlice),
-    ...(rest.length > 0
-      ? [{
+  const rows = withPct.map(toRow) // ya ordenadas desc por importe
+
+  const main = rows.filter(c => c.pct >= MIN_PCT)
+  const rest = rows.filter(c => c.pct < MIN_PCT)
+  // Con una sola categoría en la cola no se agrupa: el bucket ocuparía exactamente el
+  // mismo arco que la categoría y sólo escondería su nombre.
+  const grouped = rest.length > 1
+
+  const slices: DonutItem[] = grouped
+    ? [
+        ...main,
+        {
           key: REST_KEY,
           categoryId: null,
           label: 'Resto',
@@ -90,14 +104,20 @@ export function buildDonutModel(
           Icon: MoreHorizontal,
           amount: rest.reduce((s, c) => s + c.amount, 0),
           pct: rest.reduce((s, c) => s + c.pct, 0),
-        } satisfies DonutItem]
-      : []),
-  ]
+        } satisfies DonutItem,
+      ]
+    : rows
 
   const credits: CreditRow[] = creditCats.map(c => {
     const meta = getCategoryMeta(c.category)
     return { categoryId: c.category, label: meta.label, color: meta.color, Icon: meta.Icon, amount: c.amount }
   })
 
-  return { slices, credits, netTotal, grossSpend }
+  return {
+    slices,
+    restRows: grouped ? rest : [],
+    credits,
+    netTotal,
+    grossSpend,
+  }
 }
