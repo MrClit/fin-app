@@ -1,20 +1,32 @@
 # Finanzas Personales — App de gestión financiera personal
 
 ## Contexto del proyecto
-App web personal (usuario único) de gestión y análisis de finanzas.
-Lee `docs/finanzas-spec.md` para la especificación completa.
-El fichero `docs/finanzas-app.jsx` fue el prototipo visual con el que arrancó
-el desarrollo; ya **no** es referencia para la evolución de la app — las
-decisiones de UI/UX se toman por el spec y por mejores prácticas.
-El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el prototipo y el spec al desarrollo real.
+App web privada de gestión y análisis de finanzas: agrega cuentas bancarias
+(Enable Banking/PSD2), tarjetas y saldo Edenred vía scrapers, y da análisis por
+período con categorización. La unidad de propiedad de los datos es el **hogar**
+(`household_id`, #131), no el usuario: varios usuarios comparten un mismo hogar
+y ven los mismos datos. En Fase 1 cada usuario pertenece a un único hogar.
+
+**La fuente de verdad es el código.** Las decisiones de UI/UX se toman por
+mejores prácticas. Para operación (scrapers, cron de `launchd`, entornos y
+secretos) ver `README.md`; el historial de releases, en `CHANGELOG.md`.
+
+`docs/` contiene el material de arranque del proyecto —spec original, prototipo
+y plan— que el código ya ha superado: describen RLS por `user_id`, una vista
+materializada retirada y rutas que no existen. **No usarlos como referencia.**
+Su única parte todavía útil es `docs/finanzas-spec.md` §14 (backlog de mejoras
+pensadas y descartadas, con su razonamiento).
 
 ## Stack
-- Next.js 16 (App Router) + TypeScript
-- Supabase (PostgreSQL + Auth)
-- Tailwind CSS v4
-- Recharts (gráficas, excepto Donut y Sparkline que son SVG puro)
-- shadcn/ui (componentes base)
-- Lucide React (iconos)
+- Next.js 16 (App Router) + React 19 + TypeScript `strict` con `noUncheckedIndexedAccess`
+- Supabase (PostgreSQL + Auth) vía `@supabase/ssr`
+- Tailwind CSS v4 (`@theme` en `app/globals.css`, sin fichero de config)
+- shadcn/ui estilo `base-nova` — las primitivas son `@base-ui/react`, no Radix
+- Recharts (`NetWorthChart`, `DualBarChart`, `CategoryBarChart`); `DonutChart` y
+  `Sparkline` son SVG puro
+- Zod v4 (`lib/schemas/`) para validar todo payload de entrada
+- Lucide React (iconos) · next-themes · Serwist (PWA) · web-push · Playwright (scrapers)
+- El middleware vive en `proxy.ts` en la raíz (Next 16 renombró `middleware`)
 
 ## Convenciones críticas
 - `overflow: clip` en el contenedor raíz (nunca `overflow: hidden` — rompe sticky)
@@ -24,55 +36,114 @@ El fichero `docs/claude-code-plan.md` es la guía de arranque para llevar el pro
   transform persistente al acabar (sin fill-mode en entradas) —
   patrón en `app/(app)/analytics/template.tsx` (#315)
 - Server Components por defecto; `'use client'` solo cuando haya estado o touch events
-- Estado `gran` (período de análisis) vive en el layout/contexto compartido,
-  no dentro de cada pantalla
+- El período de análisis (`granularity`) vive en `components/analytics/AnalyticsContext.tsx`,
+  compartido por Análisis y el detalle de categoría; no duplicarlo por pantalla
 - Lógica de agregación SQL siempre en servidor, nunca en cliente
 - Hooks y providers colocados por feature en `components/<feature>/`;
   `hooks/` solo para hooks transversales agnósticos de dominio. No existe `contexts/`
+- **Identificadores en inglés** (variables, funciones, tipos, ficheros, rutas,
+  columnas SQL); los strings de UI y los comentarios, en castellano
+- Tests colocados junto al módulo (`lib/analytics.test.ts`); `tests/` solo aloja
+  helpers compartidos y lo que no tiene módulo propio (`proxy.test.ts`)
+- `cn()` usa `extendTailwindMerge`: cualquier token `text-*` custom que sea un
+  tamaño debe registrarse en el grupo `font-size` o twMerge lo tratará como color
+  y lo eliminará al fusionar (#244)
 
 ## Formato de números
-Siempre usar esta función (formato español: punto miles, coma decimal):
-```typescript
-export const fmt = (n: number, decimals = 0): string => {
-  const abs = Math.abs(n)
-  const sign = n < 0 ? '-' : ''
-  const [intPart, decPart] = abs.toFixed(decimals).split('.')
-  const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return sign + intFormatted + (decPart !== undefined ? ',' + decPart : '')
-}
-```
+Usar siempre `fmt()` de `lib/formatting.ts` (formato español: punto de miles,
+coma decimal). No reimplementarla ni formatear a mano.
+
+## Arquitectura de servidor
+- **Route handlers**: envolver en `withAuth` / `withUser` de `lib/http/with-auth.ts`
+  (#305). Resuelven sesión, hogar y cliente Supabase, capturan excepciones, las
+  registran en `error_log` y devuelven el 500. Lanzar `RouteError` para errores
+  esperados; `parseBody` traduce un body inválido a 400 sin ensuciar el log (#308).
+- **Sesión**: `lib/auth/session.ts` memoiza usuario y hogar con `cache()` de React,
+  deduplicado por request (#236). Usar esos resolvers, no `getUser()` suelto.
+- **Ingesta**: todo lo que entra (webhooks de los tres scrapers y Enable Banking)
+  pasa por el núcleo `lib/ingest/` (#309, #331) — normaliza, resuelve cuenta,
+  categoriza y hace upsert. No escribir en `transactions` desde un route handler.
+- **Webhooks públicos**: `proxy.ts` exime del chequeo de sesión a `/api/edenred`,
+  `/api/sabadell-*`, `/api/scrapers`, `/api/sync/enablebanking/cron` y
+  `/api/error-log`; se autentican por Bearer (`lib/http/bearer.ts`).
+- **Categorización automática**: reglas por regex en `lib/categories/rules.ts`,
+  evaluadas en orden — las específicas primero, los catch-all al final.
 
 ## Base de datos
-- Todas las tablas tienen `user_id` con RLS activada
-- `is_liability` en `accounts` para distinguir activos de pasivos
-- La clasificación de una transacción (`income` / `expense` / `non_computable`) viene determinada por `categories.type` de su categoría efectiva (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para clasificar tipo, sólo para presentación visual.
-- Vista materializada `transactions_monthly_summary` para agregaciones
-- **Tipos generados**: `lib/supabase/database.types.ts` es la foto en TS del esquema real (#241) y la fuente de la que se derivan los tipos de dominio en `types/index.ts`. **Tras cualquier migración que altere tablas/columnas/nullability o una firma RPC, regenerar con `pnpm gen:types`** (requiere `supabase login`) y commitear el fichero. No hay guardarraíl automático (a diferencia del test de drift de categorías): si se olvida, el fichero queda desactualizado y el build no avisa. El flag apunta al proyecto actual con `--project-id`; ver acoplamiento con el entorno dev/prod en #255.
-- **Categorías**: la fuente única de verdad es `lib/categories/catalog.ts` (#175). `CategoryId`, `CATEGORY_META`, `CATEGORY_COLORS` y `VALID_CATEGORIES` se derivan de ahí. La tabla `categories` es una réplica: tras cambiar el catálogo, regenerar con `pnpm seed:categories` y ejecutar `supabase/seed/categories.sql` en el SQL Editor (un test de drift falla si se olvida). `transactions.category`/`category_manual` tienen FK a `categories.id` con `ON DELETE NO ACTION`: retirar o renombrar un id requiere migración de repunte (patrón alta→repunte→baja, ver #151/#174).
+- **RLS por hogar**: las políticas filtran por `household_id IN (SELECT current_household_ids())`.
+  `user_id` sigue existiendo como autoría de la fila, pero **no** es lo que
+  determina la visibilidad. Toda tabla nueva de dominio necesita `household_id`,
+  RLS activada y su política de hogar.
+- `is_liability` en `accounts` para distinguir activos de pasivos.
+- La clasificación de una transacción (`income` / `expense` / `non_computable`) viene
+  determinada por `categories.type` de su categoría efectiva
+  (`COALESCE(category_manual, category)`). El signo del `amount` nunca se usa para
+  clasificar tipo, sólo para presentación visual.
+- **Agregación**: el RPC `get_period_data` (en vivo) alimenta Análisis; el Dashboard
+  consulta `transactions`/`accounts` directamente. La MV `transactions_monthly_summary`
+  fue eliminada por fuga entre hogares y cómputo muerto (#231) — no reintroducirla.
+- **Migraciones**: ficheros en `supabase/migrations/`, aplicados **a mano en el SQL
+  Editor** de Supabase como un único bloque. No hay `supabase db push` en el flujo;
+  el fichero es el registro, no el ejecutor.
+- **Tipos generados**: `lib/supabase/database.types.ts` es la foto en TS del esquema
+  real (#241) y la fuente de la que se derivan los tipos de dominio en `types/index.ts`.
+  **Tras cualquier migración que altere tablas/columnas/nullability o una firma RPC,
+  regenerar con `pnpm gen:types`** (requiere `supabase login`) y commitear el fichero.
+  No hay guardarraíl automático (a diferencia del test de drift de categorías): si se
+  olvida, el fichero queda desactualizado y el build no avisa. El flag apunta al
+  proyecto actual con `--project-id`; ver acoplamiento con el entorno dev/prod en #255.
+- **Categorías**: la fuente única de verdad es `lib/categories/catalog.ts` (#175).
+  `CategoryId`, `CATEGORY_META`, `CATEGORY_COLORS` y `VALID_CATEGORIES` se derivan de
+  ahí. La tabla `categories` es una réplica: tras cambiar el catálogo, regenerar con
+  `pnpm seed:categories` y ejecutar `supabase/seed/categories.sql` en el SQL Editor
+  (un test de drift falla si se olvida). `transactions.category`/`category_manual`
+  tienen FK a `categories.id` con `ON DELETE NO ACTION`: retirar o renombrar un id
+  requiere migración de repunte (patrón alta→repunte→baja, ver #151/#174).
 
 ## Lo que NO hacer
-- No reimplementar YTD sin discutirlo (fue retirado por UX — ver §14.15 del spec)
+- No reimplementar YTD sin discutirlo: se implementó y se retiró por confuso en UX
+  (el razonamiento quedó en `docs/finanzas-spec.md` §14.15)
 - No usar `overflow: hidden` en contenedores padre de sticky headers
 - No calcular agregaciones de análisis en el cliente
 - No hardcodear datos — todo viene de Supabase
+- No filtrar consultas por `user_id` esperando aislamiento: el aislamiento es por hogar
+- No escribir en `transactions` fuera de `lib/ingest/` ni de las server actions existentes
 
 ## Comandos
 - `pnpm dev` — desarrollo local
-- `pnpm build` — verificar que compila antes de hacer push
-- `pnpm test` — Vitest para tests unitarios
+- `pnpm build` — `next build --webpack`; verificar que compila antes de push
+- `pnpm start` — build de producción en el puerto 3001 (necesario para probar
+  PWA/service worker: en `pnpm dev` el precaching falla)
+- `pnpm test` — Vitest · `pnpm lint` — ESLint
+- `pnpm exec tsc --noEmit` — **necesario tras tocar tipos de dominio**: `next build`
+  no chequea los `*.test.ts` y CI tampoco los typechequea
+- `pnpm gen:types` · `pnpm seed:categories` — ver sección de Base de datos
+- `pnpm scrape:*` / `pnpm cron:*:status` — scrapers y su cron local (ver README)
+
+CI (`.github/workflows/ci.yml`) corre lint + test + build en PR y push a
+`develop`/`main`. `enablebanking-sync.yml` dispara el sync diario a las 06:00 CET.
 
 ## Flujos de GitHub
 
-**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto, ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet), no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en la skill **`release`** (historial en `CHANGELOG.md`).
+**Delegación obligatoria:** toda operación con GitHub (issues, tablero del proyecto,
+ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonnet),
+no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en la
+skill **`release`** (historial en `CHANGELOG.md`).
 
-Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al tablero y muévela a Ready», o «corre las validaciones, pushea, abre el PR con este título y cuerpo, y mueve a In review».
+Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve
+la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más
+que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al
+tablero y muévela a Ready», o «corre las validaciones, pushea, abre el PR con este
+título y cuerpo, y mueve a In review».
 
-El hilo principal conserva lo que exige contexto del código: analizar, planificar, implementar y **redactar** el cuerpo de la issue, el del PR y los comentarios de cierre.
+El hilo principal conserva lo que exige contexto del código: analizar, planificar,
+implementar y **redactar** el cuerpo de la issue, el del PR y los comentarios de cierre.
 
 **Invariantes** (aplican también al hilo principal):
 - Antes de analizar o planificar una issue, la rama activa debe ser `develop`. Si no, avisar y parar.
 - Nunca trabajar directamente en `develop` ni en `main`: rama `feature/<slug>` o `fix/<slug>`.
 - Antes de abrir PR: `pnpm test`, `pnpm lint` y `pnpm build`. Si algo falla, arreglarlo. Nunca `--no-verify`.
-- **El salto de versión de un release (patch / minor / major) lo aprueba siempre el usuario.** Proponerlo con los commits que entran y su justificación, y esperar respuesta antes de tocar nada.
-
-El análisis y la planificación deben tener siempre en cuenta: `CLAUDE.md`, `docs/finanzas-spec.md` y el prototipo `docs/finanzas-app.jsx`.
+- Una issue mergeada a `develop` **no se autocierra** (`Closes #N` solo actúa al
+  aterrizar en `main`): cerrarla a mano y moverla a Done.
+- **El salto de versión de un release (patch / minor / major) lo aprueba siempre el usuario.**
+  Proponerlo con los commits que entran y su justificación, y esperar respuesta antes de tocar nada.
