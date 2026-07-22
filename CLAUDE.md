@@ -28,6 +28,13 @@ pensadas y descartadas, con su razonamiento).
 - Lucide React (iconos) · next-themes · Serwist (PWA) · web-push · Playwright (scrapers)
 - El middleware vive en `proxy.ts` en la raíz (Next 16 renombró `middleware`)
 
+**Next 16 no es el Next que el modelo cree conocer**: trae breaking changes en APIs,
+convenciones y estructura de ficheros respecto a versiones anteriores. Ante cualquier
+duda sobre el framework, consultar la documentación versionada que viene dentro del
+paquete —`node_modules/next/dist/docs/`— antes de escribir código, y hacer caso a los
+avisos de deprecación. Esa doc es la de esta versión exacta; el conocimiento previo,
+no. (Complementariamente existe la skill `next-best-practices`.)
+
 ## Convenciones críticas
 - `overflow: clip` en el contenedor raíz (nunca `overflow: hidden` — rompe sticky)
 - Nunca `transform` en contenedores con hijos `position: fixed`
