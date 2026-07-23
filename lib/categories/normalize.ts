@@ -99,6 +99,9 @@ const ROOT_STOPLIST: ReadonlySet<string> = new Set([
   'casa', 'can', 'cal', 'centro', 'centre', 'club', 'grupo', 'group',
   'nueva', 'nuevo', 'gran', 'help', 'estudios', 'servicio', 'servicios',
   'plaza', 'placa', 'avenida', 'avda', 'calle', 'carrer', 'sant', 'santa', 'san',
+  // Determinantes que encabezan el nombre comercial (`MY SCHOOL ENGLISH CENTRE`):
+  // quien identifica al comercio es el token siguiente.
+  'my', 'mi', 'the', 'una', 'uno',
 ])
 
 function stripDiacritics(value: string): string {

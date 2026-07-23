@@ -141,6 +141,8 @@ describe('descriptionKeyRoot', () => {
     expect(descriptionKeyRoot('centro comercial gavamar')).toBeNull()
     expect(descriptionKeyRoot('casa pepe')).toBeNull()
     expect(descriptionKeyRoot('sant boi comerç')).toBeNull()
+    // Determinante del nombre comercial, no el comercio (`MY SCHOOL ENGLISH…`).
+    expect(descriptionKeyRoot('my school english centre')).toBeNull()
   })
 
   it('conserva los nombres de tipo, que sí predicen categoría', () => {
