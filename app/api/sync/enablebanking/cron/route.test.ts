@@ -28,6 +28,7 @@ const HOUSEHOLD_A = '00000000-0000-0000-0000-0000000000a1'
 const HOUSEHOLD_B = '00000000-0000-0000-0000-0000000000b1'
 const ACCOUNT_A = '00000000-0000-0000-0000-000000000aaa'
 const ACCOUNT_B = '00000000-0000-0000-0000-000000000bbb'
+const ACCOUNT_C = '00000000-0000-0000-0000-000000000ccc'
 
 type AccountRow = {
   id: string
@@ -48,11 +49,22 @@ type RuleRow = {
   category_id: string
 }
 
+type LearnedRow = {
+  key: string
+  level: string
+  category_id: string
+  n: number
+  confidence: number
+}
+
 type MockOpts = {
   accounts?: AccountRow[]
   accountsError?: unknown
   rules?: RuleRow[]
   rulesError?: unknown
+  /** Filas de `get_learned_categories` por hogar (#359). */
+  learned?: Record<string, LearnedRow[]>
+  learnedError?: unknown
   txUpsert?: { error?: unknown }
 }
 
@@ -106,6 +118,9 @@ function buildMockDb(opts: MockOpts = {}) {
     },
   }
 
+  /** `p_household_id` de cada llamada a get_learned_categories, en orden (#359). */
+  const learnedCalls: string[] = []
+
   const db = {
     from: vi.fn((table: string) => {
       if (table === 'accounts') return accountsBuilder()
@@ -113,9 +128,17 @@ function buildMockDb(opts: MockOpts = {}) {
       if (table === 'transactions') return txBuilder
       throw new Error(`Unmocked table: ${table}`)
     }),
+    rpc: vi.fn((name: string, params: { p_household_id: string }) => {
+      if (name !== 'get_learned_categories') throw new Error(`Unmocked rpc: ${name}`)
+      learnedCalls.push(params.p_household_id)
+      return Promise.resolve({
+        data: opts.learnedError ? null : (opts.learned?.[params.p_household_id] ?? []),
+        error: opts.learnedError ?? null,
+      })
+    }),
   }
 
-  return { db, upsertSpy, updates }
+  return { db, upsertSpy, updates, learnedCalls }
 }
 
 function useDb(opts: MockOpts = {}) {
@@ -258,6 +281,8 @@ describe('POST /api/sync/enablebanking/cron — barrido', () => {
         category: null,
         source: 'enablebanking',
         external_id: 'ref-1',
+        description_key: 'patron',
+        description_key_root: null,
       },
     ])
   })
@@ -281,6 +306,46 @@ describe('POST /api/sync/enablebanking/cron — barrido', () => {
       (callAt(upsertSpy, call)[0] as Array<{ category: string | null }>)[0]?.category
     expect(categoryOf(0)).toBe('shopping')
     expect(categoryOf(1)).toBe('health')
+  })
+
+  it('aplica a cada cuenta lo aprendido en SU hogar (#359)', async () => {
+    const { upsertSpy } = useDb({
+      accounts: [
+        account(),
+        account({ id: ACCOUNT_B, user_id: USER_B, household_id: HOUSEHOLD_B }),
+      ],
+      learned: {
+        [HOUSEHOLD_A]: [
+          { key: 'patron', level: 'exact', category_id: 'shopping', n: 3, confidence: 1 },
+        ],
+        [HOUSEHOLD_B]: [
+          { key: 'patron', level: 'exact', category_id: 'health', n: 3, confidence: 1 },
+        ],
+      },
+    })
+    vi.mocked(getAccountTransactions).mockResolvedValue([ebTx()])
+
+    await callRoute()
+
+    const categoryOf = (call: number) =>
+      (callAt(upsertSpy, call)[0] as Array<{ category: string | null }>)[0]?.category
+    expect(categoryOf(0)).toBe('shopping')
+    expect(categoryOf(1)).toBe('health')
+  })
+
+  it('pide las reglas aprendidas una sola vez por hogar, no por cuenta (#359)', async () => {
+    const { learnedCalls } = useDb({
+      accounts: [
+        account(),
+        account({ id: ACCOUNT_B }),
+        account({ id: ACCOUNT_C, user_id: USER_B, household_id: HOUSEHOLD_B }),
+      ],
+    })
+    vi.mocked(getAccountTransactions).mockResolvedValue([ebTx()])
+
+    await callRoute()
+
+    expect(learnedCalls).toEqual([HOUSEHOLD_A, HOUSEHOLD_B])
   })
 })
 

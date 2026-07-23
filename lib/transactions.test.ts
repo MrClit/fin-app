@@ -47,6 +47,8 @@ function tx(over: Partial<TransactionWithAccount> = {}): TransactionWithAccount 
     external_id: null,
     notes: null,
     is_read: true,
+    description_key: null,
+    description_key_root: null,
     created_at: '2026-05-21T12:00:00.000Z',
     account: { id: 'acc-1', name: 'Cuenta', color: null },
     ...over,

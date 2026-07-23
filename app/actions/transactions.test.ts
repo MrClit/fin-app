@@ -67,6 +67,9 @@ describe('createTransaction', () => {
       description: 'Compra',
       date: '2026-05-18',
       category_manual: 'groceries',
+      // «Compra» es sólo trámite: no deja clave de comercio (#359).
+      description_key: null,
+      description_key_root: null,
       source: 'manual',
       is_read: true,
     })

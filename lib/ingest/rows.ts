@@ -1,5 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { TablesInsert } from '@/lib/supabase/database.types'
+import { descriptionKeys } from '@/lib/categories/normalize'
 import type { IngestDb, IngestSource, NormalizedTx } from './types'
 
 /**
@@ -24,12 +25,19 @@ export type TxRowContext = {
  * false (nace "no leído") y, en el camino que sí actualiza las filas existentes
  * (`ignoreDuplicates: false`), no emitirla evita que un re-sync reescriba el
  * estado de lectura de un movimiento ya leído.
+ *
+ * Las claves de comercio (#359) se derivan aquí y no en cada conector: éste es el
+ * cuello de botella único por el que pasan los tres scrapers y Enable Banking, así
+ * que basta con calcularlas una vez para que todo lo que entra en la app quede
+ * agrupable. Se calculan siempre desde `description`, nunca desde `merchant` —ver
+ * `learnedProvider` en `lib/categories/categorizer.ts`—.
  */
 export function toTransactionRow(
   ctx: TxRowContext,
   tx: NormalizedTx,
   category: string | null
 ): TablesInsert<'transactions'> {
+  const { key, root } = descriptionKeys(tx.description)
   return {
     user_id: ctx.userId,
     household_id: ctx.householdId,
@@ -40,6 +48,8 @@ export function toTransactionRow(
     category,
     source: ctx.source,
     external_id: tx.externalId,
+    description_key: key,
+    description_key_root: root,
   }
 }
 

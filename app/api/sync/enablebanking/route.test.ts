@@ -39,10 +39,21 @@ type AccountRow = {
   last_synced: string | null
 }
 
+type LearnedRow = {
+  key: string
+  level: string
+  category_id: string
+  n: number
+  confidence: number
+}
+
 type MockOpts = {
   accounts?: AccountRow[]
   accountsError?: unknown
   rules?: Array<{ pattern: string; field: string; category_id: string }>
+  /** Filas de `get_learned_categories` (#359). */
+  learned?: LearnedRow[]
+  learnedError?: unknown
   txUpsert?: { error?: unknown }
 }
 
@@ -100,6 +111,8 @@ function buildMockDb(opts: MockOpts = {}) {
     },
   }
 
+  const rpcSpy = vi.fn()
+
   const db = {
     from: vi.fn((table: string) => {
       if (table === 'accounts') return accountsBuilder()
@@ -107,9 +120,17 @@ function buildMockDb(opts: MockOpts = {}) {
       if (table === 'transactions') return txBuilder
       throw new Error(`Unmocked table: ${table}`)
     }),
+    rpc: vi.fn((name: string, params: unknown) => {
+      rpcSpy(name, params)
+      if (name !== 'get_learned_categories') throw new Error(`Unmocked rpc: ${name}`)
+      return Promise.resolve({
+        data: opts.learnedError ? null : (opts.learned ?? []),
+        error: opts.learnedError ?? null,
+      })
+    }),
   }
 
-  return { db, upsertSpy, updateSpy, accountFilters }
+  return { db, upsertSpy, updateSpy, accountFilters, rpcSpy }
 }
 
 function mockSession({ user = { id: USER_ID }, householdId = HOUSEHOLD_ID } = {}) {
@@ -279,6 +300,10 @@ describe('POST /api/sync/enablebanking — ingesta', () => {
         category: null,
         source: 'enablebanking',
         external_id: 'ref-1',
+        // Claves de comercio (#359): «Pago sin patrón» pierde el trámite de cabecera
+        // y se queda en un solo token, que no da segundo nivel.
+        description_key: 'patron',
+        description_key_root: null,
       },
     ])
   })
@@ -294,6 +319,42 @@ describe('POST /api/sync/enablebanking — ingesta', () => {
 
     await callRoute()
 
+    const [rows] = callAt(upsertSpy, 0)
+    expect((rows as Array<{ category: string | null }>)[0]?.category).toBe('groceries')
+  })
+
+  it('categoriza con lo aprendido de las correcciones del hogar (#359)', async () => {
+    const { upsertSpy, rpcSpy } = useDb({
+      accounts: [account()],
+      learned: [{ key: 'mercadona', level: 'root', category_id: 'restaurant', n: 5, confidence: 1 }],
+    })
+    vi.mocked(getAccountTransactions).mockResolvedValue([
+      // Sin nada aprendido, AUTO_RULES lo mandaría a groceries.
+      ebTx({ remittance_information: ['COMPRA MERCADONA GAVA 4021'] }),
+    ])
+
+    await callRoute()
+
+    expect(rpcSpy).toHaveBeenCalledWith('get_learned_categories', {
+      p_household_id: HOUSEHOLD_ID,
+    })
+    const [rows] = callAt(upsertSpy, 0)
+    expect((rows as Array<{ category: string | null }>)[0]?.category).toBe('restaurant')
+  })
+
+  it('si el RPC de reglas aprendidas falla, la sync sigue adelante (#359)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { upsertSpy } = useDb({
+      accounts: [account()],
+      learnedError: { message: 'rpc down' },
+    })
+    vi.mocked(getAccountTransactions).mockResolvedValue([
+      ebTx({ remittance_information: ['COMPRA MERCADONA 4021'] }),
+    ])
+
+    const res = await callRoute()
+
+    expect(res.status).toBe(200)
     const [rows] = callAt(upsertSpy, 0)
     expect((rows as Array<{ category: string | null }>)[0]?.category).toBe('groceries')
   })

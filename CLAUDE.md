@@ -73,8 +73,17 @@ coma decimal). No reimplementarla ni formatear a mano.
 - **Webhooks públicos**: `proxy.ts` exime del chequeo de sesión a `/api/edenred`,
   `/api/sabadell-*`, `/api/scrapers`, `/api/sync/enablebanking/cron` y
   `/api/error-log`; se autentican por Bearer (`lib/http/bearer.ts`).
-- **Categorización automática**: reglas por regex en `lib/categories/rules.ts`,
-  evaluadas en orden — las específicas primero, los catch-all al final.
+- **Categorización automática**: cascada de proveedores en `lib/categories/categorizer.ts`
+  (#359) — reglas explícitas del hogar (`categorization_rules`) → reglas **aprendidas**
+  de las correcciones del usuario → `AUTO_RULES` (regex en `lib/categories/rules.ts`,
+  evaluadas en orden: las específicas primero, los catch-all al final). Gana el primero
+  que acierta; los peldaños futuros entran como proveedores nuevos, no reescribiendo.
+- **Aprendizaje**: no hay tabla de reglas aprendidas ni modelo — la fuente son los
+  propios movimientos con `category_manual`, agregados en vivo por el RPC
+  `get_learned_categories` (voto por mayoría por clave de comercio, ponderado por
+  recencia). La clave la calcula `lib/categories/normalize.ts` y se persiste en
+  `transactions.description_key`/`description_key_root`. Dos invariantes: sólo se
+  aprende de `category_manual`, y nada automático escribe jamás en `category_manual`.
 
 ## Base de datos
 - **RLS por hogar**: las políticas filtran por `household_id IN (SELECT current_household_ids())`.

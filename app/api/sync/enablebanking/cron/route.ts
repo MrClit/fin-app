@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import {
+  defaultCategorizer,
+  loadLearnedIndex,
+  EMPTY_LEARNED_INDEX,
+  type DbCategorizationRule,
+} from '@/lib/categories'
 import { getConsentStatus } from '@/lib/accounts'
 import { syncEbAccount } from '@/lib/ingest'
 import { sendPushToUser, selectAccountsToNotify, type NotifiableAccount } from '@/lib/push'
@@ -76,6 +81,17 @@ export async function POST(req: Request) {
     else rulesByHousehold.set(household_id, [rule])
   }
 
+  // Reglas aprendidas (#359). A diferencia de las explícitas, el RPC agrega por
+  // hogar, así que se pide una vez por hogar y en paralelo: son unos pocos hogares
+  // y la alternativa sería recalcular el voto en cada cuenta.
+  const learnedByHousehold = new Map(
+    await Promise.all(
+      householdIds.map(
+        async id => [id, await loadLearnedIndex(db, id)] as const
+      )
+    )
+  )
+
   let totalSynced = 0
   const failed: { account_id: string; error: string }[] = []
 
@@ -86,11 +102,12 @@ export async function POST(req: Request) {
       householdId: account.household_id as string,
     }
     const dbRules = rulesByHousehold.get(owner.householdId) ?? []
+    const learned = learnedByHousehold.get(owner.householdId) ?? EMPTY_LEARNED_INDEX
 
     const result = await syncEbAccount(db, {
       account,
       owner,
-      categorize: tx => categorizeWithRules(dbRules, tx.description, tx.merchant),
+      categorize: defaultCategorizer({ dbRules, learned }),
       tag: TAG,
     })
 

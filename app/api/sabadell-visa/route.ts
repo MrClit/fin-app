@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { defaultCategorizer, loadLearnedIndex, type DbCategorizationRule } from '@/lib/categories'
 import { ingest, ingestErrorResponse, webhookGuard, type Connector } from '@/lib/ingest'
 import {
   sabadellVisaPayloadSchema,
@@ -37,17 +37,22 @@ const connector: Connector<SabadellVisaPayload> = {
   }),
   // Las tarjetas de crédito son compras en comercios variados, así que se
   // auto-categoriza por descripción (mismo criterio que la sync de Enable
-  // Banking) en vez de con un valor fijo como Edenred. Si la consulta de reglas
-  // falla se cae a `AUTO_RULES`, que es el comportamiento deseado.
+  // Banking) en vez de con un valor fijo como Edenred. Si alguna de las dos
+  // consultas falla se cae al peldaño siguiente de la cascada, que es el
+  // comportamiento deseado.
   prepareCategorizer: async (db, householdId) => {
-    const { data } = await db
-      .from('categorization_rules')
-      .select('pattern, field, category_id')
-      .eq('household_id', householdId)
-      .eq('is_active', true)
-      .order('priority', { ascending: false })
-    const dbRules: DbCategorizationRule[] = data ?? []
-    return tx => categorizeWithRules(dbRules, tx.description)
+    const [rulesResult, learned] = await Promise.all([
+      db
+        .from('categorization_rules')
+        .select('pattern, field, category_id')
+        .eq('household_id', householdId)
+        .eq('is_active', true)
+        .order('priority', { ascending: false }),
+      loadLearnedIndex(db, householdId),
+    ])
+    const dbRules: DbCategorizationRule[] = rulesResult.data ?? []
+    const categorize = defaultCategorizer({ dbRules, learned })
+    return tx => categorize({ description: tx.description })
   },
 }
 
