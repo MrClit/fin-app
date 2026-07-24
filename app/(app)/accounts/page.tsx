@@ -107,8 +107,10 @@ async function AccountsContent({
       ) : (
         // Lista a ancho completo: -mx-4 cancela el padding lateral del wrapper para
         // que las filas lleguen a los bordes. Cada card lleva su border-y (solo
-        // líneas arriba/abajo, sin laterales ni esquinas) y el gap las separa.
-        <div className="-mx-4 flex flex-col gap-3">
+        // líneas arriba/abajo, sin laterales ni esquinas) y el gap las separa. En
+        // md+ la columna está centrada con márgenes: se recupera el margen (md:mx-0)
+        // y cada card pasa a acotada (rounded + borde completo, en AccountCard).
+        <div className="-mx-4 flex flex-col gap-3 md:mx-0">
           {accounts.map((account) => (
             <AccountCard key={account.id} account={account} />
           ))}
