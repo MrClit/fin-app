@@ -77,6 +77,18 @@ El patrón de cards full-width (`-mx-4` + `border-y`, sin `rounded`) recupera `r
 y borde completo en `md+`: el full-bleed solo tiene sentido cuando la card toca los
 bordes del viewport.
 
+**Ancho de las pantallas de rejilla (#366).** La columna de lectura de 672px no da para
+partirse en dos: los paneles quedarían en ~330px, menos que los 420px del móvil, y las
+gráficas *encogerían* al crecer el viewport. Por eso las pantallas con rejilla —y sólo
+ellas— ensanchan su columna a 960px desde `lg`. El mecanismo separa dos variables que
+antes eran una: `--content-read` (la columna de lectura, a la que sigue anclado el
+chrome `fixed`: un toast no crece porque la pantalla de turno sea de rejilla) y
+`--content-max` (el ancho real de la columna, que por defecto es la de lectura). La
+pantalla se declara ancha poniéndose `data-content="wide"`, que el shell recoge con
+`:has()`. **Descartado:** subir `--content-max` globalmente en `lg` (Movimientos y
+Cuentas deben quedarse en columna de lectura) y que el shell decidiera por ruta —es la
+pantalla quien sabe si lleva rejilla, no el layout—.
+
 **Descartado (esta fase):** master-detail en Movimientos (lista + detalle en panel).
 Es el cambio de mayor coste/riesgo (rompe el modelo de navegación por rutas y los
 overlays de fila) y la columna centrada funciona. Queda como evolución futura si el

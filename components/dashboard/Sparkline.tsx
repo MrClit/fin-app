@@ -35,11 +35,14 @@ export function Sparkline({ data }: SparklineProps) {
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#sparkGrad)" />
+      {/* `preserveAspectRatio="none"` estira el viewBox en X: sin esto el trazo se
+          deforma al ensancharse la card (hasta 2× en la columna de lectura). */}
       <path
         d={linePath}
         fill="none"
         stroke="white"
         strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

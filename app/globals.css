@@ -162,12 +162,15 @@
 
 /* Geometría del app-shell (#363). No van en `@theme` porque no son tokens de tema:
    son medidas de layout que cambian por breakpoint.
-   `--content-offset` es el ancho del rail de navegación (#364); `--content-max`, el
-   ancho de la columna de contenido. Los `fixed` que deben alinearse con la columna en
-   vez de con el viewport (BottomNav, Toast) las consumen vía `.content-anchored`. */
+   `--content-offset` es el ancho del rail de navegación (#364).
+   `--content-read` es la columna de lectura, y `--content-max` el ancho real de la
+   columna de contenido: por defecto son lo mismo, y sólo divergen en las pantallas de
+   rejilla (#366). Los `fixed` que deben alinearse con la columna en vez de con el
+   viewport (BottomNav, Toast) se anclan a la de lectura vía `.content-anchored`. */
 :root {
   --content-offset: 0px;
-  --content-max: 26.25rem;   /* 420px — el ancho móvil de siempre */
+  --content-read: 26.25rem;  /* 420px — el ancho móvil de siempre */
+  --content-max: var(--content-read);
 }
 
 /* El rail solo existe dentro del app-shell, así que sus escalones se declaran ahí y
@@ -179,10 +182,21 @@
 
 @media (width >= 48rem) {   /* md — único sitio donde los breakpoints se escriben a mano */
   :root {
-    --content-max: 42rem;    /* 672px — columna de lectura */
+    --content-read: 42rem;   /* 672px — columna de lectura */
   }
   .app-shell {
     --content-offset: 5rem;  /* 80px — rail de iconos */
+  }
+}
+
+@media (width >= 64rem) {   /* lg */
+  /* Pantallas de rejilla multi-panel (#366): partir la columna de lectura en dos daría
+     paneles más estrechos que el móvil, así que la columna se ensancha. Lo pide la
+     propia pantalla marcándose con `data-content="wide"` —es quien sabe que lleva
+     rejilla—; el `:has()` va sobre `.app-shell` y no sobre `:root` por lo mismo que el
+     offset: fuera del shell esta geometría no aplica. */
+  .app-shell:has([data-content='wide']) {
+    --content-max: 60rem;    /* 960px */
   }
 }
 
@@ -194,11 +208,13 @@
 
 /* Ancla un `fixed` al área de contenido en lugar de al viewport. El `transform`
    está en el propio elemento fijo, no en un ancestro: lo que prohíbe la convención
-   es transformar un *contenedor* de hijos `position: fixed`. */
+   es transformar un *contenedor* de hijos `position: fixed`.
+   Se ancla a `--content-read`, no a `--content-max`: el chrome no debe ensancharse
+   porque la pantalla de turno sea de rejilla. */
 @utility content-anchored {
   left: calc(50% + var(--content-offset) / 2);
   width: 100%;
-  max-width: var(--content-max);
+  max-width: var(--content-read);
   transform: translateX(-50%);
 }
 
