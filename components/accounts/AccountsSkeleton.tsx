@@ -6,9 +6,9 @@ export function AccountsSkeleton() {
       {/* Título */}
       <Skeleton className="mb-2 h-7 w-28" />
       {/* Filas de cuenta a ancho completo (coincide con la lista real) */}
-      <div className="-mx-4 flex flex-col gap-3">
+      <div className="-mx-4 flex flex-col gap-3 md:mx-0">
         {[0, 1, 2].map(i => (
-          <Skeleton key={i} className="h-47.5 rounded-none border-y border-border" />
+          <Skeleton key={i} className="h-47.5 rounded-none border-y border-border md:rounded-2xl md:border" />
         ))}
       </div>
       {/* Botón conectar banco */}
