@@ -3,9 +3,11 @@
 import { actionError, withActionAuth } from '@/lib/actions/with-auth'
 import type { ActionResult } from '@/lib/actions/with-auth'
 import { descriptionKeys } from '@/lib/categories/normalize'
+import { getRequestClient } from '@/lib/auth/session'
+import { MIN_CONFIDENCE } from '@/lib/categories'
 import { unwrap } from '@/lib/http/route-error'
 import { narrowUnions } from '@/lib/supabase/rows'
-import { uuidSchema } from '@/lib/schemas/common'
+import { categoryIdSchema, uuidSchema } from '@/lib/schemas/common'
 import { toIssues } from '@/lib/schemas/issues'
 import {
   createTransactionSchema,
@@ -100,6 +102,177 @@ export const updateTransaction = withActionAuth(
 
     // `.single()` sin error garantiza fila; el `| null` del tipado no se da aquí.
     return { data: narrowUnions(row!) as Transaction }
+  }
+)
+
+/**
+ * Aplicación retroactiva de una corrección (issue #359).
+ *
+ * Cuando el usuario recategoriza un movimiento, el resto de movimientos del mismo
+ * comercio siguen como estaban. Estas dos acciones son las que permiten ofrecerle
+ * arreglarlos de un toque: la primera cuenta cuántos hay, la segunda los cambia.
+ *
+ * INVARIANTE: se escribe en `category` y sólo sobre filas con `category_manual IS
+ * NULL`. Una escritura automática —y esto lo es, aunque la dispare un gesto del
+ * usuario— jamás puede pisar una decisión humana anterior sobre OTRO movimiento.
+ * El `.is('category_manual', null)` de ambas consultas es ese invariante escrito
+ * en código.
+ */
+
+/** Alcance de la comparación: por qué columna y con qué valor se buscan los similares. */
+export type SimilarTransactions = {
+  count: number
+  /** Valor de la clave que agrupa (`mercadona` o `mercadona sant boi`). */
+  key: string
+  /** Qué columna casa: `root` agrupa el comercio en todas sus ciudades. */
+  level: 'exact' | 'root'
+  /** La clave en mayúsculas, para el mensaje de la UI. */
+  label: string
+}
+
+type SimilarScope = { column: 'description_key' | 'description_key_root'; value: string }
+
+/**
+ * Resuelve contra qué clave se buscan los similares de un movimiento.
+ *
+ * Se prefiere la raíz porque es donde está el valor —corregir un Mercadona
+ * arregla los de todas las ciudades—, **pero sólo si el histórico del hogar
+ * respalda que esa raíz significa esa categoría**. Sin esa comprobación, una
+ * única corrección atípica bastaba para ofrecer reescribir decenas de filas sin
+ * relación: sobre los datos reales del hogar, corregir un movimiento cuya raíz
+ * era el topónimo `prat` proponía cambiar 69 movimientos repartidos entre siete
+ * categorías, y un Mercadona marcado como Restaurante proponía cambiar 82.
+ *
+ * Es el mismo estándar de evidencia que aplica el aprendizaje
+ * (`MIN_CONFIDENCE`), y por el mismo motivo: una raíz que no predice categoría no
+ * debe arrastrar a nadie. Cuando la raíz no supera el listón se cae a la clave
+ * exacta, que sigue siendo útil y es inofensiva.
+ *
+ * `null` = descriptor sin señal, no hay nada que agrupar. Las claves se leen de la
+ * fila, no se recalculan del texto: son las que se indexaron al escribirlas.
+ */
+async function resolveSimilarScope(
+  supabase: Awaited<ReturnType<typeof getRequestClient>>,
+  householdId: string,
+  id: string,
+  categoryId: string
+): Promise<SimilarScope | null> {
+  const { data } = await supabase
+    .from('transactions')
+    .select('description_key, description_key_root')
+    .eq('id', id)
+    .eq('household_id', householdId)
+    .single()
+
+  if (!data) return null
+
+  const exact: SimilarScope | null = data.description_key
+    ? { column: 'description_key', value: data.description_key }
+    : null
+  const root = data.description_key_root
+  if (!root) return exact
+
+  // Voto de las correcciones humanas que ya existen bajo esa raíz. Incluye la
+  // recién hecha (esta acción corre después del update), así que el total nunca
+  // es cero y una raíz estrenada arranca con acuerdo 1,0 — que es lo que hace que
+  // el primer Mercadona corregido sí arregle todos los demás.
+  const { data: votes } = await supabase
+    .from('transactions')
+    .select('category_manual')
+    .eq('household_id', householdId)
+    .eq('description_key_root', root)
+    .not('category_manual', 'is', null)
+
+  const total = votes?.length ?? 0
+  const agree = votes?.filter(v => v.category_manual === categoryId).length ?? 0
+  const agreement = total === 0 ? 0 : agree / total
+
+  return agreement >= MIN_CONFIDENCE ? { column: 'description_key_root', value: root } : exact
+}
+
+/**
+ * Cuántos movimientos del hogar cambiarían si se aplicase `categoryId` a todo el
+ * comercio. Devuelve `count: 0` cuando no hay nada que ofrecer.
+ *
+ * Se excluyen los que ya tienen esa categoría: el número que se le enseña al
+ * usuario es el de filas que realmente van a cambiar, no el del comercio entero.
+ */
+export const countSimilarTransactions = withActionAuth(
+  'actions/transactions#countSimilarTransactions',
+  async (
+    { householdId, supabase },
+    id: string,
+    categoryId: string
+  ): Promise<ActionResult<SimilarTransactions>> => {
+    const parsedId = uuidSchema.safeParse(id)
+    if (!parsedId.success) return actionError('invalid_input', toIssues(parsedId.error))
+    const parsedCategory = categoryIdSchema.safeParse(categoryId)
+    if (!parsedCategory.success) return actionError('invalid_input', toIssues(parsedCategory.error))
+
+    const scope = await resolveSimilarScope(supabase, householdId, id, parsedCategory.data)
+    if (!scope) return { data: { count: 0, key: '', level: 'exact', label: '' } }
+
+    // `head: true` no trae filas, sólo el conteo (mismo patrón que
+    // `getUnreadCount`); `unwrap` se usa aquí por su throw, y el count se lee del
+    // resultado, que es donde lo deja PostgREST.
+    const res = await supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('household_id', householdId)
+      .eq(scope.column, scope.value)
+      .is('category_manual', null)
+      .neq('id', id)
+      .or(`category.is.null,category.neq.${parsedCategory.data}`)
+    unwrap(res, { op: 'count-similar', id })
+
+    return {
+      data: {
+        count: res.count ?? 0,
+        key: scope.value,
+        level: scope.column === 'description_key_root' ? 'root' : 'exact',
+        label: scope.value.toUpperCase(),
+      },
+    }
+  }
+)
+
+/**
+ * Aplica la categoría al resto de movimientos del mismo comercio.
+ *
+ * El alcance se vuelve a resolver en el servidor a partir del id, en vez de
+ * aceptar la clave que mande el cliente: así una Server Action —que es un
+ * endpoint público— no permite pedir «cámbiame todas las filas que casen con
+ * esto».
+ */
+export const applyCategoryToSimilar = withActionAuth(
+  'actions/transactions#applyCategoryToSimilar',
+  async (
+    { householdId, supabase },
+    id: string,
+    categoryId: string
+  ): Promise<ActionResult<{ updated: number }>> => {
+    const parsedId = uuidSchema.safeParse(id)
+    if (!parsedId.success) return actionError('invalid_input', toIssues(parsedId.error))
+    const parsedCategory = categoryIdSchema.safeParse(categoryId)
+    if (!parsedCategory.success) return actionError('invalid_input', toIssues(parsedCategory.error))
+
+    const scope = await resolveSimilarScope(supabase, householdId, id, parsedCategory.data)
+    if (!scope) return { data: { updated: 0 } }
+
+    const rows = unwrap(
+      await supabase
+        .from('transactions')
+        .update({ category: parsedCategory.data })
+        .eq('household_id', householdId)
+        .eq(scope.column, scope.value)
+        .is('category_manual', null)
+        .neq('id', id)
+        .or(`category.is.null,category.neq.${parsedCategory.data}`)
+        .select('id'),
+      { op: 'apply-similar', id }
+    )
+
+    return { data: { updated: rows?.length ?? 0 } }
   }
 )
 
