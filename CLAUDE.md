@@ -76,7 +76,15 @@ estricto: las clases base describen el móvil y las variantes se añaden encima.
   `xl`). El shell lo aplica como `padding-left` y `SideNav` como `width`. Los escalones
   se declaran en la clase `.app-shell`, **no en `:root`**: `/login` y `/~offline` viven
   fuera del shell y deben conservar el 0.
-- `--content-max`: ancho de la columna de contenido (420px en base, 672px desde `md`).
+- `--content-read`: la **columna de lectura** (420px en base, 672px desde `md`). Es a lo
+  que se ancla el chrome `fixed` vía `.content-anchored`.
+- `--content-max`: el ancho **real** de la columna de contenido. Por defecto es
+  `var(--content-read)`; sólo diverge en las pantallas de rejilla multi-panel (#366),
+  que se marcan a sí mismas con `data-content="wide"` en su div raíz y suben a 960px
+  desde `lg` —partir 672px en dos daría paneles más estrechos que el móvil—. El escalón
+  se declara con `.app-shell:has([data-content='wide'])`, en `.app-shell` y no en
+  `:root`. Al marcar una pantalla, marcar también su skeleton o la columna salta de
+  ancho al resolverse el Suspense.
 
 **Navegación** (#364): `BottomNav` en móvil (`md:hidden`) y `SideNav` desde `md` —rail
 de iconos que se expande a sidebar en `xl`, con los tokens `--sidebar-*`—. Excluyentes

@@ -18,8 +18,11 @@ export function DashboardBalanceCard({ balance, weeklyDelta, dailyBalances }: Da
   const deltaArrow   = isPositive ? '↑' : '↓'
 
   return (
+    // El full-bleed sólo tiene sentido cuando la card toca el borde del viewport: desde
+    // `md` vive dentro de la columna y recupera márgenes y esquinas (#366). El
+    // `overflow-clip` que ya recortaba las burbujas decorativas redondea con ellas.
     <div
-      className="-mx-4 overflow-clip relative"
+      className="-mx-4 overflow-clip relative md:mx-0 md:rounded-2xl"
       style={{
         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
       }}
