@@ -72,9 +72,16 @@ estricto: las clases base describen el móvil y las variantes se añaden encima.
 
 **Geometría del app-shell** (`app/(app)/layout.tsx`, #363) — dos CSS vars en
 `globals.css`, fuera de `@theme` porque cambian por breakpoint:
-- `--content-offset`: ancho del rail de navegación (0 en móvil). El shell lo aplica
-  como `padding-left`.
+- `--content-offset`: ancho del rail de navegación (0 en móvil, 80px en `md`, 240px en
+  `xl`). El shell lo aplica como `padding-left` y `SideNav` como `width`. Los escalones
+  se declaran en la clase `.app-shell`, **no en `:root`**: `/login` y `/~offline` viven
+  fuera del shell y deben conservar el 0.
 - `--content-max`: ancho de la columna de contenido (420px en base, 672px desde `md`).
+
+**Navegación** (#364): `BottomNav` en móvil (`md:hidden`) y `SideNav` desde `md` —rail
+de iconos que se expande a sidebar en `xl`, con los tokens `--sidebar-*`—. Excluyentes
+por breakpoint, con los 4 destinos compartidos en `components/nav-items.ts`. En `md+`
+el avatar y la campana viven en el rail y `AppHeader` se queda solo con el `StatusBanner`.
 
 Un `position: fixed` que deba alinearse con la columna en vez de con el viewport se
 ancla con la utility **`.content-anchored`** (`BottomNav`, `Toast`); nunca con

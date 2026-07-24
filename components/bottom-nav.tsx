@@ -2,17 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, List, Wallet, BarChart2 } from 'lucide-react'
 import { useUnread } from '@/components/transactions/UnreadProvider'
+import { NAV_ITEMS } from '@/components/nav-items'
 import { cn } from '@/lib/utils'
 
-const NAV_ITEMS = [
-  { href: '/',            label: 'Inicio',      Icon: Home },
-  { href: '/transactions', label: 'Movimientos', Icon: List },
-  { href: '/accounts',     label: 'Cuentas',     Icon: Wallet },
-  { href: '/analytics',    label: 'Análisis',    Icon: BarChart2 },
-] as const
-
+/**
+ * `alwaysShow`: la barra se ve en cualquier ruta y a cualquier ancho. Solo lo usa
+ * `/~offline`, que vive fuera del app-shell y donde esta barra es la única salida
+ * (allí no hay rail lateral). En el resto, la barra es la navegación de móvil y
+ * cede el sitio a `SideNav` a partir de `md` (#364).
+ */
 export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const pathname = usePathname()
   const { count: unreadCount } = useUnread()
@@ -20,8 +19,11 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
 
   return (
     <nav
-      className="fixed bottom-0 content-anchored z-100
-                 border-t border-border pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+      className={cn(
+        `fixed bottom-0 content-anchored z-100
+         border-t border-border pb-[max(env(safe-area-inset-bottom),1.5rem)]`,
+        !alwaysShow && 'md:hidden'
+      )}
       style={{ background: 'var(--app-nav-bg)', backdropFilter: 'blur(20px)' }}
     >
       <div className="flex pt-2.5">
