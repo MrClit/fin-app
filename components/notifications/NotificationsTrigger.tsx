@@ -107,7 +107,7 @@ export function NotificationsTrigger() {
       />
       <SheetContent
         side="bottom"
-        className="rounded-t-3xl pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+        className="rounded-t-3xl pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)] md:pt-4 md:pb-4"
       >
         <SheetHeader className="flex flex-row items-center gap-3 pt-3">
           <div className="grid size-10 place-items-center rounded-full bg-accent text-foreground">
@@ -119,7 +119,7 @@ export function NotificationsTrigger() {
           </div>
         </SheetHeader>
 
-        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto px-4 pb-2 pt-2">
+        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto px-4 pb-2 pt-2 md:max-h-[50dvh]">
           {loading && items === null && (
             <p className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
               <Loader2 className="size-4 animate-spin" strokeWidth={2} />
