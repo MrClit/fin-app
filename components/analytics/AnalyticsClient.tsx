@@ -103,11 +103,12 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
     // columna a 960px desde `lg` (#366, #368). En `lg` el análisis pasa a dos columnas
     // equilibradas: ahorro+KPIs y gráfica a la izquierda, desglose por categoría a la derecha.
     <div data-content="wide">
-      {/* Sticky header */}
+      {/* Sticky header. El offset de 3rem esquiva la barra móvil del AppHeader (avatar +
+          campana, `h-12`); en `md+` esa barra es `md:hidden` y el header de contenido queda
+          a ~0px, así que el sticky se ancla sólo bajo la safe-area o taparía las gráficas. */}
       <div
-        className="sticky z-30 border-b border-border px-4 pt-3 pb-3"
+        className="sticky top-[calc(env(safe-area-inset-top)+3rem)] z-30 border-b border-border px-4 pt-3 pb-3 md:top-[env(safe-area-inset-top)]"
         style={{
-          top: 'calc(env(safe-area-inset-top) + 3rem)',
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
         }}

@@ -14,11 +14,10 @@ export function AnalyticsSkeleton() {
     // Espeja el layout real (#368) —incluida la marca `data-content="wide"`— o la columna
     // salta de ancho y el contenido se recoloca al resolverse el Suspense.
     <div data-content="wide">
-      {/* Sticky header — mismo encuadre que AnalyticsClient */}
+      {/* Sticky header — mismo encuadre y offset responsive que AnalyticsClient */}
       <div
-        className="sticky z-30 border-b border-border px-4 pt-3 pb-3"
+        className="sticky top-[calc(env(safe-area-inset-top)+3rem)] z-30 border-b border-border px-4 pt-3 pb-3 md:top-[env(safe-area-inset-top)]"
         style={{
-          top: 'calc(env(safe-area-inset-top) + 3rem)',
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
         }}
