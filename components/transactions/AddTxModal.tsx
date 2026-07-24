@@ -121,11 +121,13 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
-        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
+        showCloseButton="md"
+        // `md:overflow-y-auto`: con la rejilla de categorías desplegada el diálogo
+        // puede rebasar el alto máximo; que scrollee dentro y no desborde.
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] md:pt-6 md:pb-6 md:overflow-y-auto"
       >
         <SheetTitle className="sr-only">Nuevo movimiento</SheetTitle>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
 
         {/* Toggle + importe */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>

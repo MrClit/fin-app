@@ -79,11 +79,11 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
-        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
+        showCloseButton="md"
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] md:pt-6 md:pb-6"
       >
         <SheetTitle className="sr-only">{renderTx.description}</SheetTitle>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
 
         {/* Importe prominente */}
         <div className="mb-6 text-center">

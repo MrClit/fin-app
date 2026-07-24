@@ -87,6 +87,18 @@ Un `position: fixed` que deba alinearse con la columna en vez de con el viewport
 ancla con la utility **`.content-anchored`** (`BottomNav`, `Toast`); nunca con
 `left-1/2 -translate-x-1/2 max-w-*` a mano, que asume que la app es el viewport.
 
+**Overlays** (#365): todos usan `SheetContent` con `side="bottom"`, que es **un único
+componente responsive** —hoja anclada abajo en móvil, diálogo centrado desde `md`—
+resuelto solo con variantes `md:` en la primitiva, sin `matchMedia` ni bifurcación JS.
+El diálogo se centra respecto al viewport (un modal no es chrome de la columna) con
+`inset-0 + m-auto + h-fit`, no con `left-1/2 -translate-x-1/2`: así el `transform`
+queda libre para la animación y no persiste en reposo. En el consumidor, lo que solo
+tiene sentido como hoja (handle de arrastre, esquinas superiores, padding de
+safe-area) se neutraliza con su variante `md:`, y el botón de cierre se pide con
+`showCloseButton="md"` —en móvil el afordance es el handle; en escritorio hace falta
+la X—. Nada de altura ni geometría en `style` inline: un estilo inline gana a la
+variante `md:` y rompe el patrón.
+
 **Invariantes CSS en clave multi-columna:**
 - El scroll es el **del documento**; no hay contenedor de scroll interno y no debe
   haberlo. Un `overflow-y: auto` en el área de contenido reanclaría todos los sticky

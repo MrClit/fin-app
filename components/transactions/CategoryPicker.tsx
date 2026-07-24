@@ -59,12 +59,14 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
-        className="mx-auto flex w-full max-w-105 flex-col rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
-        style={{ height: '82dvh' }}
+        showCloseButton="md"
+        // La altura de la hoja va como clase y no como `style` inline: un estilo
+        // inline ganaría a la variante `md:` de la primitiva, que en diálogo pasa a
+        // altura de contenido acotada (#365). El grid de dentro sigue scrolleando.
+        className="mx-auto flex w-full max-w-105 flex-col rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] h-[82dvh] md:pt-6 md:pb-6"
       >
         <SheetTitle className="sr-only">Cambiar categoría</SheetTitle>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
         <p className="text-base font-bold text-foreground mb-1">Cambiar categoría</p>
         <p className="text-xs leading-relaxed text-muted-foreground mb-4 wrap-break-word">{renderTx.description}</p>
 
