@@ -21,10 +21,13 @@ interface ToastProps {
  */
 export function Toast({ message, onRetry, action, onDismiss }: ToastProps) {
   return (
+    // El hueco de 84px es el de la bottom nav; en `md+` la navegación es lateral y
+    // el toast baja al borde. Como clase y no como `style` inline: un estilo inline
+    // ganaría a la variante `md:` (#364).
     <div
       role="alert"
-      className="fixed content-anchored z-120 px-4 animate-fade-in"
-      style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.5rem) + 84px)' }}
+      className="fixed content-anchored z-120 px-4 animate-fade-in
+                 bottom-[calc(max(env(safe-area-inset-bottom),1.5rem)+84px)] md:bottom-6"
     >
       <div className="flex items-center gap-3 rounded-2xl bg-foreground px-4 py-3 text-background shadow-lg">
         <span className="flex-1 text-sm font-medium">{message}</span>

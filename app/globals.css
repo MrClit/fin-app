@@ -10,7 +10,7 @@
                                      contenido de página: si un sticky translúcido
                                      la tapa, Safari muestrea el color equivocado
                                      y el tinte de los iconos se rompe.
-   z-100  BottomNav
+   z-100  BottomNav · SideNav
    z-110  Sheet (overlay + content)
    z-120  Toast                                                                  */
 
@@ -162,18 +162,33 @@
 
 /* Geometría del app-shell (#363). No van en `@theme` porque no son tokens de tema:
    son medidas de layout que cambian por breakpoint.
-   `--content-offset` es el ancho del rail de navegación —0 hasta que #364 lo
-   introduzca—; `--content-max`, el ancho de la columna de contenido. Los `fixed`
-   que deben alinearse con la columna en vez de con el viewport (BottomNav, Toast)
-   las consumen a través de `.content-anchored`. */
+   `--content-offset` es el ancho del rail de navegación (#364); `--content-max`, el
+   ancho de la columna de contenido. Los `fixed` que deben alinearse con la columna en
+   vez de con el viewport (BottomNav, Toast) las consumen vía `.content-anchored`. */
 :root {
   --content-offset: 0px;
   --content-max: 26.25rem;   /* 420px — el ancho móvil de siempre */
 }
 
-@media (width >= 48rem) {   /* md — único sitio donde el breakpoint se escribe a mano */
+/* El rail solo existe dentro del app-shell, así que sus escalones se declaran ahí y
+   no en `:root`: `/login` y `/~offline` viven fuera y deben conservar el offset 0
+   —si no, la bottom nav de la pantalla offline se descentraría medio rail. */
+.app-shell {
+  --content-offset: 0px;
+}
+
+@media (width >= 48rem) {   /* md — único sitio donde los breakpoints se escriben a mano */
   :root {
     --content-max: 42rem;    /* 672px — columna de lectura */
+  }
+  .app-shell {
+    --content-offset: 5rem;  /* 80px — rail de iconos */
+  }
+}
+
+@media (width >= 80rem) {   /* xl */
+  .app-shell {
+    --content-offset: 15rem; /* 240px — sidebar expandida */
   }
 }
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { AppHeader } from '@/components/app-header'
 import { BottomNav } from '@/components/bottom-nav'
+import { SideNav } from '@/components/side-nav'
 import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
 import { UnreadProvider } from '@/components/transactions/UnreadProvider'
 import { NotificationsProvider } from '@/components/notifications/NotificationsProvider'
@@ -38,9 +39,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // App-shell (#363): el ancho útil ya no lo fija el contenedor raíz sino el área
   // de contenido, vía `--content-max`. El padding izquierdo reserva el sitio del
-  // rail de navegación (`--content-offset`, 0 mientras no exista).
+  // rail de navegación; la clase `app-shell` es la que declara su ancho por
+  // breakpoint (`--content-offset`, 0 en móvil).
   return (
-    <div className="min-h-screen bg-background pl-(--content-offset)">
+    <div className="app-shell min-h-screen bg-background pl-(--content-offset)">
       <SyncStatusProvider>
         <UnreadProvider initialCount={unreadCount}>
           <NotificationsProvider initialCount={unreadNotifications}>
@@ -55,14 +57,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 fullName={fullName}
                 consentBanner={consentBanner}
               />
-              <main className="pb-22.5 animate-fade-in">
+              {/* El colchón inferior solo existe por la bottom nav; en `md+` la
+                  navegación es lateral y no hay nada que esquivar. */}
+              <main className="pb-22.5 animate-fade-in md:pb-8">
                 {children}
               </main>
             </div>
-            {/* Slot de navegación. Hoy sólo BottomNav, que es `fixed` y vive fuera
-                del flujo; el rail lateral de `md+` cuelga de aquí (#364), fuera del
-                template de analytics para que su slide no lo capture. */}
+            {/* Slot de navegación: los dos son `fixed` y viven fuera del flujo, y
+                son excluyentes por breakpoint. Cuelgan de aquí —fuera del template
+                de analytics— para que el slide del detalle de categoría no los
+                capture. */}
             <BottomNav />
+            <SideNav email={user.email ?? ''} avatarUrl={avatarUrl} fullName={fullName} />
           </NotificationsProvider>
         </UnreadProvider>
       </SyncStatusProvider>
