@@ -1,14 +1,21 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { deleteTransaction, updateTransaction } from '@/app/actions/transactions'
+import {
+  applyCategoryToSimilar,
+  countSimilarTransactions,
+  deleteTransaction,
+  updateTransaction,
+  type SimilarTransactions,
+} from '@/app/actions/transactions'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 import { useUnread } from '@/components/transactions/UnreadProvider'
+import { fmt } from '@/lib/formatting'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 export function useTxMutations(initial: TransactionWithAccount[]) {
   const [transactions, setTransactions] = useState(initial)
-  const { showToast } = useSyncStatus()
+  const { showToast, showActionToast } = useSyncStatus()
   const { increment, decrement } = useUnread()
 
   const addTx = useCallback((tx: TransactionWithAccount) => {
@@ -72,6 +79,43 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
     })()
   }, [showToast])
 
+  /**
+   * Aplica la categoría al resto de movimientos del mismo comercio (#359).
+   *
+   * El estado local se actualiza en espejo de lo que hace el servidor: sólo las
+   * filas sin `category_manual` —nunca se pisa una decisión del usuario— y sólo
+   * en la ranura `category`. El servidor vuelve a resolver la clave por su cuenta;
+   * `level`/`key` sólo sirven para saber a qué filas cargadas afecta.
+   */
+  const applyToSimilar = useCallback(
+    (id: string, category: CategoryId, similar: SimilarTransactions) => {
+      return (async function attempt() {
+        const matches = (t: TransactionWithAccount) =>
+          t.id !== id &&
+          !t.category_manual &&
+          t.category !== category &&
+          (similar.level === 'root'
+            ? t.description_key_root === similar.key
+            : t.description_key === similar.key)
+
+        let snapshot: TransactionWithAccount[] = []
+        setTransactions(prev => {
+          snapshot = prev
+          return prev.map(t => (matches(t) ? { ...t, category } : t))
+        })
+        try {
+          const res = await applyCategoryToSimilar(id, category)
+          if (res.error) throw new Error(res.error.code)
+        } catch (err) {
+          setTransactions(snapshot)
+          console.error('[useTxMutations.applyToSimilar] Error aplicando al comercio:', err)
+          showToast('No se pudieron cambiar los demás movimientos', () => { void attempt() })
+        }
+      })()
+    },
+    [showToast]
+  )
+
   const recategorize = useCallback((id: string, category: CategoryId) => {
     return (async function attempt() {
       let snapshot: TransactionWithAccount[] = []
@@ -88,9 +132,28 @@ export function useTxMutations(initial: TransactionWithAccount[]) {
         setTransactions(snapshot)
         console.error('[useTxMutations.recategorize] Error recategorizando:', err)
         showToast('No se pudo recategorizar el movimiento', () => { void attempt() })
+        return
+      }
+
+      // Oferta retroactiva. Va después del update y fuera de su try: un fallo
+      // contando similares no debe ensuciar una recategorización que sí funcionó,
+      // así que se traga en silencio (queda en consola).
+      try {
+        const res = await countSimilarTransactions(id, category)
+        const similar = res.data
+        if (!similar || similar.count === 0) return
+        showActionToast(
+          similar.count === 1
+            ? `Hay 1 movimiento más de ${similar.label}`
+            : `Hay ${fmt(similar.count)} movimientos más de ${similar.label}`,
+          'Cambiar todos',
+          () => { void applyToSimilar(id, category, similar) }
+        )
+      } catch (err) {
+        console.error('[useTxMutations.recategorize] Error contando similares:', err)
       }
     })()
-  }, [showToast])
+  }, [showToast, showActionToast, applyToSimilar])
 
   // Marca leído/no leído de forma optimista, ajustando además el contador del badge
   // (UnreadProvider). El contador solo se toca si el estado realmente cambia, para

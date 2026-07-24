@@ -5,15 +5,21 @@ import { X } from 'lucide-react'
 interface ToastProps {
   message: string
   onRetry?: () => void
+  /**
+   * Acción con etiqueta propia, para los avisos que no son un error (#359: «87
+   * movimientos más de MERCADONA — Cambiar todos»). Excluyente con `onRetry`:
+   * un toast ofrece una acción, no dos.
+   */
+  action?: { label: string; onPress: () => void }
   onDismiss: () => void
 }
 
 /**
- * Toast genérico y persistente para errores inesperados.
- * No se auto-cierra: el usuario lo descarta con la X o pulsando Reintentar.
- * El estado vive en SyncStatusProvider; este componente es presentacional.
+ * Toast genérico y persistente. No se auto-cierra: el usuario lo descarta con la
+ * X o pulsando la acción. El estado vive en SyncStatusProvider; este componente
+ * es presentacional.
  */
-export function Toast({ message, onRetry, onDismiss }: ToastProps) {
+export function Toast({ message, onRetry, action, onDismiss }: ToastProps) {
   return (
     <div
       role="alert"
@@ -22,16 +28,17 @@ export function Toast({ message, onRetry, onDismiss }: ToastProps) {
     >
       <div className="flex items-center gap-3 rounded-2xl bg-foreground px-4 py-3 text-background shadow-lg">
         <span className="flex-1 text-sm font-medium">{message}</span>
-        {onRetry && (
+        {(onRetry || action) && (
           <button
             type="button"
             onClick={() => {
-              onRetry()
+              if (action) action.onPress()
+              else onRetry?.()
               onDismiss()
             }}
             className="shrink-0 text-sm font-bold underline underline-offset-2"
           >
-            Reintentar
+            {action ? action.label : 'Reintentar'}
           </button>
         )}
         <button
