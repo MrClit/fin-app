@@ -160,6 +160,33 @@
   --sidebar-ring: #6366f1;
 }
 
+/* Geometría del app-shell (#363). No van en `@theme` porque no son tokens de tema:
+   son medidas de layout que cambian por breakpoint.
+   `--content-offset` es el ancho del rail de navegación —0 hasta que #364 lo
+   introduzca—; `--content-max`, el ancho de la columna de contenido. Los `fixed`
+   que deben alinearse con la columna en vez de con el viewport (BottomNav, Toast)
+   las consumen a través de `.content-anchored`. */
+:root {
+  --content-offset: 0px;
+  --content-max: 26.25rem;   /* 420px — el ancho móvil de siempre */
+}
+
+@media (width >= 48rem) {   /* md — único sitio donde el breakpoint se escribe a mano */
+  :root {
+    --content-max: 42rem;    /* 672px — columna de lectura */
+  }
+}
+
+/* Ancla un `fixed` al área de contenido en lugar de al viewport. El `transform`
+   está en el propio elemento fijo, no en un ancestro: lo que prohíbe la convención
+   es transformar un *contenedor* de hijos `position: fixed`. */
+@utility content-anchored {
+  left: calc(50% + var(--content-offset) / 2);
+  width: 100%;
+  max-width: var(--content-max);
+  transform: translateX(-50%);
+}
+
 @layer base {
   * {
     border-color: var(--border);

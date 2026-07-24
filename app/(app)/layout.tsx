@@ -36,20 +36,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // `getConsentBannerData` ya se queda sólo con las cuentas `enablebanking`.
   const consentBanner = getConsentBannerData(accounts)
 
+  // App-shell (#363): el ancho útil ya no lo fija el contenedor raíz sino el área
+  // de contenido, vía `--content-max`. El padding izquierdo reserva el sitio del
+  // rail de navegación (`--content-offset`, 0 mientras no exista).
   return (
-    <div className="relative mx-auto w-full max-w-105 min-h-screen overflow-clip bg-background">
+    <div className="min-h-screen bg-background pl-(--content-offset)">
       <SyncStatusProvider>
         <UnreadProvider initialCount={unreadCount}>
           <NotificationsProvider initialCount={unreadNotifications}>
-            <AppHeader
-              email={user.email ?? ''}
-              avatarUrl={avatarUrl}
-              fullName={fullName}
-              consentBanner={consentBanner}
-            />
-            <main className="pb-22.5 animate-fade-in">
-              {children}
-            </main>
+            {/* Área de contenido: la columna. `overflow-clip` —nunca `hidden`—
+                recorta el slide del detalle de categoría sin crear un contenedor
+                de scroll: el scroll sigue siendo el del documento y los sticky
+                siguen anclados al viewport. */}
+            <div className="relative mx-auto w-full max-w-(--content-max) overflow-clip">
+              <AppHeader
+                email={user.email ?? ''}
+                avatarUrl={avatarUrl}
+                fullName={fullName}
+                consentBanner={consentBanner}
+              />
+              <main className="pb-22.5 animate-fade-in">
+                {children}
+              </main>
+            </div>
+            {/* Slot de navegación. Hoy sólo BottomNav, que es `fixed` y vive fuera
+                del flujo; el rail lateral de `md+` cuelga de aquí (#364), fuera del
+                template de analytics para que su slide no lo capture. */}
             <BottomNav />
           </NotificationsProvider>
         </UnreadProvider>

@@ -20,7 +20,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-105 z-100
+      className="fixed bottom-0 content-anchored z-100
                  border-t border-border pb-[max(env(safe-area-inset-bottom),1.5rem)]"
       style={{ background: 'var(--app-nav-bg)', backdropFilter: 'blur(20px)' }}
     >
