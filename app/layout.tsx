@@ -16,8 +16,8 @@ export const viewport: Viewport = {
   ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Sin `maximumScale`/`userScalable`: bloquear el zoom incumple WCAG 1.4.4 y iOS
+  // moderno lo ignora de todos modos (#363).
   viewportFit: 'cover',
 }
 

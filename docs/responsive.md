@@ -3,9 +3,11 @@
 > Salida de la issue de análisis [#354](https://github.com/MrClit/fin-app/issues/354).
 > A diferencia del resto de `docs/` (material de arranque superado por el código), este
 > documento es **vigente**: registra las decisiones de adaptación a tablet/escritorio y
-> el porqué de lo descartado. Cuando la serie Responsive (#363–#369) esté completa, la
-> parte normativa (semántica de breakpoints, invariantes) vivirá en `CLAUDE.md` y este
-> documento quedará como registro de decisión.
+> el porqué de lo descartado.
+>
+> **La parte normativa ya vive en `CLAUDE.md`** (sección «Responsive y breakpoints»)
+> desde #363: semántica de breakpoints, geometría del app-shell e invariantes CSS. Ante
+> discrepancia manda `CLAUDE.md`; aquí queda el razonamiento y lo descartado.
 
 ## Objetivo
 

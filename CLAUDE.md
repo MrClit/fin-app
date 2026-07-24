@@ -36,7 +36,8 @@ avisos de deprecación. Esa doc es la de esta versión exacta; el conocimiento p
 no. (Complementariamente existe la skill `next-best-practices`.)
 
 ## Convenciones críticas
-- `overflow: clip` en el contenedor raíz (nunca `overflow: hidden` — rompe sticky)
+- `overflow: clip` en el área de contenido del app-shell (nunca `overflow: hidden` —
+  crea contenedor de scroll y rompe sticky)
 - Nunca `transform` en contenedores con hijos `position: fixed`
 - Transiciones de pantalla con `opacity`; slide con `transform` solo si ningún
   descendiente `position: fixed` está montado durante la animación y sin dejar
@@ -55,6 +56,40 @@ no. (Complementariamente existe la skill `next-best-practices`.)
 - `cn()` usa `extendTailwindMerge`: cualquier token `text-*` custom que sea un
   tamaño debe registrarse en el grupo `font-size` o twMerge lo tratará como color
   y lo eliminará al fusionar (#244)
+
+## Responsive y breakpoints
+Breakpoints por defecto de Tailwind, **sin añadir ninguno a `@theme`**. Mobile-first
+estricto: las clases base describen el móvil y las variantes se añaden encima.
+
+| Token | Ancho | Semántica |
+|---|---|---|
+| (base) | < 768px | **Móvil. Intacto e invariante**: cualquier cambio que se vea aquí es una regresión |
+| `md` | ≥ 768px | **Cambia el chrome**: nav, overlays, columna de lectura |
+| `lg` | ≥ 1024px | **Cambia el layout**: rejillas multi-panel |
+| `xl` | ≥ 1280px | **Solo ensancha** |
+
+`sm:` (640px) no tiene semántica asignada; no usarlo sin justificación.
+
+**Geometría del app-shell** (`app/(app)/layout.tsx`, #363) — dos CSS vars en
+`globals.css`, fuera de `@theme` porque cambian por breakpoint:
+- `--content-offset`: ancho del rail de navegación (0 en móvil). El shell lo aplica
+  como `padding-left`.
+- `--content-max`: ancho de la columna de contenido (420px en base, 672px desde `md`).
+
+Un `position: fixed` que deba alinearse con la columna en vez de con el viewport se
+ancla con la utility **`.content-anchored`** (`BottomNav`, `Toast`); nunca con
+`left-1/2 -translate-x-1/2 max-w-*` a mano, que asume que la app es el viewport.
+
+**Invariantes CSS en clave multi-columna:**
+- El scroll es el **del documento**; no hay contenedor de scroll interno y no debe
+  haberlo. Un `overflow-y: auto` en el área de contenido reanclaría todos los sticky
+  del proyecto y rompería `dvh` y las safe-areas. `overflow: clip` es seguro
+  precisamente porque no crea contenedor de scroll.
+- La navegación cuelga del app-shell, **fuera** del `template.tsx` de analytics: el
+  slide del detalle de categoría (#315) no debe convertirse en containing block de
+  ningún `fixed` de chrome.
+
+El razonamiento completo y lo descartado, en `docs/responsive.md` (#354).
 
 ## Formato de números
 Usar siempre `fmt()` de `lib/formatting.ts` (formato español: punto de miles,
