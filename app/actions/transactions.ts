@@ -2,6 +2,7 @@
 
 import { actionError, withActionAuth } from '@/lib/actions/with-auth'
 import type { ActionResult } from '@/lib/actions/with-auth'
+import { descriptionKeys } from '@/lib/categories/normalize'
 import { unwrap } from '@/lib/http/route-error'
 import { narrowUnions } from '@/lib/supabase/rows'
 import { uuidSchema } from '@/lib/schemas/common'
@@ -37,6 +38,12 @@ export const createTransaction = withActionAuth(
     if (!parsed.success) return actionError('invalid_input', toIssues(parsed.error))
     const { amount, description, date, category_manual, account_id } = parsed.data
 
+    // Claves de comercio (#359): el alta manual es la otra puerta de entrada a
+    // `transactions` además del núcleo de ingesta, y sus filas también deben poder
+    // agruparse y aprenderse. `updateTransaction` no las toca porque su esquema no
+    // deja editar la descripción.
+    const { key, root } = descriptionKeys(description)
+
     const tx = unwrap(
       await supabase
         .from('transactions')
@@ -48,6 +55,8 @@ export const createTransaction = withActionAuth(
           description,
           date,
           category_manual: category_manual ?? null,
+          description_key: key,
+          description_key_root: root,
           source: 'manual',
           // Un movimiento que crea el propio usuario no es una novedad que deba
           // notificarse: nace leído (issue #149). El DEFAULT false de la columna

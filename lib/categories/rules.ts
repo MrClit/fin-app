@@ -109,7 +109,7 @@ export type DbCategorizationRule = Pick<
 export const MAX_PATTERN_LENGTH = 200
 // Las descripciones bancarias son cortas; acotamos la cadena objetivo como cota
 // defensiva extra para el peor caso de backtracking.
-const MAX_TARGET_LENGTH = 500
+export const MAX_TARGET_LENGTH = 500
 
 export type PatternValidation = { ok: true } | { ok: false; reason: string }
 
@@ -176,33 +176,13 @@ export function validateRulePattern(pattern: string): PatternValidation {
   return { ok: true }
 }
 
+// Peldaño estático de la cascada. El resto de peldaños —reglas explícitas del
+// hogar y reglas aprendidas— se componen en `./categorizer` (#359); aquí sólo vive
+// el catálogo de regex y la validación de patrones.
 export function categorize(description: string, merchant?: string): CategoryId | null {
   for (const rule of AUTO_RULES) {
     const target = rule.field === 'merchant' ? (merchant ?? '') : description
     if (target && rule.pattern.test(target)) return rule.category
   }
   return null
-}
-
-export function categorizeWithRules(
-  dbRules: DbCategorizationRule[],
-  description: string,
-  merchant?: string
-): CategoryId | null {
-  for (const rule of dbRules) {
-    // Tolerante a fallo: una regla inválida o con riesgo de ReDoS se OMITE en vez
-    // de colgar el sync (ver issue #182). La validez/complejidad se comprueba con el
-    // mismo validador que usará la UI de gestión de reglas.
-    const validation = validateRulePattern(rule.pattern)
-    if (!validation.ok) {
-      console.warn(`[categorizeWithRules] regla omitida (${validation.reason})`)
-      continue
-    }
-    const rawTarget = rule.field === 'merchant' ? (merchant ?? '') : description
-    const target = rawTarget.slice(0, MAX_TARGET_LENGTH)
-    if (target && new RegExp(rule.pattern, 'i').test(target)) {
-      return rule.category_id as CategoryId
-    }
-  }
-  return categorize(description, merchant)
 }

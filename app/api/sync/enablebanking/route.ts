@@ -3,7 +3,7 @@ import { withAuth, unwrap } from '@/lib/http/with-auth'
 import { parseBody } from '@/lib/http/validation'
 import { syncEnablebankingSchema } from '@/lib/schemas/banking'
 import { createServiceClient } from '@/lib/supabase/service'
-import { categorizeWithRules, type DbCategorizationRule } from '@/lib/categories'
+import { defaultCategorizer, loadLearnedIndex, type DbCategorizationRule } from '@/lib/categories'
 import { syncEbAccount } from '@/lib/ingest'
 import { SYNC_COOLDOWN_MS } from '@/lib/sync'
 
@@ -31,7 +31,7 @@ export const POST = withAuth('/api/sync/enablebanking', async ({ user, household
     .gt('consent_expires_at', new Date().toISOString())
   if (accountId) accountsQuery = accountsQuery.eq('id', accountId)
 
-  const [accountsResult, rulesResult] = await Promise.all([
+  const [accountsResult, rulesResult, learned] = await Promise.all([
     accountsQuery,
     db
       .from('categorization_rules')
@@ -39,6 +39,9 @@ export const POST = withAuth('/api/sync/enablebanking', async ({ user, household
       .eq('household_id', householdId)
       .eq('is_active', true)
       .order('priority', { ascending: false }),
+    // Reglas aprendidas de las correcciones del hogar (#359). Un único punto
+    // asíncrono más, resuelto aquí junto al resto y no por movimiento.
+    loadLearnedIndex(db, householdId),
   ])
 
   const accounts = unwrap(accountsResult, { op: 'list-accounts' })
@@ -67,8 +70,7 @@ export const POST = withAuth('/api/sync/enablebanking', async ({ user, household
   // fila de cuenta (que es quien la conectó): en un hogar compartido, sincroniza
   // quien pulsa.
   const owner = { userId: user.id, householdId }
-  const categorize = (tx: { description: string; merchant?: string }) =>
-    categorizeWithRules(dbRules, tx.description, tx.merchant)
+  const categorize = defaultCategorizer({ dbRules, learned })
 
   let totalSynced = 0
 

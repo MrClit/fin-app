@@ -44,6 +44,17 @@ export type FakeResult = { data?: unknown; error?: unknown; count?: number }
 export function createFakeSupabase(responder: (query: FakeQuery) => FakeResult) {
   const queries: FakeQuery[] = []
 
+  /**
+   * Los RPC se registran como una query más, con `table` = `rpc:<nombre>`: así el
+   * responder los discrimina igual que a las tablas y un test que no le interese
+   * cae en su rama por defecto (#359).
+   */
+  const rpc = (name: string, params?: unknown) => {
+    const query: FakeQuery = { table: `rpc:${name}`, calls: [{ method: 'rpc', args: [name, params] }] }
+    queries.push(query)
+    return Promise.resolve({ data: null, error: null, ...responder(query) })
+  }
+
   const from = (table: string) => {
     const query: FakeQuery = { table, calls: [] }
     queries.push(query)
@@ -69,5 +80,5 @@ export function createFakeSupabase(responder: (query: FakeQuery) => FakeResult) 
     return builder
   }
 
-  return { supabase: { from } as never, queries }
+  return { supabase: { from, rpc } as never, queries }
 }

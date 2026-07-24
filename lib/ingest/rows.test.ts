@@ -46,7 +46,21 @@ describe('toTransactionRow', () => {
       category: 'groceries',
       source: 'scraper',
       external_id: 'ext-1',
+      // «Compra» es sólo trámite: no deja clave de comercio (#359).
+      description_key: null,
+      description_key_root: null,
     })
+  })
+
+  it('deriva las claves de comercio de la descripción (#359)', () => {
+    const row = toTransactionRow(
+      { ...CTX, source: 'scraper' },
+      { ...tx(), description: 'COMPRA TARJ. 4106 MERCADONA (SANT BOI) 12/03' },
+      'groceries'
+    )
+
+    expect(row.description_key).toBe('mercadona sant boi')
+    expect(row.description_key_root).toBe('mercadona')
   })
 
   it('persiste el source que le pasa cada camino de ingesta', () => {
