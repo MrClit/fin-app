@@ -40,7 +40,7 @@ function CalendarIcon() {
 }
 
 function CardSkeleton({ height = 120 }: { height?: number }) {
-  return <Skeleton className="-mx-4 rounded-none border-y border-border" style={{ height }} />
+  return <Skeleton className="-mx-4 rounded-none border-y border-border md:mx-0 md:rounded-2xl md:border" style={{ height }} />
 }
 
 interface PageState {
@@ -99,7 +99,10 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
     ? ((activeBar.expense - activeBar.yoyExpense) / activeBar.yoyExpense) * 100 : null
 
   return (
-    <div>
+    // `data-content="wide"` marca la pantalla como de rejilla: el app-shell ensancha su
+    // columna a 960px desde `lg` (#366, #368). En `lg` el análisis pasa a dos columnas
+    // equilibradas: ahorro+KPIs y gráfica a la izquierda, desglose por categoría a la derecha.
+    <div data-content="wide">
       {/* Sticky header */}
       <div
         className="sticky z-30 border-b border-border px-4 pt-3 pb-3"
@@ -132,8 +135,11 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-col gap-3 px-4 py-3">
+      {/* Content — en `lg` rejilla de dos columnas equilibradas: la pila ahorro+gráfica a
+          la izquierda y el desglose a la derecha. En base todo se apila en orden. */}
+      <div className="grid gap-3 px-4 py-3 lg:grid-cols-2 lg:items-start">
+        {/* Columna izquierda: veredicto del período + gráfica de barras */}
+        <div className="flex flex-col gap-3">
         {/* Period verdict (ahorro + KPIs) */}
         {loading || !activeBar ? (
           <CardSkeleton height={290} />
@@ -155,7 +161,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         {loading || !data ? (
           <CardSkeleton height={220} />
         ) : (
-          <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
+          <div className="-mx-4 border-y border-border bg-secondary px-4 py-5 md:mx-0 md:rounded-2xl md:border">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-md font-bold text-foreground">Ingresos y gastos</span>
               <button
@@ -183,8 +189,9 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             />
           </div>
         )}
+        </div>
 
-        {/* Category breakdown */}
+        {/* Category breakdown — segunda celda de la rejilla en `lg` */}
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (

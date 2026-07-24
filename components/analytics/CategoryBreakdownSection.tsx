@@ -53,7 +53,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
   const isEmpty = items.length === 0 && credits.length === 0
 
   return (
-    <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
+    <div className="-mx-4 border-y border-border bg-secondary px-4 py-5 md:mx-0 md:rounded-2xl md:border">
       {/* Header + toggle */}
       <div className="mb-4 flex items-center justify-between">
         <span className="text-md font-bold text-foreground">Desglose por categoría</span>

@@ -95,7 +95,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
       {/* Content */}
       <div className="flex flex-col gap-4 px-4 py-4">
         {/* Evolution card */}
-        <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
+        <div className="-mx-4 border-y border-border bg-secondary px-4 py-5 md:mx-0 md:rounded-2xl md:border">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-md font-bold text-foreground">Evolución</span>
             <span className="text-xs text-muted-foreground capitalize">{PERIOD_LABELS[granularity]}</span>
@@ -138,9 +138,9 @@ export default function CategoryDetailClient({ categoryId }: Props) {
         <span className="text-md font-bold text-foreground">Movimientos</span>
 
         {loadingTxs ? (
-          <div className="-mx-4 flex flex-col gap-2">
+          <div className="-mx-4 flex flex-col gap-2 md:mx-0">
             {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-15.5 rounded-none border-y border-border" />
+              <Skeleton key={i} className="h-15.5 rounded-none border-y border-border md:rounded-2xl md:border" />
             ))}
           </div>
         ) : groups.length === 0 ? (
@@ -148,7 +148,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
             <p className="text-sm text-muted-foreground">No hay movimientos en este período</p>
           </div>
         ) : (
-          <div className="-mx-4 flex flex-col gap-4">
+          <div className="-mx-4 flex flex-col gap-4 md:mx-0">
             {groups.map(group => (
               <TxDayGroupCard
                 key={group.date}
