@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTxMutations } from '@/components/transactions/useTxMutations'
 import type { CategoryId, CategoryPeriodData, Granularity } from '@/types'
 
@@ -18,6 +18,12 @@ export function useCategoryDetailData(
   const [selectedBarIdx, setSelectedBarIdx] = useState(5)
   const [loadingPeriods, setLoadingPeriods] = useState(true)
   const [loadingTxs, setLoadingTxs] = useState(true)
+  // Fetch caído (sin red o SW sin respuesta, #387). Sin esto la pantalla se quedaba
+  // en skeleton indefinidamente y el rechazo quedaba sin capturar.
+  const [periodsError, setPeriodsError] = useState(false)
+  const [txsError, setTxsError] = useState(false)
+  // Bumpea al reintentar: reejecuta ambos fetch sin cambiar categoría ni período.
+  const [reloadKey, setReloadKey] = useState(0)
   const { transactions, replaceTxs, deleteTx, recategorize, markRead, markUnread } =
     useTxMutations([])
 
@@ -33,7 +39,10 @@ export function useCategoryDetailData(
   useEffect(() => {
     let cancelled = false
     fetch(`/api/analytics/category?id=${categoryId}&granularity=${granularity}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(d => {
         if (!cancelled) {
           const ps: CategoryPeriodData[] = d.periods ?? []
@@ -43,10 +52,21 @@ export function useCategoryDetailData(
           setPeriods(ps)
           setSelectedBarIdx(fromParam >= 0 ? fromParam : ps.length - 1)
           setLoadingPeriods(false)
+          setPeriodsError(false)
         }
       })
+      .catch(err => {
+        console.error('[useCategoryDetailData] no se pudieron cargar los períodos', err)
+        if (cancelled) return
+        setPeriodsError(true)
+        setLoadingPeriods(false)
+        // `periods` se queda vacío, así que el fetch de movimientos no llega a
+        // dispararse nunca: hay que bajar su loading aquí o su lista también se
+        // quedaría en skeleton.
+        setLoadingTxs(false)
+      })
     return () => { cancelled = true }
-  }, [granularity, categoryId, periodParam])
+  }, [granularity, categoryId, periodParam, reloadKey])
 
   const selectedPeriodForKey = periods[selectedBarIdx]
   const txsKey = selectedPeriodForKey
@@ -67,15 +87,34 @@ export function useCategoryDetailData(
     fetch(
       `/api/transactions?category=${categoryId}&dateFrom=${period.start}&dateTo=${period.end}&limit=500`
     )
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(d => {
         if (!cancelled) {
           replaceTxs(d.data ?? [])
           setLoadingTxs(false)
+          setTxsError(false)
         }
       })
+      .catch(err => {
+        console.error('[useCategoryDetailData] no se pudieron cargar los movimientos', err)
+        if (cancelled) return
+        setTxsError(true)
+        setLoadingTxs(false)
+      })
     return () => { cancelled = true }
-  }, [selectedBarIdx, periods, categoryId, replaceTxs])
+  }, [selectedBarIdx, periods, categoryId, replaceTxs, reloadKey])
+
+  // Reintento manual: limpia los errores y relanza ambos fetch.
+  const reload = useCallback(() => {
+    setPeriodsError(false)
+    setTxsError(false)
+    setLoadingPeriods(true)
+    setLoadingTxs(true)
+    setReloadKey(k => k + 1)
+  }, [])
 
   return {
     periods,
@@ -83,6 +122,9 @@ export function useCategoryDetailData(
     setSelectedBarIdx,
     loadingPeriods,
     loadingTxs,
+    periodsError,
+    txsError,
+    reload,
     transactions,
     deleteTx,
     recategorize,

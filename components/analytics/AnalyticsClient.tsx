@@ -48,17 +48,24 @@ interface PageState {
   data: AnalyticsResponse | null
   selectedBarIdx: number | null
   showYoY: boolean
+  /** El último fetch de período falló (sin red o SW sin respuesta, #387). */
+  failed: boolean
 }
 
 export default function AnalyticsClient({ initialData }: { initialData: AnalyticsResponse }) {
   const { granularity } = useAnalytics()
   const [showPicker, setShowPicker] = useState(false)
-  const [{ data, selectedBarIdx, showYoY }, setPageState] = useState<PageState>({
-    data: initialData, selectedBarIdx: null, showYoY: false,
+  const [{ data, selectedBarIdx, showYoY, failed }, setPageState] = useState<PageState>({
+    data: initialData, selectedBarIdx: null, showYoY: false, failed: false,
   })
+  // Bumpea al reintentar: reejecuta el fetch aunque la granularidad no cambie.
+  const [reloadKey, setReloadKey] = useState(0)
 
-  // Derived: loading when data hasn't arrived yet or belongs to a different granularity
-  const loading = !data || data.granularity !== granularity
+  // Los datos en mano sirven solo si son de la granularidad activa; si no, o están
+  // en vuelo (loading) o el fetch falló (errored), nunca las dos cosas.
+  const dataMatches = data !== null && data.granularity === granularity
+  const loading = !dataMatches && !failed
+  const errored = !dataMatches && failed
 
   const setSelectedBarIdx = (idx: number) =>
     setPageState(s => ({ ...s, selectedBarIdx: idx }))
@@ -76,12 +83,28 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
     isFirst.current = false
     let cancelled = false
     fetch(`/api/analytics?granularity=${granularity}&offset=0`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then((d: AnalyticsResponse) => {
-        if (!cancelled) setPageState({ data: d, selectedBarIdx: null, showYoY: false })
+        if (!cancelled) {
+          setPageState({ data: d, selectedBarIdx: null, showYoY: false, failed: false })
+        }
+      })
+      .catch(err => {
+        // Sin red, o el SW no pudo responder (#387): estado de error explícito con
+        // reintento. Sin este catch la pantalla se quedaba en skeleton para siempre.
+        console.error('[AnalyticsClient] no se pudo cargar el período', err)
+        if (!cancelled) setPageState(s => ({ ...s, failed: true }))
       })
     return () => { cancelled = true }
-  }, [granularity, initialData.granularity])
+  }, [granularity, initialData.granularity, reloadKey])
+
+  const retry = () => {
+    setPageState(s => ({ ...s, failed: false }))
+    setReloadKey(k => k + 1)
+  }
 
   // Derived active bar
   const activeIdx = selectedBarIdx ?? (data?.periods.length ?? 1) - 1
@@ -125,15 +148,36 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             <span className="text-3xs opacity-70">▾</span>
           </button>
         </div>
-        {activeBar && (
+        {/* Con el fetch caído `activeBar` sería de otro período: no lo anunciamos. */}
+        {!errored && activeBar && (
           <p className="mt-0.5 text-xs text-muted-foreground">
             {formatDateRange(activeBar.start, activeBar.end)}
           </p>
         )}
       </div>
 
-      {/* Content — en `lg` rejilla de dos columnas equilibradas: la pila ahorro+gráfica a
-          la izquierda y el desglose a la derecha. En base todo se apila en orden. */}
+      {errored ? (
+        <div className="px-4 py-3">
+          <div className="-mx-4 flex flex-col items-start gap-3 border-y border-border bg-secondary px-4 py-6 md:mx-0 md:rounded-2xl md:border">
+            <div className="flex flex-col gap-1">
+              <span className="text-md font-bold text-foreground">
+                No se pudo cargar el análisis
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Comprueba la conexión e inténtalo de nuevo.
+              </span>
+            </div>
+            <button
+              onClick={retry}
+              className="cursor-pointer rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      ) : (
+      /* Content — en `lg` rejilla de dos columnas equilibradas: la pila ahorro+gráfica a
+         la izquierda y el desglose a la derecha. En base todo se apila en orden. */
       <div className="grid gap-3 px-4 py-3 lg:grid-cols-2 lg:items-start">
         {/* Columna izquierda: veredicto del período + gráfica de barras */}
         <div className="flex flex-col gap-3">
@@ -198,6 +242,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
           />
         )}
       </div>
+      )}
 
       <GranularityPicker open={showPicker} onOpenChange={setShowPicker} />
     </div>
