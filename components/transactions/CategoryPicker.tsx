@@ -96,7 +96,10 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
             type="text"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            // `text-base pointer-fine:text-sm`: iOS acerca el viewport al enfocar un
+            // control de menos de 16px, así que con dedo va a 16 y con ratón se queda
+            // en los 14 de siempre. Se gatea por capacidad de entrada, no por ancho.
+            className="flex-1 bg-transparent text-base pointer-fine:text-sm text-foreground placeholder:text-muted-foreground outline-none"
             placeholder="Buscar categoría…"
             value={query}
             onChange={e => setQuery(e.target.value)}
