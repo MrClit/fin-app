@@ -3,6 +3,7 @@
 import { Search, X, ChevronDown, Box } from 'lucide-react'
 import type { Account } from '@/types'
 import { TYPE_PILLS, type TypeFilter } from './useTransactionsFilters'
+import { cn } from '@/lib/utils'
 
 interface TransactionsToolbarProps {
   searchQuery: string
@@ -33,8 +34,12 @@ export function TransactionsToolbar({
   return (
     <>
       {/* Search */}
+      {/* El `outline-none` del input no se queda sin sustituto (#369): el anillo de
+          foco lo pinta el contenedor con `focus-within`, que es quien tiene el borde
+          y el radio — un outline pegado al input desnudo quedaría dentro de la caja. */}
       <div
-        className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted"
+        className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted
+                   focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
         style={{ border: '1px solid var(--border)' }}
       >
         <Search size={16} className="text-muted-foreground shrink-0" />
@@ -54,11 +59,12 @@ export function TransactionsToolbar({
 
       {/* Account filter button — full width */}
       <button
-        className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-[14px] transition-colors"
-        style={{
-          background: selectedAccountIds.length > 0 ? 'rgba(99,102,241,0.1)' : 'var(--muted)',
-          border: selectedAccountIds.length > 0 ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--border)',
-        }}
+        className={cn(
+          'w-full flex items-center justify-between px-3.5 py-2.5 rounded-[14px] border transition-colors',
+          selectedAccountIds.length > 0
+            ? 'border-primary/30 bg-primary/10 hover:bg-primary/20'
+            : 'border-border bg-muted hover:bg-muted-foreground/15'
+        )}
         onClick={onOpenAccountFilter}
       >
         <div className="flex items-center gap-2">
@@ -88,11 +94,13 @@ export function TransactionsToolbar({
         {TYPE_PILLS.map(pill => (
           <button
             key={pill.key}
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors shrink-0"
-            style={{
-              background: typeFilter === pill.key ? '#6366f1' : 'var(--muted)',
-              color: typeFilter === pill.key ? 'white' : 'var(--muted-foreground)',
-            }}
+            aria-pressed={typeFilter === pill.key}
+            className={cn(
+              'px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors shrink-0',
+              typeFilter === pill.key
+                ? 'bg-primary text-primary-foreground hover:bg-primary/85'
+                : 'bg-muted text-muted-foreground hover:bg-muted-foreground/15'
+            )}
             onClick={() => onTypeFilterChange(pill.key)}
           >
             {pill.label}

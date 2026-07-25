@@ -1,3 +1,6 @@
 export * from './catalog'
 export * from './helpers'
 export * from './rules'
+export * from './normalize'
+export * from './learned'
+export * from './categorizer'

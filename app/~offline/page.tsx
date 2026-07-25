@@ -29,7 +29,9 @@ export default function OfflinePage() {
       {/* Salida de la pantalla offline: el bottom nav (enlaces estáticos, no necesitan
           JS) lleva a rutas ya cacheadas. Sin item activo: el SW sirve el doc horneado de
           `/~offline` y el JS no está precacheado, así que no se puede saber de forma
-          fiable la ruta intentada. alwaysShow evita el auto-ocultado en rutas de categoría. */}
+          fiable la ruta intentada. alwaysShow evita el auto-ocultado en rutas de categoría y,
+          como esta página vive fuera del app-shell y no tiene rail lateral (#364), también
+          el de `md+`: aquí la barra es la única salida a cualquier ancho. */}
       <BottomNav alwaysShow />
     </>
   )

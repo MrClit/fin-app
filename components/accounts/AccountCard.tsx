@@ -75,7 +75,7 @@ export function AccountCard({ account }: { account: Account }) {
   const needsRenew = consent?.status === 'critical' || consent?.status === 'expired'
 
   return (
-    <div className="bg-card px-4 py-5 border-y border-border">
+    <div className="bg-card px-4 py-5 border-y border-border md:rounded-2xl md:border">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <AccountIconBadge type={account.type} color={account.color} size="lg" />
@@ -113,8 +113,7 @@ export function AccountCard({ account }: { account: Account }) {
         </div>
         <Link
           href={`/transactions?account=${account.id}`}
-          className="text-xs font-semibold px-3 py-1.5 rounded-[10px]"
-          style={{ background: '#6366f115', color: '#6366f1' }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-[10px] bg-primary/10 text-primary transition-colors hover:bg-primary/20"
         >
           Ver movimientos
         </Link>

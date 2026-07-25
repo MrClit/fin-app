@@ -15,7 +15,13 @@ vi.mock('@/lib/error-log', () => ({
   logError: vi.fn(async () => {}),
 }))
 
-const { createTransaction, updateTransaction, deleteTransaction } = await import('./transactions')
+const {
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  countSimilarTransactions,
+  applyCategoryToSimilar,
+} = await import('./transactions')
 
 const USER_ID = '00000000-0000-0000-0000-000000000001'
 const HOUSEHOLD_ID = '00000000-0000-0000-0000-0000000000a1'
@@ -67,6 +73,9 @@ describe('createTransaction', () => {
       description: 'Compra',
       date: '2026-05-18',
       category_manual: 'groceries',
+      // «Compra» es sólo trámite: no deja clave de comercio (#359).
+      description_key: null,
+      description_key_root: null,
       source: 'manual',
       is_read: true,
     })
@@ -220,5 +229,248 @@ describe('deleteTransaction', () => {
 
     expect(res.error).toMatchObject({ code: 'invalid_input' })
     expect(queries).toHaveLength(0)
+  })
+})
+
+// ── Aplicación retroactiva de una corrección (issue #359) ──────────────────────
+//
+// Ambas acciones hacen dos consultas: la 0 resuelve la clave del movimiento y la
+// 1 cuenta o actualiza. `keysOf` responde a la primera.
+
+/** Los pares `is(columna, valor)` de la cadena, en orden. */
+function isFilters(query: FakeQuery): unknown[][] {
+  return query.calls.filter(c => c.method === 'is').map(c => c.args)
+}
+
+function mockScope(
+  keys: { description_key: string | null; description_key_root: string | null } | null,
+  last: FakeResult = {},
+  /** Correcciones manuales ya existentes bajo la raíz, que deciden si se usa. */
+  votes: { category_manual: string }[] = []
+) {
+  let call = -1
+  return mockDb(() => {
+    call++
+    if (call === 0) return { data: keys }
+    // Con raíz hay una consulta intermedia de votos; sin ella se salta.
+    if (call === 1 && keys?.description_key_root) return { data: votes }
+    return last
+  })
+}
+
+/** Índice de la consulta que cuenta o actualiza: la última de la cadena. */
+const lastQuery = (queries: FakeQuery[]) => queryAt(queries, queries.length - 1)
+
+describe('countSimilarTransactions', () => {
+  it('cuenta por la raíz, que es la que agrupa el comercio en todas sus ciudades', async () => {
+    const { queries } = mockScope(
+      { description_key: 'mercadona sant boi', description_key_root: 'mercadona' },
+      { count: 87 },
+      [{ category_manual: 'groceries' }, { category_manual: 'groceries' }]
+    )
+
+    const res = await countSimilarTransactions(TX_ID, 'groceries')
+
+    expect(res.data).toEqual({
+      count: 87,
+      key: 'mercadona',
+      level: 'root',
+      label: 'MERCADONA',
+    })
+    expect(eqFilters(lastQuery(queries))).toEqual([
+      ['household_id', HOUSEHOLD_ID],
+      ['description_key_root', 'mercadona'],
+    ])
+  })
+
+  it('cae a la clave exacta si el hogar NO respalda que la raíz sea esa categoría', async () => {
+    // Caso real del hogar: la raíz `prat` es el topónimo, y sus correcciones se
+    // reparten entre categorías. Ofrecer cambiar por raíz arrastraría decenas de
+    // movimientos sin relación.
+    const { queries } = mockScope(
+      { description_key: 'prat espais aeroport', description_key_root: 'prat' },
+      { count: 3 },
+      [
+        { category_manual: 'parking' },
+        { category_manual: 'fuel' },
+        { category_manual: 'restaurant' },
+        { category_manual: 'transport' },
+      ]
+    )
+
+    const res = await countSimilarTransactions(TX_ID, 'parking')
+
+    expect(res.data).toMatchObject({ key: 'prat espais aeroport', level: 'exact' })
+    expect(eqFilters(lastQuery(queries))).toEqual([
+      ['household_id', HOUSEHOLD_ID],
+      ['description_key', 'prat espais aeroport'],
+    ])
+  })
+
+  it('usa la raíz cuando es la primera corrección de ese comercio', async () => {
+    // Sin evidencia en contra, el acuerdo es 1,0: es lo que hace que corregir el
+    // primer Mercadona arregle los de todas las ciudades.
+    const { queries } = mockScope(
+      { description_key: 'mercadona gava', description_key_root: 'mercadona' },
+      { count: 12 },
+      [{ category_manual: 'groceries' }]
+    )
+
+    const res = await countSimilarTransactions(TX_ID, 'groceries')
+
+    expect(res.data).toMatchObject({ level: 'root', count: 12 })
+    expect(eqFilters(lastQuery(queries))).toEqual([
+      ['household_id', HOUSEHOLD_ID],
+      ['description_key_root', 'mercadona'],
+    ])
+  })
+
+  it('cae a la exacta si la corrección contradice al histórico de la raíz', async () => {
+    // Un Mercadona marcado como Restaurante no debe proponer mover los otros 82.
+    mockScope(
+      { description_key: 'mercadona gava', description_key_root: 'mercadona' },
+      { count: 1 },
+      [
+        { category_manual: 'restaurant' },
+        { category_manual: 'groceries' },
+        { category_manual: 'groceries' },
+        { category_manual: 'groceries' },
+      ]
+    )
+
+    const res = await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(res.data).toMatchObject({ level: 'exact', key: 'mercadona gava' })
+  })
+
+  it('cae a la clave exacta cuando la raíz no aporta un segundo nivel', async () => {
+    const { queries } = mockScope(
+      { description_key: 'glovo', description_key_root: null },
+      { count: 4 }
+    )
+
+    const res = await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(res.data).toMatchObject({ count: 4, key: 'glovo', level: 'exact' })
+    expect(eqFilters(lastQuery(queries))).toEqual([
+      ['household_id', HOUSEHOLD_ID],
+      ['description_key', 'glovo'],
+    ])
+  })
+
+  it('NUNCA cuenta filas con category_manual: son decisiones humanas', async () => {
+    const { queries } = mockScope(
+      { description_key: 'glovo', description_key_root: null },
+      { count: 0 }
+    )
+
+    await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(isFilters(lastQuery(queries))).toEqual([['category_manual', null]])
+  })
+
+  it('excluye el propio movimiento y los que ya tienen esa categoría', async () => {
+    const { queries } = mockScope(
+      { description_key: 'glovo', description_key_root: null },
+      { count: 0 }
+    )
+
+    await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(argsOf(lastQuery(queries), 'neq')).toEqual(['id', TX_ID])
+    expect(argsOf(lastQuery(queries), 'or')).toEqual(['category.is.null,category.neq.restaurant'])
+  })
+
+  it('devuelve 0 sin consultar si el descriptor no dejó clave', async () => {
+    const { queries } = mockScope({ description_key: null, description_key_root: null })
+
+    const res = await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(res.data).toMatchObject({ count: 0 })
+    expect(queries).toHaveLength(1)
+  })
+
+  it('devuelve 0 si el movimiento no existe o es de otro hogar', async () => {
+    const { queries } = mockScope(null)
+
+    const res = await countSimilarTransactions(TX_ID, 'restaurant')
+
+    expect(res.data).toMatchObject({ count: 0 })
+    expect(queries).toHaveLength(1)
+  })
+
+  it.each([
+    ['id no UUID', 'abc', 'groceries'],
+    ['categoría fuera del catálogo', TX_ID, 'inventada'],
+  ])('devuelve invalid_input con %s, sin tocar la BD', async (_caso, id, category) => {
+    const { queries } = mockDb(() => ({ data: null }))
+
+    const res = await countSimilarTransactions(id, category)
+
+    expect(res.error).toMatchObject({ code: 'invalid_input' })
+    expect(queries).toHaveLength(0)
+  })
+})
+
+describe('applyCategoryToSimilar', () => {
+  it('escribe en category —NUNCA en category_manual— y sólo sobre filas sin corregir', async () => {
+    const { queries } = mockScope(
+      { description_key: 'mercadona sant boi', description_key_root: 'mercadona' },
+      { data: [{ id: 'a' }, { id: 'b' }] },
+      [{ category_manual: 'groceries' }]
+    )
+
+    const res = await applyCategoryToSimilar(TX_ID, 'groceries')
+
+    expect(res.data).toEqual({ updated: 2 })
+    const patch = argsOf(lastQuery(queries), 'update')![0]
+    expect(patch).toEqual({ category: 'groceries' })
+    expect(patch).not.toHaveProperty('category_manual')
+    expect(isFilters(lastQuery(queries))).toEqual([['category_manual', null]])
+  })
+
+  it('acota el UPDATE al hogar y a la clave, y excluye el propio movimiento', async () => {
+    const { queries } = mockScope(
+      { description_key: 'glovo', description_key_root: null },
+      { data: [] }
+    )
+
+    await applyCategoryToSimilar(TX_ID, 'restaurant')
+
+    expect(eqFilters(lastQuery(queries))).toEqual([
+      ['household_id', HOUSEHOLD_ID],
+      ['description_key', 'glovo'],
+    ])
+    expect(argsOf(lastQuery(queries), 'neq')).toEqual(['id', TX_ID])
+  })
+
+  it('no actualiza nada si el descriptor no dejó clave', async () => {
+    const { queries } = mockScope({ description_key: null, description_key_root: null })
+
+    const res = await applyCategoryToSimilar(TX_ID, 'restaurant')
+
+    expect(res.data).toEqual({ updated: 0 })
+    expect(queries).toHaveLength(1)
+  })
+
+  it('devuelve invalid_input si la categoría no es del catálogo, sin tocar la BD', async () => {
+    const { queries } = mockDb(() => ({ data: null }))
+
+    const res = await applyCategoryToSimilar(TX_ID, 'inventada')
+
+    expect(res.error).toMatchObject({ code: 'invalid_input' })
+    expect(queries).toHaveLength(0)
+  })
+
+  it('devuelve server_error y registra el fallo si el UPDATE falla', async () => {
+    mockScope(
+      { description_key: 'glovo', description_key_root: null },
+      { data: null, error: { message: 'boom', code: 'XX000' } }
+    )
+
+    const res = await applyCategoryToSimilar(TX_ID, 'restaurant')
+
+    expect(res.error).toMatchObject({ code: 'server_error' })
+    expect(logError).toHaveBeenCalled()
   })
 })

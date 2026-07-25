@@ -352,6 +352,8 @@ export type Database = {
           created_at: string | null
           date: string
           description: string
+          description_key: string | null
+          description_key_root: string | null
           external_id: string | null
           household_id: string
           id: string
@@ -368,6 +370,8 @@ export type Database = {
           created_at?: string | null
           date: string
           description: string
+          description_key?: string | null
+          description_key_root?: string | null
           external_id?: string | null
           household_id: string
           id?: string
@@ -384,6 +388,8 @@ export type Database = {
           created_at?: string | null
           date?: string
           description?: string
+          description_key?: string | null
+          description_key_root?: string | null
           external_id?: string | null
           household_id?: string
           id?: string
@@ -465,6 +471,16 @@ export type Database = {
     Functions: {
       current_household_ids: { Args: never; Returns: string[] }
       current_owner_household_ids: { Args: never; Returns: string[] }
+      get_learned_categories: {
+        Args: { p_household_id: string }
+        Returns: {
+          category_id: string
+          confidence: number
+          key: string
+          level: string
+          n: number
+        }[]
+      }
       get_period_data: {
         Args: {
           p_end_date: string

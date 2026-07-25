@@ -27,12 +27,14 @@ interface FieldRowProps {
 }
 
 function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
+  // Con `onClick` la fila es una acción → `<button>` nativo, no `<div onClick>` (#369).
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div
-      onClick={onClick}
+    <Tag
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
         'flex items-center gap-3 rounded-2xl bg-muted px-4 py-3.25',
-        onClick && 'cursor-pointer'
+        onClick && 'w-full cursor-pointer text-left transition-colors hover:bg-muted-foreground/15'
       )}
     >
       <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-[10px] bg-muted-foreground/10 opacity-60">
@@ -47,7 +49,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
       {chevron && (
         <span className="shrink-0 text-base leading-none text-muted-foreground">›</span>
       )}
-    </div>
+    </Tag>
   )
 }
 
@@ -79,11 +81,10 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
-        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
+        showCloseButton="md"
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] md:pt-6 md:pb-6"
       >
-        <SheetTitle className="sr-only">{renderTx.description}</SheetTitle>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
 
         {/* Importe prominente */}
         <div className="mb-6 text-center">
@@ -93,7 +94,9 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           >
             <Icon size={26} style={{ color: meta.color }} strokeWidth={2} />
           </div>
-          <div className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{renderTx.description}</div>
+          {/* El nombre accesible de la hoja es esta descripción; antes se duplicaba
+              con un `SheetTitle` sr-only idéntico (#369). */}
+          <SheetTitle className="text-sm font-bold text-foreground mb-1 line-clamp-3 px-4">{renderTx.description}</SheetTitle>
           <div
             className={cn(
               'text-amount-lg font-extrabold leading-none tracking-tight',
@@ -142,7 +145,7 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
           !confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-destructive/30 bg-transparent py-3.25 text-sm font-semibold text-destructive"
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-destructive/30 bg-transparent py-3.25 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
             >
               <Trash2 size={15} />
               Eliminar movimiento
@@ -155,13 +158,13 @@ export function TxModal({ tx, open, onOpenChange, onRecategorize, onDelete }: Tx
               <div className="flex gap-2.5">
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="flex-1 rounded-[14px] border-0 bg-muted py-3.25 text-sm font-semibold text-foreground"
+                  className="flex-1 rounded-[14px] border-0 bg-muted py-3.25 text-sm font-semibold text-foreground transition-colors hover:bg-muted-foreground/15"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => onDelete(renderTx.id)}
-                  className="flex-1 rounded-[14px] border-0 bg-destructive py-3.25 text-sm font-bold text-white"
+                  className="flex-1 rounded-[14px] border-0 bg-destructive py-3.25 text-sm font-bold text-white transition-colors hover:bg-destructive/85"
                 >
                   Sí, eliminar
                 </button>

@@ -45,7 +45,9 @@ export default function PeriodVerdict({
     : 'linear-gradient(135deg, #059669, #10b981)'
 
   return (
-    <div className="-mx-4 border-y border-border">
+    // Desde `md` recupera marco de tarjeta (#368); `overflow-clip` para que las esquinas
+    // redondeadas recorten el gradiente de la zona de ahorro.
+    <div className="-mx-4 border-y border-border md:mx-0 md:overflow-clip md:rounded-2xl md:border">
       {/* Zona superior — ahorro */}
       <div className="px-4 py-5" style={{ background: bg }}>
         <p style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>

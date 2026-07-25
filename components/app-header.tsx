@@ -19,7 +19,9 @@ export function AppHeader({ email, avatarUrl, fullName, consentBanner }: Props) 
 
   return (
     <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-40 bg-background/85 backdrop-blur-xl">
-      <div className="flex h-12 items-center justify-between px-4">
+      {/* En `md+` estos dos disparadores viven en el rail lateral (#364); el header
+          se queda como cabecera de contenido, solo para el StatusBanner. */}
+      <div className="flex h-12 items-center justify-between px-4 md:hidden">
         <UserMenuTrigger email={email} avatarUrl={avatarUrl} fullName={fullName} />
         <NotificationsTrigger />
       </div>

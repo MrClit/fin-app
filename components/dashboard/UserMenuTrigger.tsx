@@ -50,7 +50,7 @@ export function UserMenuTrigger({ email, avatarUrl, fullName }: Props) {
       />
       <SheetContent
         side="bottom"
-        className="rounded-t-3xl pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+        className="rounded-t-3xl pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)] md:pt-4 md:pb-4"
       >
         <SheetHeader className="flex flex-row items-center gap-3 pt-3">
           <div

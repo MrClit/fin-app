@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentHouseholdId, getRequestClient } from '@/lib/auth/session'
 import { AppHeader } from '@/components/app-header'
 import { BottomNav } from '@/components/bottom-nav'
+import { SideNav } from '@/components/side-nav'
 import { SyncStatusProvider } from '@/components/sync/SyncStatusProvider'
 import { UnreadProvider } from '@/components/transactions/UnreadProvider'
 import { NotificationsProvider } from '@/components/notifications/NotificationsProvider'
@@ -36,21 +37,51 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // `getConsentBannerData` ya se queda sólo con las cuentas `enablebanking`.
   const consentBanner = getConsentBannerData(accounts)
 
+  // App-shell (#363): el ancho útil ya no lo fija el contenedor raíz sino el área
+  // de contenido, vía `--content-max`. El padding izquierdo reserva el sitio del
+  // rail de navegación; la clase `app-shell` es la que declara su ancho por
+  // breakpoint (`--content-offset`, 0 en móvil).
   return (
-    <div className="relative mx-auto w-full max-w-105 min-h-screen overflow-clip bg-background">
+    <div className="app-shell min-h-dvh bg-background pl-(--content-offset)">
+      {/* Primer focusable del documento (#369): con teclado hay 4 destinos de nav más
+          campana y avatar antes del contenido, y sin esto cada cambio de pantalla
+          obliga a recorrerlos otra vez. Invisible hasta recibir foco, así que no
+          altera nada visualmente. */}
+      <a
+        href="#main"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4
+                   focus-visible:left-4 focus-visible:z-120 focus-visible:rounded-lg
+                   focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2
+                   focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground"
+      >
+        Saltar al contenido
+      </a>
       <SyncStatusProvider>
         <UnreadProvider initialCount={unreadCount}>
           <NotificationsProvider initialCount={unreadNotifications}>
-            <AppHeader
-              email={user.email ?? ''}
-              avatarUrl={avatarUrl}
-              fullName={fullName}
-              consentBanner={consentBanner}
-            />
-            <main className="pb-22.5 animate-fade-in">
-              {children}
-            </main>
+            {/* Área de contenido: la columna. `overflow-clip` —nunca `hidden`—
+                recorta el slide del detalle de categoría sin crear un contenedor
+                de scroll: el scroll sigue siendo el del documento y los sticky
+                siguen anclados al viewport. */}
+            <div className="relative mx-auto w-full max-w-(--content-max) overflow-clip">
+              <AppHeader
+                email={user.email ?? ''}
+                avatarUrl={avatarUrl}
+                fullName={fullName}
+                consentBanner={consentBanner}
+              />
+              {/* El colchón inferior solo existe por la bottom nav; en `md+` la
+                  navegación es lateral y no hay nada que esquivar. */}
+              <main id="main" className="pb-22.5 animate-fade-in md:pb-8">
+                {children}
+              </main>
+            </div>
+            {/* Slot de navegación: los dos son `fixed` y viven fuera del flujo, y
+                son excluyentes por breakpoint. Cuelgan de aquí —fuera del template
+                de analytics— para que el slide del detalle de categoría no los
+                capture. */}
             <BottomNav />
+            <SideNav email={user.email ?? ''} avatarUrl={avatarUrl} fullName={fullName} />
           </NotificationsProvider>
         </UnreadProvider>
       </SyncStatusProvider>

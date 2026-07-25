@@ -36,6 +36,13 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   )
 }
 
+/**
+ * `side="bottom"` es un único componente responsive (#365): hoja anclada al borde
+ * inferior en móvil y **diálogo centrado desde `md`**, solo con variantes CSS —sin
+ * `matchMedia` ni bifurcación por JS—. El centrado se hace con `inset-0` + `m-auto`
+ * + `h-fit` en vez de `left-1/2 -translate-x-1/2`: así el `transform` queda libre
+ * para la animación y no persiste en reposo (convención de `CLAUDE.md`).
+ */
 function SheetContent({
   className,
   children,
@@ -44,7 +51,8 @@ function SheetContent({
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
-  showCloseButton?: boolean
+  /** `"md"`: el botón solo aparece desde `md`; en móvil el afordance es el handle. */
+  showCloseButton?: boolean | "md"
 }) {
   return (
     <SheetPortal>
@@ -54,18 +62,25 @@ function SheetContent({
         data-side={side}
         className={cn(
           "fixed z-110 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out starting:opacity-0 data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:starting:translate-y-full data-[side=bottom]:data-ending-style:translate-y-full data-[side=bottom]:data-starting-style:translate-y-full data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:starting:-translate-x-10 data-[side=left]:data-ending-style:-translate-x-10 data-[side=left]:data-starting-style:-translate-x-10 data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:starting:translate-x-10 data-[side=right]:data-ending-style:translate-x-10 data-[side=right]:data-starting-style:translate-x-10 data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:starting:-translate-y-10 data-[side=top]:data-ending-style:-translate-y-10 data-[side=top]:data-starting-style:-translate-y-10 data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
+          // Diálogo centrado desde `md`: caja y borde completos…
+          "data-[side=bottom]:md:inset-0 data-[side=bottom]:md:m-auto data-[side=bottom]:md:h-fit data-[side=bottom]:md:max-h-[85dvh] data-[side=bottom]:md:max-w-md data-[side=bottom]:md:rounded-2xl data-[side=bottom]:md:border",
+          // …y entrada/salida por fade + escala, neutralizando el deslizamiento de hoja.
+          "data-[side=bottom]:md:starting:translate-y-0 data-[side=bottom]:md:data-ending-style:translate-y-0 data-[side=bottom]:md:data-starting-style:translate-y-0 data-[side=bottom]:md:starting:scale-95 data-[side=bottom]:md:data-ending-style:scale-95 data-[side=bottom]:md:data-starting-style:scale-95",
           className
         )}
         {...props}
       >
         {children}
-        {showCloseButton && (
+        {showCloseButton !== false && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
             render={
               <Button
                 variant="ghost"
-                className="absolute top-3 right-3"
+                className={cn(
+                  "absolute top-3 right-3",
+                  showCloseButton === "md" && "max-md:hidden"
+                )}
                 size="icon-sm"
               />
             }

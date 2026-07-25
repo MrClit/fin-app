@@ -135,6 +135,7 @@ El run falla con código HTTP no-2xx solo si el endpoint devuelve 5xx (DB inalca
 - `pnpm dev` — desarrollo local
 - `pnpm build` — compilar para producción
 - `pnpm test` — tests Vitest
+- `pnpm backfill:tx-keys` — rellenar las claves de comercio de los movimientos ya existentes (#359). Necesario **una vez** tras aplicar la migración `20260723000000`, y de nuevo con `--all` cada vez que cambie `lib/categories/normalize.ts` (si no, las filas viejas agrupan con un criterio y las nuevas con otro). Admite `--dry-run`. Requiere `.env.local` con `SUPABASE_SERVICE_ROLE_KEY`
 - `pnpm scrape:edenred` — ejecutar el scraper (requiere `scripts/scrapers/edenred/storage-state.json` válido)
 - `pnpm scrape:edenred:force` — ejecutar el scraper ignorando el marker diario (re-ejecuta aunque ya haya corrido hoy)
 - `pnpm scrape:edenred:login` — regenerar `scripts/scrapers/edenred/storage-state.json` con login manual

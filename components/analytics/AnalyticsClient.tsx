@@ -9,6 +9,7 @@ import PeriodVerdict from './PeriodVerdict'
 import DualBarChart from './DualBarChart'
 import CategoryBreakdownSection from './CategoryBreakdownSection'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 const DELTA_REF: Record<Granularity, string> = {
   week:    'vs sem. anterior',
@@ -40,7 +41,7 @@ function CalendarIcon() {
 }
 
 function CardSkeleton({ height = 120 }: { height?: number }) {
-  return <Skeleton className="-mx-4 rounded-none border-y border-border" style={{ height }} />
+  return <Skeleton className="-mx-4 rounded-none border-y border-border md:mx-0 md:rounded-2xl md:border" style={{ height }} />
 }
 
 interface PageState {
@@ -99,12 +100,16 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
     ? ((activeBar.expense - activeBar.yoyExpense) / activeBar.yoyExpense) * 100 : null
 
   return (
-    <div>
-      {/* Sticky header */}
+    // `data-content="wide"` marca la pantalla como de rejilla: el app-shell ensancha su
+    // columna a 960px desde `lg` (#366, #368). En `lg` el análisis pasa a dos columnas
+    // equilibradas: ahorro+KPIs y gráfica a la izquierda, desglose por categoría a la derecha.
+    <div data-content="wide">
+      {/* Sticky header. El offset de 3rem esquiva la barra móvil del AppHeader (avatar +
+          campana, `h-12`); en `md+` esa barra es `md:hidden` y el header de contenido queda
+          a ~0px, así que el sticky se ancla sólo bajo la safe-area o taparía las gráficas. */}
       <div
-        className="sticky z-30 border-b border-border px-4 pt-3 pb-3"
+        className="sticky top-[calc(env(safe-area-inset-top)+3rem)] z-30 border-b border-border px-4 pt-3 pb-3 md:top-[env(safe-area-inset-top)]"
         style={{
-          top: 'calc(env(safe-area-inset-top) + 3rem)',
           background: 'color-mix(in srgb, var(--background) 92%, transparent)',
           backdropFilter: 'blur(16px)',
         }}
@@ -113,12 +118,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
           <span className="text-xl font-bold text-foreground">Análisis</span>
           <button
             onClick={() => setShowPicker(true)}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5"
-            style={{
-              background: 'color-mix(in srgb, #6366f1 12%, transparent)',
-              border: '1px solid color-mix(in srgb, #6366f1 27%, transparent)',
-              color: '#6366f1',
-            }}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-primary/27 bg-primary/12 px-3 py-1.5 text-primary transition-colors hover:bg-primary/20"
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
@@ -132,8 +132,11 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-col gap-3 px-4 py-3">
+      {/* Content — en `lg` rejilla de dos columnas equilibradas: la pila ahorro+gráfica a
+          la izquierda y el desglose a la derecha. En base todo se apila en orden. */}
+      <div className="grid gap-3 px-4 py-3 lg:grid-cols-2 lg:items-start">
+        {/* Columna izquierda: veredicto del período + gráfica de barras */}
+        <div className="flex flex-col gap-3">
         {/* Period verdict (ahorro + KPIs) */}
         {loading || !activeBar ? (
           <CardSkeleton height={290} />
@@ -155,22 +158,19 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
         {loading || !data ? (
           <CardSkeleton height={220} />
         ) : (
-          <div className="-mx-4 border-y border-border bg-secondary px-4 py-5">
+          <div className="-mx-4 border-y border-border bg-secondary px-4 py-5 md:mx-0 md:rounded-2xl md:border">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-md font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
-                className="rounded-full px-2.5 py-1 text-3xs font-bold transition-colors"
-                style={{
-                  background: showYoY
-                    ? 'color-mix(in srgb, #6366f1 12%, transparent)'
-                    : 'var(--muted)',
-                  border: showYoY
-                    ? '1px solid color-mix(in srgb, #6366f1 44%, transparent)'
-                    : '1px solid var(--border)',
-                  color: showYoY ? '#6366f1' : 'var(--muted-foreground)',
-                  cursor: 'pointer',
-                }}
+                aria-pressed={showYoY}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-3xs font-bold transition-colors',
+                  showYoY
+                    ? 'border-primary/44 bg-primary/12 text-primary hover:bg-primary/20'
+                    : 'border-border bg-muted text-muted-foreground hover:bg-muted-foreground/15'
+                )}
+                style={{ cursor: 'pointer' }}
               >
                 vs año ant.
               </button>
@@ -183,8 +183,9 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             />
           </div>
         )}
+        </div>
 
-        {/* Category breakdown */}
+        {/* Category breakdown — segunda celda de la rejilla en `lg` */}
         {loading || !activeBar ? (
           <CardSkeleton height={420} />
         ) : (

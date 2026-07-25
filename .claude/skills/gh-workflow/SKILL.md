@@ -32,6 +32,31 @@ Las buenas prácticas genéricas de la API (buscar duplicados antes de crear, fi
 cerrar, buscar plantilla de PR, paginar con `minimal_output`) las inyecta el propio servidor MCP en
 contexto. No hace falta repetirlas aquí.
 
+## Credencial del MCP
+
+El servidor MCP se autentica con `Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}` en
+`~/.claude.json`. **No hay PAT propio** (#319): la variable se resuelve del token que `gh` guarda en
+el **Llavero de macOS**, exportado desde `~/.zshrc`. Nunca poner el valor literal en `settings.json`
+—un secreto de larga vida en un JSON sin cifrar lo lee cualquier proceso del usuario, entra en
+backups y es fácil que acabe en un pantallazo—. Rotar la credencial es, simplemente, `gh auth login`.
+
+Aprovisionar una máquina nueva:
+
+1. `gh auth login` — con scopes `repo`, `workflow`, `read:org` y `project` (este último, para el tablero).
+2. Añadir a `~/.zshrc`:
+   ```zsh
+   _gh_pat="$(gh auth token 2>/dev/null)"
+   [[ -n "$_gh_pat" ]] && export GITHUB_PERSONAL_ACCESS_TOKEN="$_gh_pat"
+   unset _gh_pat
+   ```
+3. **Reiniciar VSCode entero** (resuelve el entorno de la shell al arrancar y lo cachea; una sesión
+   nueva de Claude no basta).
+4. Comprobar: `claude mcp list` → `github … ✓ Connected`, sin aviso de variable ausente.
+
+Si el server sale desconectado, `gh auth status` (¿sigue viva la credencial del Llavero?) y, si hace
+falta, `gh auth login`. El botón "Authenticate" de `/mcp` (OAuth) **no** sirve para este server: falla
+por DCR.
+
 ## Ciclo de vida de una issue
 
 Estados reales del tablero: `Backlog` → `Ready` → `In progress` → **`In review`** → `Done`.

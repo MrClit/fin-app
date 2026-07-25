@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  categorize,
-  categorizeWithRules,
-  validateRulePattern,
-  MAX_PATTERN_LENGTH,
-  type DbCategorizationRule,
-} from './rules'
+import { categorize, validateRulePattern, MAX_PATTERN_LENGTH } from './rules'
 import type { CategoryId } from './catalog'
 
 // Casos positivos: una fila por cada categoría cubierta por AUTO_RULES.
@@ -257,38 +251,5 @@ describe('validateRulePattern (issue #182)', () => {
   })
 })
 
-describe('categorizeWithRules (issue #182)', () => {
-  it('omite una regla con riesgo de ReDoS y resuelve rápido', () => {
-    const dbRules: DbCategorizationRule[] = [
-      { pattern: '(a+)+$', field: 'description', category_id: 'shopping' },
-    ]
-    const malicious = 'a'.repeat(40) + '!'
-    const start = performance.now()
-    // La regla peligrosa se omite; cae al fallback estático (sin match aquí).
-    expect(categorizeWithRules(dbRules, malicious)).toBeNull()
-    expect(performance.now() - start).toBeLessThan(1000)
-  })
-
-  it('omite la regla inválida pero aplica el resto de reglas válidas', () => {
-    const dbRules: DbCategorizationRule[] = [
-      { pattern: '(', field: 'description', category_id: 'shopping' },
-      { pattern: 'cafe-club', field: 'description', category_id: 'leisure' },
-    ]
-    expect(categorizeWithRules(dbRules, 'pago en cafe-club')).toBe('leisure')
-  })
-
-  it('una dbRule válida gana al fallback estático (regresión)', () => {
-    const dbRules: DbCategorizationRule[] = [
-      { pattern: 'mercadona', field: 'description', category_id: 'restaurant' },
-    ]
-    // Sin reglas, "Mercadona" sería groceries; la regla del hogar lo reasigna.
-    expect(categorizeWithRules(dbRules, 'Compra Mercadona')).toBe('restaurant')
-  })
-
-  it('cae al fallback estático cuando ninguna dbRule casa', () => {
-    const dbRules: DbCategorizationRule[] = [
-      { pattern: 'inexistente', field: 'description', category_id: 'shopping' },
-    ]
-    expect(categorizeWithRules(dbRules, 'Compra Mercadona')).toBe('groceries')
-  })
-})
+// La composición de la cascada (reglas explícitas → aprendidas → AUTO_RULES) se
+// testea en ./categorizer.test.ts, junto al módulo que la construye.

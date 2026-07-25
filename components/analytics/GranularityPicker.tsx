@@ -28,12 +28,11 @@ export default function GranularityPicker({ open, onOpenChange }: GranularityPic
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
-        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)]"
+        showCloseButton="md"
+        className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] md:pt-6 md:pb-6"
       >
-        <SheetTitle className="sr-only">Ver por período</SheetTitle>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border" />
-        <p className="text-base font-bold text-foreground text-center mb-4">Ver por período</p>
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
+        <SheetTitle className="text-base font-bold text-foreground text-center mb-4">Ver por período</SheetTitle>
         <div className="flex flex-col gap-2">
           {OPTIONS.map(o => {
             const active = granularity === o.id
@@ -41,7 +40,8 @@ export default function GranularityPicker({ open, onOpenChange }: GranularityPic
               <button
                 key={o.id}
                 onClick={() => select(o.id)}
-                className="flex items-center justify-between rounded-2xl border-none cursor-pointer transition-colors duration-150"
+                aria-pressed={active}
+                className="flex items-center justify-between rounded-2xl border-none cursor-pointer transition-[filter,background-color] duration-150 hover:brightness-95 dark:hover:brightness-125"
                 style={{
                   padding: '14px 16px',
                   background: active ? 'color-mix(in srgb, #6366f1 12%, transparent)' : 'var(--secondary)',

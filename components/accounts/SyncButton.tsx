@@ -35,8 +35,10 @@ export function SyncButton({ lastSynced }: { lastSynced: string | null }) {
       type="button"
       onClick={() => runSync()}
       disabled={isSyncing || isOffline || inCooldown}
-      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-2xs font-semibold transition-opacity disabled:opacity-40"
-      style={{ background: '#6366f115', color: '#6366f1' }}
+      // El fondo pasa de `style` inline a token: sólo así puede haber un `hover:bg-*`,
+      // que una declaración inline ganaría siempre (#369). `#6366f115` era `--primary`
+      // al 8%; se normaliza al 10%, indistinguible y expresable con el token.
+      className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-primary/10 px-3 py-1.5 text-2xs font-semibold text-primary transition-[opacity,background-color] enabled:hover:bg-primary/20 disabled:opacity-40"
     >
       <RefreshCw className={`size-3 ${isSyncing ? 'animate-spin' : ''}`} />
       <span suppressHydrationWarning>{label}</span>

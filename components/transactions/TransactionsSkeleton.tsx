@@ -17,9 +17,9 @@ export function TransactionsSkeleton() {
       </div>
       {/* Filas a ancho completo con la misma altura que TxRow (coincide con la
           lista real). Suficientes para llenar la pantalla hasta abajo. */}
-      <div className="-mx-4 flex flex-col gap-2">
+      <div className="-mx-4 flex flex-col gap-2 md:mx-0">
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="h-15.5 rounded-none border-y border-border" />
+          <Skeleton key={i} className="h-15.5 rounded-none border-y border-border md:rounded-2xl md:border" />
         ))}
       </div>
     </div>

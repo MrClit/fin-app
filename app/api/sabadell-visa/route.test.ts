@@ -22,6 +22,9 @@ type MockOpts = {
   accountSelects?: AccountResult[]
   accountInserts?: AccountResult[]
   rules?: { data: Array<{ pattern: string; field: string; category_id: string }> }
+  /** Filas de `get_learned_categories` (#359). */
+  learned?: Array<{ key: string; level: string; category_id: string; n: number; confidence: number }>
+  learnedError?: unknown
   txUpsert?: { error?: unknown }
 }
 
@@ -108,7 +111,13 @@ function buildMockDb(opts: MockOpts = {}) {
       if (table === 'transactions') return txBuilder
       throw new Error(`Unmocked table: ${table}`)
     }),
-    rpc: vi.fn(() => Promise.resolve({ error: null })),
+    rpc: vi.fn((name: string) => {
+      if (name !== 'get_learned_categories') return Promise.resolve({ error: null })
+      return Promise.resolve({
+        data: opts.learnedError ? null : (opts.learned ?? []),
+        error: opts.learnedError ?? null,
+      })
+    }),
   }
 
   return { db, insertSpy, updateSpy, upsertSpy }
@@ -303,5 +312,75 @@ describe('POST /api/sabadell-visa — idempotencia', () => {
     await callRoute(validPayload)
     const [, options] = callAt(upsertSpy, 0)
     expect(options).toEqual({ onConflict: 'household_id,external_id', ignoreDuplicates: false })
+  })
+})
+
+describe('POST /api/sabadell-visa — categorización aprendida (#359)', () => {
+  function mockedDb(opts: MockOpts) {
+    const mock = buildMockDb({
+      householdOwner: { data: { user_id: USER_ID, household_id: HOUSEHOLD_ID }, error: null },
+      accountSelects: [{ data: { id: ACCOUNT_A } }, { data: { id: ACCOUNT_B } }],
+      ...opts,
+    })
+    vi.mocked(createServiceClient).mockReturnValue(
+      mock.db as unknown as ReturnType<typeof createServiceClient>
+    )
+    return mock
+  }
+
+  it('una regla aprendida gana a AUTO_RULES', async () => {
+    // Sin nada aprendido, "Zara.com" sería clothing por AUTO_RULES.
+    const { upsertSpy } = mockedDb({
+      learned: [{ key: 'zara', level: 'exact', category_id: 'leisure', n: 4, confidence: 1 }],
+    })
+
+    await callRoute(validPayload)
+
+    const [rows] = callAt(upsertSpy, 0)
+    expect(rows[0].category).toBe('leisure')
+  })
+
+  it('la regla explícita del hogar gana a la aprendida', async () => {
+    const { upsertSpy } = mockedDb({
+      rules: { data: [{ pattern: 'zara', field: 'description', category_id: 'shopping' }] },
+      learned: [{ key: 'zara', level: 'exact', category_id: 'leisure', n: 4, confidence: 1 }],
+    })
+
+    await callRoute(validPayload)
+
+    const [rows] = callAt(upsertSpy, 0)
+    expect(rows[0].category).toBe('shopping')
+  })
+
+  it('descarta lo aprendido por debajo del umbral de confianza', async () => {
+    const { upsertSpy } = mockedDb({
+      learned: [{ key: 'zara', level: 'exact', category_id: 'leisure', n: 4, confidence: 0.5 }],
+    })
+
+    await callRoute(validPayload)
+
+    const [rows] = callAt(upsertSpy, 0)
+    expect(rows[0].category).toBe('clothing')
+  })
+
+  it('si el RPC falla se sigue categorizando con el resto de la cascada', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { upsertSpy } = mockedDb({ learnedError: { message: 'rpc down' } })
+
+    const res = await callRoute(validPayload)
+
+    expect(res.status).toBe(200)
+    const [rows] = callAt(upsertSpy, 0)
+    expect(rows[0].category).toBe('clothing')
+  })
+
+  it('persiste las claves de comercio de cada movimiento', async () => {
+    const { upsertSpy } = mockedDb({})
+
+    await callRoute(validPayload)
+
+    const [rows] = callAt(upsertSpy, 0)
+    expect(rows[0]).toMatchObject({ description_key: 'zara', description_key_root: null })
+    expect(rows[1]).toMatchObject({ description_key: 'patron', description_key_root: null })
   })
 })

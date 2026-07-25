@@ -10,7 +10,7 @@ interface Props {
 
 export function NetWorthChart({ data, annualDelta }: Props) {
   return (
-    <div className="bg-secondary -mx-4 px-4 py-5 border-y border-border">
+    <div className="bg-secondary -mx-4 px-4 py-5 border-y border-border md:mx-0 md:rounded-2xl md:border">
       <div className="flex justify-between items-center mb-1">
         <span className="text-md font-bold">Patrimonio neto</span>
         {annualDelta !== null ? (
@@ -31,36 +31,41 @@ export function NetWorthChart({ data, annualDelta }: Props) {
       <p className="text-xs text-muted-foreground mb-3.5">
         Últimos {data.length} {data.length === 1 ? 'mes' : 'meses'}
       </p>
-      <ResponsiveContainer width="100%" height={80}>
-        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-          <defs>
-            <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.18} />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
-            tickLine={false}
-            axisLine={false}
-            interval="preserveStartEnd"
-          />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="#6366f1"
-            strokeWidth={2.5}
-            fill="url(#netWorthGrad)"
-            dot={false}
-            activeDot={{ r: 4, fill: '#6366f1' }}
-          />
-          <Tooltip
-            formatter={(v) => [typeof v === 'number' ? `${fmt(v)} €` : '—', 'Patrimonio']}
-            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', fontVariantNumeric: 'tabular-nums' }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      {/* La altura la fija el contenedor por breakpoint —no una prop— porque a 672px de
+          ancho una franja de 80px queda demasiado achatada. `height="100%"` necesita
+          que el padre tenga altura definida, y `h-20`/`h-28` la dan. */}
+      <div className="h-20 md:h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+            <defs>
+              <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6366f1" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#6366f1"
+              strokeWidth={2.5}
+              fill="url(#netWorthGrad)"
+              dot={false}
+              activeDot={{ r: 4, fill: '#6366f1' }}
+            />
+            <Tooltip
+              formatter={(v) => [typeof v === 'number' ? `${fmt(v)} €` : '—', 'Patrimonio']}
+              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', fontVariantNumeric: 'tabular-nums' }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }

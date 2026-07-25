@@ -15,6 +15,7 @@ import { Toast } from '@/components/ui/toast'
 interface ToastState {
   message: string
   onRetry?: () => void
+  action?: { label: string; onPress: () => void }
 }
 
 interface SyncStatusValue {
@@ -31,6 +32,11 @@ interface SyncStatusValue {
   runSync: (accountId?: string) => Promise<void>
   /** Muestra el toast genérico de error con un Reintentar opcional. */
   showToast: (message: string, onRetry?: () => void) => void
+  /**
+   * Toast con una acción de etiqueta propia, para avisos que no son un error
+   * (#359: «87 movimientos más de MERCADONA — Cambiar todos»).
+   */
+  showActionToast: (message: string, label: string, onPress: () => void) => void
 }
 
 const SyncStatusContext = createContext<SyncStatusValue | null>(null)
@@ -113,6 +119,10 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
     setToast({ message, onRetry })
   }, [])
 
+  const showActionToast = useCallback((message: string, label: string, onPress: () => void) => {
+    setToast({ message, action: { label, onPress } })
+  }, [])
+
   const dismissToast = useCallback(() => setToast(null), [])
 
   const runSync = useCallback(async (accountId?: string) => {
@@ -152,15 +162,20 @@ export function SyncStatusProvider({ children }: { children: React.ReactNode }) 
   }, [router, showToast])
 
   const value = useMemo<SyncStatusValue>(
-    () => ({ isOffline, isSyncing, syncError, runSync, showToast }),
-    [isOffline, isSyncing, syncError, runSync, showToast]
+    () => ({ isOffline, isSyncing, syncError, runSync, showToast, showActionToast }),
+    [isOffline, isSyncing, syncError, runSync, showToast, showActionToast]
   )
 
   return (
     <SyncStatusContext.Provider value={value}>
       {children}
       {toast && (
-        <Toast message={toast.message} onRetry={toast.onRetry} onDismiss={dismissToast} />
+        <Toast
+          message={toast.message}
+          onRetry={toast.onRetry}
+          action={toast.action}
+          onDismiss={dismissToast}
+        />
       )}
     </SyncStatusContext.Provider>
   )

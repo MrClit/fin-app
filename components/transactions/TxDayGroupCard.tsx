@@ -47,7 +47,7 @@ export function TxDayGroupCard({
         </span>
       </div>
 
-      <div className="flex flex-col bg-card border-y border-border divide-y divide-border/40">
+      <div className="flex flex-col bg-card border-y border-border divide-y divide-border/40 md:rounded-2xl md:border md:overflow-clip">
         {group.transactions.map(tx => (
           <TxRow
             key={tx.id}
