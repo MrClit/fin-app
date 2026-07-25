@@ -207,11 +207,14 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Ej: Café con Juan"
+              // El tamaño va en clase y no en el `style` inline: iOS acerca el viewport
+              // al enfocar un control de menos de 16px, y la variante `pointer-fine`
+              // que devuelve los 14px con ratón no existe en un estilo inline.
+              className="text-base pointer-fine:text-sm"
               style={{
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 color: 'var(--foreground)',
                 width: '100%',
@@ -225,11 +228,11 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
+              className="text-base pointer-fine:text-sm"
               style={{
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 color: 'var(--foreground)',
                 width: '100%',

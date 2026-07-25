@@ -45,7 +45,8 @@ export function TransactionsToolbar({
         <Search size={16} className="text-muted-foreground shrink-0" />
         <input
           type="text"
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+          // 16px con dedo para que iOS no acerque el viewport al enfocar; 14 con ratón.
+          className="flex-1 bg-transparent text-base pointer-fine:text-sm text-foreground placeholder:text-muted-foreground outline-none"
           placeholder="Buscar por descripción o categoría…"
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
