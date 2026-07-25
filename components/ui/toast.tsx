@@ -39,7 +39,7 @@ export function Toast({ message, onRetry, action, onDismiss }: ToastProps) {
               else onRetry?.()
               onDismiss()
             }}
-            className="shrink-0 text-sm font-bold underline underline-offset-2"
+            className="shrink-0 text-sm font-bold underline underline-offset-2 transition-opacity hover:opacity-70"
           >
             {action ? action.label : 'Reintentar'}
           </button>
@@ -48,7 +48,7 @@ export function Toast({ message, onRetry, action, onDismiss }: ToastProps) {
           type="button"
           aria-label="Cerrar"
           onClick={onDismiss}
-          className="grid size-5 shrink-0 place-items-center opacity-60"
+          className="grid size-5 shrink-0 place-items-center opacity-60 transition-opacity hover:opacity-100"
         >
           <X className="size-4" />
         </button>

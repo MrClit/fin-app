@@ -113,8 +113,7 @@ export function AccountCard({ account }: { account: Account }) {
         </div>
         <Link
           href={`/transactions?account=${account.id}`}
-          className="text-xs font-semibold px-3 py-1.5 rounded-[10px]"
-          style={{ background: '#6366f115', color: '#6366f1' }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-[10px] bg-primary/10 text-primary transition-colors hover:bg-primary/20"
         >
           Ver movimientos
         </Link>

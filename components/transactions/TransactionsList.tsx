@@ -129,7 +129,7 @@ export function TransactionsList({
           <button
             type="button"
             onClick={onLoadMore}
-            className="text-sm font-semibold text-primary"
+            className="text-sm font-semibold text-primary transition-colors hover:text-primary/80"
           >
             Reintentar
           </button>

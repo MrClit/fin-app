@@ -51,8 +51,14 @@ export function RenewBankButton({
       type="button"
       onClick={handleRenew}
       disabled={loading}
-      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-2xs font-semibold transition-opacity disabled:opacity-40"
-      style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}
+      // El color es dinámico (rojo/ámbar), así que viaja como CSS var y los fondos
+      // —reposo y hover— se declaran como clases: una `background` inline ganaría a
+      // cualquier `hover:bg-*` y dejaría el botón sin afordancia de puntero (#369).
+      className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-2xs font-semibold
+                 bg-[color-mix(in_srgb,var(--chip)_13%,transparent)] text-(--chip)
+                 transition-[opacity,background-color] disabled:opacity-40
+                 enabled:hover:bg-[color-mix(in_srgb,var(--chip)_24%,transparent)]"
+      style={{ '--chip': color } as React.CSSProperties}
     >
       <ShieldCheck className="size-3 shrink-0" />
       {loading ? 'Abriendo…' : 'Renovar conexión'}

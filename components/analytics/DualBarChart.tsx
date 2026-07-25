@@ -262,21 +262,17 @@ export default function DualBarChart({
       <div className="mt-2.5 flex items-center justify-between">
         <button
           onClick={() => canGoBack && shift('back')}
-          className="text-sm font-semibold transition-colors"
-          style={{
-            background: 'none', border: 'none', padding: 0, cursor: canGoBack ? 'pointer' : 'default',
-            color: canGoBack ? 'var(--muted-foreground)' : 'transparent',
-          }}
+          disabled={!canGoBack}
+          className="border-none p-0 text-sm font-semibold text-muted-foreground transition-colors
+                     enabled:cursor-pointer enabled:hover:text-foreground disabled:text-transparent"
         >
           ‹ Anteriores
         </button>
         <button
           onClick={() => canGoFwd && shift('fwd')}
-          className="text-sm font-semibold transition-colors"
-          style={{
-            background: 'none', border: 'none', padding: 0, cursor: canGoFwd ? 'pointer' : 'default',
-            color: canGoFwd ? 'var(--muted-foreground)' : 'transparent',
-          }}
+          disabled={!canGoFwd}
+          className="border-none p-0 text-sm font-semibold text-muted-foreground transition-colors
+                     enabled:cursor-pointer enabled:hover:text-foreground disabled:text-transparent"
         >
           Siguientes ›
         </button>

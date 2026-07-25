@@ -116,6 +116,20 @@ variante `md:` y rompe el patrón.
   slide del detalle de categoría (#315) no debe convertirse en containing block de
   ningún `fixed` de chrome.
 
+**Puntero, teclado y foco** (#369):
+- Lo que depende de la **capacidad de entrada** —no del ancho— se gatea con
+  `pointer-fine:` / `pointer-coarse:`, nunca con `md:`: hay portátiles estrechos con
+  ratón y tablets anchas sin él. Patrón de referencia: el gutter de acciones de `TxRow`,
+  que reserva su hueco siempre y solo anima la opacidad en `hover`/`focus-within`.
+- El anillo de foco lo da `:focus-visible` en `@layer base` de `globals.css`. **No añadir
+  `outline-none` sin un sustituto** (si el control vive dentro de una caja con borde
+  propio, el anillo va en el contenedor con `focus-within`).
+- Interactivo = elemento nativo: `<button>` si dispara una acción, `<Link>` si navega.
+  No hay ni debe haber `role="button"` + `onKeyDown` a mano.
+- Un `background` en `style` inline gana a cualquier `hover:bg-*`. Si un control necesita
+  hover, su fondo va en clases (token, o CSS var cuando el color es dinámico); si es un
+  degradado o un color de categoría, se realza con `brightness`.
+
 El razonamiento completo y lo descartado, en `docs/responsive.md` (#354).
 
 ## Formato de números

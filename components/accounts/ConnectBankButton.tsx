@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Aspsp {
   name: string
@@ -61,8 +62,7 @@ export function ConnectBankButton() {
     return (
       <button
         onClick={handleOpenSelector}
-        className="w-full rounded-[20px] border-2 border-dashed p-5 flex items-center justify-center gap-2 transition-opacity"
-        style={{ borderColor: '#6366f140', background: '#6366f108' }}
+        className="w-full rounded-[20px] border-2 border-dashed border-primary/25 bg-primary/5 p-5 flex items-center justify-center gap-2 transition-colors hover:bg-primary/10"
       >
         <Plus className="size-4.5" style={{ color: '#6366f1' }} />
         <span className="text-sm font-semibold" style={{ color: '#6366f1' }}>
@@ -76,7 +76,11 @@ export function ConnectBankButton() {
     <div className="rounded-[20px] border border-border bg-card p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <span className="text-md font-bold text-foreground">Selecciona tu banco</span>
-        <button onClick={() => setStep('idle')} className="text-muted-foreground">
+        <button
+          onClick={() => setStep('idle')}
+          aria-label="Cerrar selector de banco"
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
           <X className="size-4" />
         </button>
       </div>
@@ -113,12 +117,15 @@ export function ConnectBankButton() {
               <button
                 key={aspsp.name}
                 onClick={() => setSelected(aspsp)}
-                className="px-3 py-2.5 text-sm text-left transition-colors"
-                style={{
-                  background: selected?.name === aspsp.name ? '#6366f115' : undefined,
-                  color: selected?.name === aspsp.name ? '#6366f1' : undefined,
-                  fontWeight: selected?.name === aspsp.name ? 600 : undefined,
-                }}
+                aria-pressed={selected?.name === aspsp.name}
+                // El estado seleccionado pasa de `style` inline a clases para que el
+                // hover funcione también sobre la fila seleccionada (#369).
+                className={cn(
+                  'px-3 py-2.5 text-sm text-left transition-colors',
+                  selected?.name === aspsp.name
+                    ? 'bg-primary/10 font-semibold text-primary hover:bg-primary/20'
+                    : 'hover:bg-muted'
+                )}
               >
                 {aspsp.name}
               </button>
@@ -130,7 +137,8 @@ export function ConnectBankButton() {
       <button
         onClick={handleConnect}
         disabled={!selected || step === 'connecting'}
-        className="w-full rounded-[14px] py-3.5 text-sm font-bold text-white transition-opacity disabled:opacity-40"
+        // Fondo en degradado: el realce va por `brightness`, que compone con él.
+        className="w-full rounded-[14px] py-3.5 text-sm font-bold text-white transition-[opacity,filter] disabled:opacity-40 enabled:hover:brightness-110"
         style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
       >
         {step === 'connecting' ? 'Iniciando…' : selected ? `Conectar ${selected.name}` : 'Selecciona un banco'}
