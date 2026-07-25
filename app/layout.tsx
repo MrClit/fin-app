@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeColorSync } from '@/components/theme-color-sync'
+import { GlobalRejectionReporter } from '@/components/global-rejection-reporter'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -66,6 +67,9 @@ export default function RootLayout({
         />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeColorSync />
+          {/* Va en el layout raíz, no en el grupo (app): /login y /~offline también
+              hacen fetch y sus fallos importan igual (#387). */}
+          <GlobalRejectionReporter />
           {children}
         </ThemeProvider>
       </body>

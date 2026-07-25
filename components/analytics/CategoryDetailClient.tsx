@@ -25,6 +25,22 @@ interface Props {
 // Debe coincidir con la duración de .animate-slide-out-right (globals.css).
 const SLIDE_OUT_MS = 250
 
+// Fetch caído (#387): mensaje explícito con reintento, en vez de un skeleton
+// indefinido o un «sin datos» que haría pensar que el período está vacío.
+function LoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-6">
+      <p className="text-center text-sm text-muted-foreground">{message}</p>
+      <button
+        onClick={onRetry}
+        className="cursor-pointer rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
+      >
+        Reintentar
+      </button>
+    </div>
+  )
+}
+
 export default function CategoryDetailClient({ categoryId }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -41,6 +57,9 @@ export default function CategoryDetailClient({ categoryId }: Props) {
     setSelectedBarIdx,
     loadingPeriods,
     loadingTxs,
+    periodsError,
+    txsError,
+    reload,
     transactions,
     deleteTx,
     recategorize,
@@ -105,7 +124,7 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           <div className="mb-4">
             {loadingPeriods ? (
               <Skeleton className="h-9 w-32 rounded-lg" />
-            ) : (
+            ) : periodsError ? null : (
               <>
                 <span style={{ fontSize: 'var(--text-amount-md)', fontWeight: 800, color, letterSpacing: -1 }}>
                   <Amount value={periodTotal} decimals={2} />
@@ -122,6 +141,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
           {/* Bar chart */}
           {loadingPeriods ? (
             <Skeleton className="h-27.5 rounded-lg" />
+          ) : periodsError ? (
+            <LoadError message="No se pudo cargar la evolución" onRetry={reload} />
           ) : periods.length > 0 ? (
             <CategoryBarChart
               periods={periods}
@@ -143,6 +164,8 @@ export default function CategoryDetailClient({ categoryId }: Props) {
               <Skeleton key={i} className="h-15.5 rounded-none border-y border-border md:rounded-2xl md:border" />
             ))}
           </div>
+        ) : txsError || periodsError ? (
+          <LoadError message="No se pudieron cargar los movimientos" onRetry={reload} />
         ) : groups.length === 0 ? (
           <div className="flex items-center justify-center py-10">
             <p className="text-sm text-muted-foreground">No hay movimientos en este período</p>

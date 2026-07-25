@@ -95,6 +95,32 @@ const serwist = new Serwist({
   },
 });
 
+// ── El SW responde SIEMPRE (issue #387) ───────────────────────────────────
+// Si una estrategia no consigue generar respuesta, Serwist pasa su promesa
+// rechazada tal cual a `respondWith` (no hay catch handler por defecto), y Safari
+// la convierte en un «FetchEvent.respondWith received an error: TypeError: Load
+// failed» que llega a la página como un fetch roto. Pasaba al reabrir la PWA en
+// iOS: el SW se reinicia y sus `fetch` fallan de forma transitoria, y las
+// peticiones que no son documento —`GET /api/*`, payloads RSC— no tenían fallback
+// (el de `fallbacks` exige `destination === 'document'`).
+//
+// Este handler es el último recurso: sólo se ejecuta si la estrategia falló y su
+// fallback de precache tampoco dio nada. Devuelve un 503 sintético, que el
+// llamante trata como una respuesta no-ok normal en vez de un TypeError.
+serwist.setCatchHandler(async ({ request }) => {
+  // El documento ya cae a /~offline vía `fallbacks`; llegar aquí significa que ni
+  // eso estaba disponible, así que lo reintentamos antes de rendirnos al 503.
+  if (request.destination === "document") {
+    const offline = await serwist.matchPrecache("/~offline");
+    if (offline) return offline;
+  }
+  return new Response(null, {
+    status: 503,
+    statusText: "Service Unavailable",
+    headers: { "Cache-Control": "no-store" },
+  });
+});
+
 serwist.addEventListeners();
 
 // Calienta el cache de las rutas de navegación en cada `activate`: cada deploy
