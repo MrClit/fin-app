@@ -118,24 +118,64 @@ Se respeta la jerarquía móvil ensanchada. Única excepción: más columnas en 
 existentes (cuentas del Dashboard, category picker). Enriquecer `TxRow` con más
 columnas en escritorio queda como mejora posterior, fuera de la serie.
 
-## 7. Touch vs. puntero
+## 7. Touch vs. puntero  *(implementado en #369)*
 
-- Estados `hover:` consistentes en filas, botones y nav (Tailwind v4 ya restringe
-  `hover:` a `@media (hover: hover)` por defecto — no ensucia táctil).
-- `focus-visible` y navegación por teclado completa (base-ui cubre foco/trap/Escape
-  en los diálogos).
-- **Alternativa de puntero al swipe de `TxRow`**: acciones visibles en hover. El
-  swipe táctil no se toca.
-- Los estados hover puros van en CSS: no crean nuevos client components (convención
-  de `'use client'` solo con estado/touch).
+Confirmado al ejecutar: Tailwind v4 restringe `hover:` a `@media (hover: hover)` por
+defecto y el proyecto no lo desactiva (no hay ningún `@custom-variant hover`), así que
+el hover nunca ensucia táctil. Lo que sí faltaba era cobertura, foco y semántica.
 
-## 8. Chrome PWA/iOS y viewport
+**Capacidad de entrada, no ancho.** Las acciones de puntero se gatean con
+`pointer-fine:` / `pointer-coarse:` (Tailwind ≥ 4.1), **nunca con `md:`**: el breakpoint
+mide ancho, y hay portátiles estrechos con ratón y tablets anchas sin él. Es también lo
+que evita `matchMedia`, coherente con los overlays de #365.
+
+**Alternativa de puntero al swipe de `TxRow`.** Recategorizar y marcar leído vivían solo
+detrás del gesto táctil. Ahora la fila tiene un gutter de dos botones que aparece con
+hover o con foco (`group-hover` + `group-focus-within`). Decisiones:
+- El hueco se **reserva siempre** con `pointer-fine:pr-20`, y lo único que cambia al
+  pasar el ratón es la opacidad: el importe nunca queda tapado —inaceptable en una app
+  de finanzas— y la fila no salta.
+- El gutter se oculta con `pointer-coarse:hidden` (`display:none`), que lo saca del
+  puntero *y* del orden de tabulación. El swipe táctil no se toca.
+- De paso se corrige un bug latente: los botones de los paneles de swipe estaban
+  siempre en el DOM y eran tabulables fuera de pantalla (`pointer-events-none` no saca
+  del orden de foco). Ahora llevan `tabIndex={-1}` mientras su lado está cerrado.
+
+**Foco visible.** Se declara una vez, en `@layer base` (`:focus-visible { outline: 2px
+solid var(--ring) }`), en vez de componente a componente: la app usa `<button>`/`<a>`
+nativos con clases ad-hoc —la primitiva `ui/button` solo la consume `ui/sheet`—, así que
+una regla de base cubre todo. Corolario normativo: **no añadir `outline-none` sin
+sustituto**; los dos inputs de búsqueda que lo hacían ahora pintan el anillo en su
+contenedor con `focus-within`.
+
+**Semántica antes que handlers.** Los `<div onClick>` pasan a `<button>` (acción) o
+`<Link>` (navegación) —filas de categoría, `FieldRow` de los modales, contenido de
+`TxRow`—. El elemento nativo da Enter/Espacio, foco y rol sin escribir un solo
+`onKeyDown`. Se añade además un skip link al `<main>`, que con 4 destinos de nav más
+campana y avatar es la diferencia entre recorrido usable e inusable.
+
+**Fondos en `style` inline.** Un `background` inline gana siempre a un `hover:bg-*`, así
+que el barrido obligó a elegir por caso: mover el fondo a tokens/clases cuando el color
+era fijo (`bg-primary/10 hover:bg-primary/20`), pasarlo por CSS var cuando era dinámico
+(`RenewBankButton`), o realzar con `brightness` cuando el fondo es un degradado o el
+color de una categoría.
+
+**Gráficas fuera de alcance, deliberadamente.** Los arcos del donut y las barras siguen
+con `tabIndex={-1}`: son una **ruta redundante**: la misma navegación al detalle está en
+la lista de categorías de debajo, que sí es accesible por teclado. Hacerlas focusables
+duplicaría cada parada de tabulación sin añadir ninguna capacidad. Si algún día el donut
+ofrece algo que la lista no, se revisa.
+
+## 8. Chrome PWA/iOS y viewport  *(verificado en #369)*
 
 El chrome PWA es todo `env()` (franja de status bar, safe-areas): en escritorio vale
-0 y es **inerte** — solo requiere verificación, no trabajo. Sí se retira
-`maximumScale: 1, userScalable: false` del viewport (`app/layout.tsx`): anti-patrón
-de accesibilidad (WCAG 1.4.4) que iOS moderno además ignora; quitarlo no afecta a la
-PWA instalada.
+0 y es **inerte** — solo requería verificación, no trabajo. Comprobado: la franja de
+`app/layout.tsx` usa `h-[env(safe-area-inset-top)]` **sin** `max()`, así que fuera de
+iOS standalone mide 0px; los `env()` que sí llevan `max(…, 1.5rem)` no son chrome sino
+padding de diseño, y los sheets ya lo neutralizan con su variante `md:`.
+
+El desbloqueo del zoom (`maximumScale: 1, userScalable: false`, anti-patrón WCAG 1.4.4
+que iOS moderno además ignora) se adelantó a #363 y sigue retirado.
 
 ## 9. Riesgos
 

@@ -18,7 +18,7 @@ export function ErrorFallback({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="rounded-2xl bg-foreground px-5 py-2.5 text-sm font-medium text-background"
+          className="rounded-2xl bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-85"
         >
           Reintentar
         </button>

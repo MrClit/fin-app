@@ -42,7 +42,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // rail de navegación; la clase `app-shell` es la que declara su ancho por
   // breakpoint (`--content-offset`, 0 en móvil).
   return (
-    <div className="app-shell min-h-screen bg-background pl-(--content-offset)">
+    <div className="app-shell min-h-dvh bg-background pl-(--content-offset)">
+      {/* Primer focusable del documento (#369): con teclado hay 4 destinos de nav más
+          campana y avatar antes del contenido, y sin esto cada cambio de pantalla
+          obliga a recorrerlos otra vez. Invisible hasta recibir foco, así que no
+          altera nada visualmente. */}
+      <a
+        href="#main"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4
+                   focus-visible:left-4 focus-visible:z-120 focus-visible:rounded-lg
+                   focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2
+                   focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground"
+      >
+        Saltar al contenido
+      </a>
       <SyncStatusProvider>
         <UnreadProvider initialCount={unreadCount}>
           <NotificationsProvider initialCount={unreadNotifications}>
@@ -59,7 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               />
               {/* El colchón inferior solo existe por la bottom nav; en `md+` la
                   navegación es lateral y no hay nada que esquivar. */}
-              <main className="pb-22.5 animate-fade-in md:pb-8">
+              <main id="main" className="pb-22.5 animate-fade-in md:pb-8">
                 {children}
               </main>
             </div>

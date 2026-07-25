@@ -65,9 +65,8 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         // altura de contenido acotada (#365). El grid de dentro sigue scrolleando.
         className="mx-auto flex w-full max-w-105 flex-col rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] h-[82dvh] md:pt-6 md:pb-6"
       >
-        <SheetTitle className="sr-only">Cambiar categoría</SheetTitle>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
-        <p className="text-base font-bold text-foreground mb-1">Cambiar categoría</p>
+        <SheetTitle className="text-base font-bold text-foreground mb-1">Cambiar categoría</SheetTitle>
         <p className="text-xs leading-relaxed text-muted-foreground mb-4 wrap-break-word">{renderTx.description}</p>
 
         {/* Selector de tipo */}
@@ -76,11 +75,12 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
             <button
               key={type}
               onClick={() => { setActiveType(type); setQuery('') }}
+              aria-pressed={activeType === type}
               className={cn(
                 'flex-1 rounded-[9px] border-0 px-1 py-1.75 text-xs font-semibold transition-colors',
                 activeType === type
                   ? 'bg-popover text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
-                  : 'bg-transparent text-muted-foreground'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'
               )}
             >
               {TYPE_LABELS[type]}
@@ -89,7 +89,10 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
         </div>
 
         {/* Buscador de categorías */}
-        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted mb-3 border border-border">
+        {/* Anillo de foco en el contenedor, no en el input (ver nota en TransactionsToolbar).
+            Aquí importa el doble: base-ui pone el foco inicial de la hoja en este input. */}
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-muted mb-3 border border-border
+                        focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -118,9 +121,15 @@ export function CategoryPicker({ tx, open, onOpenChange, onSelect }: CategoryPic
                   <button
                     key={id}
                     onClick={() => { onSelect(renderTx.id, id); onOpenChange(false) }}
+                    aria-pressed={isCurrent}
                     className={cn(
-                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-colors',
-                      isCurrent ? 'border-2' : 'border border-border bg-muted'
+                      'flex flex-col items-center gap-1.25 rounded-[14px] px-1 py-3 transition-[background-color,filter]',
+                      // El seleccionado pinta el color de su categoría en `style` inline
+                      // (es dinámico), así que su realce va por `brightness`, que compone
+                      // con cualquier fondo; el resto usa un `hover:bg-*` normal.
+                      isCurrent
+                        ? 'border-2 hover:brightness-95 dark:hover:brightness-125'
+                        : 'border border-border bg-muted hover:bg-muted-foreground/15'
                     )}
                     style={
                       isCurrent

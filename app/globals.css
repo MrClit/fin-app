@@ -12,7 +12,8 @@
                                      y el tinte de los iconos se rompe.
    z-100  BottomNav · SideNav
    z-110  Sheet (overlay + content)
-   z-120  Toast                                                                  */
+   z-120  Toast · Skip link         El skip link solo existe mientras tiene el foco,
+                                    y entonces debe quedar sobre nav y chrome.       */
 
 @theme inline {
   --color-background: var(--background);
@@ -222,6 +223,16 @@
   * {
     border-color: var(--border);
     outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+  /* Anillo de foco por defecto para todo lo focusable (#369). La app usa `<button>`
+     y `<a>` nativos con clases ad-hoc —la primitiva `ui/button` solo la consume
+     `ui/sheet`—, así que declararlo aquí es lo que da foco visible en toda la app sin
+     tocar cada componente. `ui/button` trae su propio `outline-none` + `ring-*` en la
+     capa de utilidades, que gana a esta regla de base: conserva su anillo, no se duplica.
+     Corolario: no añadir `outline-none` en un componente sin poner un sustituto. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   body {
     background-color: var(--background);

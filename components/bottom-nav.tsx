@@ -19,6 +19,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
 
   return (
     <nav
+      aria-label="Navegación principal"
       className={cn(
         `fixed bottom-0 content-anchored z-100
          border-t border-border pb-[max(env(safe-area-inset-bottom),1.5rem)]`,
@@ -34,6 +35,7 @@ export function BottomNav({ alwaysShow = false }: { alwaysShow?: boolean } = {})
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex flex-1 flex-col items-center gap-0.75 py-1.5 text-3xs transition-colors duration-200',
                 active ? 'text-primary font-semibold' : 'text-muted-foreground font-normal'

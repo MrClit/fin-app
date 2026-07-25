@@ -22,7 +22,7 @@ export function StatusBanner({ consent }: { consent: ConsentBannerData | null })
         <span>{consentMessage(consent)}</span>
         <Link
           href="/accounts"
-          className="ml-auto shrink-0 font-bold underline underline-offset-2"
+          className="ml-auto shrink-0 font-bold underline underline-offset-2 transition-opacity hover:opacity-70"
         >
           Renovar →
         </Link>
@@ -47,7 +47,7 @@ export function StatusBanner({ consent }: { consent: ConsentBannerData | null })
         <button
           type="button"
           onClick={() => runSync()}
-          className="ml-auto shrink-0 font-bold underline underline-offset-2"
+          className="ml-auto shrink-0 font-bold underline underline-offset-2 transition-opacity hover:opacity-70"
         >
           Reintentar →
         </button>

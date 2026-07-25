@@ -6,6 +6,7 @@ import { createTransaction } from '@/app/actions/transactions'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useSyncStatus } from '@/components/sync/SyncStatusProvider'
 import { CATEGORY_META } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 import type { CategoryId, TransactionWithAccount } from '@/types'
 
 interface AddTxModalProps {
@@ -24,9 +25,13 @@ interface FieldRowProps {
 }
 
 function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
+  // Con `onClick` la fila es una acción, así que se renderiza como `<button>` y no como
+  // `<div onClick>` (#369): Enter/Espacio, foco y semántica salen gratis del elemento
+  // nativo. Sin `onClick` sigue siendo un `<div>`, que es lo que es: texto.
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div
-      onClick={onClick}
+    <Tag
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -35,6 +40,9 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
         borderRadius: 16,
         background: 'var(--muted)',
         cursor: onClick ? 'pointer' : 'default',
+        // El preflight de Tailwind ya normaliza tipografía y fondo del `<button>`;
+        // faltan el ancho y la alineación, que sí difieren del `<div>`.
+        ...(onClick ? { width: '100%', textAlign: 'left' as const, border: 'none' } : {}),
       }}
     >
       <div style={{
@@ -66,7 +74,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
       {chevron && (
         <span style={{ fontSize: 'var(--text-base)', color: 'var(--muted-foreground)', flexShrink: 0, lineHeight: 1 }}>›</span>
       )}
-    </div>
+    </Tag>
   )
 }
 
@@ -150,18 +158,15 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                     setCategory('other')
                   }
                 }}
-                style={{
-                  padding: '6px 20px',
-                  borderRadius: 20,
-                  border: 'none',
-                  background: type === tp ? (tp === 'gasto' ? EXPENSE_COLOR : INCOME_COLOR) : 'transparent',
-                  color: type === tp ? 'white' : 'var(--muted-foreground)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  transition: 'all 0.2s',
-                }}
+                aria-pressed={type === tp}
+                className={cn(
+                  'cursor-pointer rounded-[20px] border-none px-5 py-1.5 text-sm font-bold capitalize transition-colors duration-200',
+                  type !== tp
+                    ? 'bg-transparent text-muted-foreground hover:text-foreground'
+                    : tp === 'gasto'
+                      ? 'bg-negative text-white hover:bg-negative/85'
+                      : 'bg-positive text-white hover:bg-positive/85'
+                )}
               >
                 {tp}
               </button>
@@ -267,6 +272,8 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                   <button
                     key={id}
                     onClick={() => { setCategory(id); setShowCatGrid(false) }}
+                    aria-pressed={isCurrent}
+                    className="transition-[filter] hover:brightness-95 dark:hover:brightness-125"
                     style={{
                       padding: '12px 8px',
                       borderRadius: 12,
@@ -305,6 +312,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
         <button
           onClick={handleSave}
           disabled={!isValid || saving}
+          className="transition-[filter] enabled:hover:brightness-110"
           style={{
             width: '100%',
             border: 'none',

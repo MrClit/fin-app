@@ -15,7 +15,10 @@ export function AddTxFab({ onClick }: AddTxFabProps) {
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-[calc(max(env(safe-area-inset-bottom),1.5rem)+84px)] md:bottom-[max(env(safe-area-inset-bottom),1.5rem)]"
+      aria-label="Añadir movimiento"
+      // El fondo va en `style` inline, así que un `hover:bg-*` no podría ganarle:
+      // el realce de puntero se hace con `brightness`, que compone con él (#369).
+      className="fixed bottom-[calc(max(env(safe-area-inset-bottom),1.5rem)+84px)] transition-[filter] hover:brightness-110 md:bottom-[max(env(safe-area-inset-bottom),1.5rem)]"
       style={{
         right: 'max(20px, calc(50vw - var(--content-offset) / 2 - var(--content-read) / 2 + 20px))',
         width: 56,

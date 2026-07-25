@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
 import type { CategoryBreakdown, Granularity } from '@/types'
 import { Amount } from '@/components/ui/amount'
+import { cn } from '@/lib/utils'
 import DonutChart from './DonutChart'
 import { buildDonutModel, REST_KEY } from './donutModel'
 
@@ -23,8 +24,16 @@ interface CategoryBreakdownSectionProps {
   granularity: Granularity
 }
 
+/**
+ * Ir al detalle de una categoría es navegación, así que la fila es un `<Link>` y no un
+ * `<div onClick>` con `router.push` (#369): así es alcanzable con Tab, se abre con Enter
+ * y admite clic central / «abrir en pestaña nueva». El hover solo se ensancha en
+ * horizontal (`-mx-2 px-2`): cualquier padding vertical cambiaría la altura de la lista
+ * en móvil, que es invariante de la serie.
+ */
+const ROW_INTERACTIVE = 'block -mx-2 rounded-lg px-2 transition-colors hover:bg-foreground/5'
+
 export default function CategoryBreakdownSection({ byCategory, income, expense, periodStart, granularity }: CategoryBreakdownSectionProps) {
-  const router = useRouter()
   const [catView, setCatView] = useState<'gastos' | 'ingresos'>('gastos')
   // Tracked by slice key instead of index — auto-deselects when byCategory changes and the
   // slice is no longer present, without needing a useEffect setState.
@@ -107,71 +116,85 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
               const isDimmed = effectiveIdx !== null && !isSelected
               const isRest = item.key === REST_KEY
               const { Icon } = item
+              const rowBody = (
+                <>
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                        background: isSelected ? item.color : `${item.color}22`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background 0.2s',
+                      }}>
+                        <Icon size={16} color={isSelected ? 'white' : item.color} />
+                      </div>
+                      <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
+                        {isRest ? `${item.label} (${restRows.length})` : item.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
+                        {fmtPct(item.pct)}
+                      </span>
+                      <span style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--foreground)' }}>
+                        <Amount value={item.amount} />
+                      </span>
+                      {isRest ? (
+                        <ChevronDown
+                          size={16}
+                          color={accentColor}
+                          style={{
+                            transform: restExpanded ? 'rotate(180deg)' : 'none',
+                            transition: 'transform 0.2s',
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{
+                    height: 7, borderRadius: 3.5,
+                    background: 'color-mix(in srgb, currentColor 6%, transparent)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      width: `${Math.round(item.pct * 100) / 100}%`, height: '100%',
+                      minWidth: 3, // que el color siga siendo legible con porcentajes marginales
+                      background: item.color, borderRadius: 3,
+                      transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                </>
+              )
               return (
                 <div
                   key={item.key}
                   style={{ opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >
-                  <div
-                    onClick={() => {
-                      if (isRest) {
+                  {/* «Resto» no navega: despliega sus categorías en el sitio, así que es un
+                      botón con `aria-expanded`. El resto de filas navegan → `<Link>`. */}
+                  {isRest || item.categoryId === null ? (
+                    <button
+                      type="button"
+                      aria-expanded={restExpanded}
+                      className={cn(ROW_INTERACTIVE, 'w-full text-left')}
+                      onClick={() => {
                         // La fila "Resto" y su arco son lo mismo: se abren y se resaltan juntos.
                         setRestExpanded(!restExpanded)
                         setSelectedKey(restExpanded ? null : REST_KEY)
-                      } else {
-                        router.push(`/analytics/category/${item.categoryId}?period=${periodStart}&g=${granularity}`)
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div style={{
-                          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                          background: isSelected ? item.color : `${item.color}22`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'background 0.2s',
-                        }}>
-                          <Icon size={16} color={isSelected ? 'white' : item.color} />
-                        </div>
-                        <span style={{ fontSize: 'var(--text-md)', color: 'var(--foreground)', fontWeight: isSelected ? 700 : 500 }}>
-                          {isRest ? `${item.label} (${restRows.length})` : item.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
-                          {fmtPct(item.pct)}
-                        </span>
-                        <span style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--foreground)' }}>
-                          <Amount value={item.amount} />
-                        </span>
-                        {isRest ? (
-                          <ChevronDown
-                            size={16}
-                            color={accentColor}
-                            style={{
-                              transform: restExpanded ? 'rotate(180deg)' : 'none',
-                              transition: 'transform 0.2s',
-                            }}
-                          />
-                        ) : (
-                          <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{
-                      height: 7, borderRadius: 3.5,
-                      background: 'color-mix(in srgb, currentColor 6%, transparent)',
-                      overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        width: `${Math.round(item.pct * 100) / 100}%`, height: '100%',
-                        minWidth: 3, // que el color siga siendo legible con porcentajes marginales
-                        background: item.color, borderRadius: 3,
-                        transition: 'width 0.6s ease',
-                      }} />
-                    </div>
-                  </div>
+                      }}
+                    >
+                      {rowBody}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/analytics/category/${item.categoryId}?period=${periodStart}&g=${granularity}`}
+                      className={ROW_INTERACTIVE}
+                    >
+                      {rowBody}
+                    </Link>
+                  )}
 
                   {/* Categorías dentro de "Resto": compactas y sin barra, para que desplegarlas
                       no reproduzca el problema de longitud que motivó agruparlas (#345). */}
@@ -180,11 +203,10 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                       {restRows.map(sub => {
                         const SubIcon = sub.Icon
                         return (
-                          <div
+                          <Link
                             key={sub.key}
-                            onClick={() => router.push(`/analytics/category/${sub.categoryId}?period=${periodStart}&g=${granularity}`)}
-                            className="flex items-center justify-between"
-                            style={{ cursor: 'pointer' }}
+                            href={`/analytics/category/${sub.categoryId}?period=${periodStart}&g=${granularity}`}
+                            className={cn(ROW_INTERACTIVE, 'flex items-center justify-between')}
                           >
                             <div className="flex items-center gap-2.5">
                               <div style={{
@@ -207,7 +229,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                               </span>
                               <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
                             </div>
-                          </div>
+                          </Link>
                         )
                       })}
                     </div>
@@ -222,10 +244,11 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
               const isDimmed = effectiveIdx !== null
               const { Icon } = credit
               return (
-                <div
+                <Link
                   key={credit.categoryId}
-                  onClick={() => router.push(`/analytics/category/${credit.categoryId}?period=${periodStart}&g=${granularity}`)}
-                  style={{ cursor: 'pointer', opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
+                  href={`/analytics/category/${credit.categoryId}?period=${periodStart}&g=${granularity}`}
+                  className={ROW_INTERACTIVE}
+                  style={{ opacity: isDimmed ? 0.35 : 1, transition: 'opacity 0.25s' }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -252,7 +275,7 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                       <span style={{ fontSize: 'var(--text-sm)', color: accentColor }}>›</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

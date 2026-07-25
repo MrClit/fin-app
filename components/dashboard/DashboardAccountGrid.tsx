@@ -19,7 +19,7 @@ function AccountCell({ account }: { account: Account }) {
   return (
     <Link
       href="/accounts"
-      className="block bg-secondary px-4 py-4 border-r border-b border-border active:opacity-70 transition-opacity"
+      className="block bg-secondary px-4 py-4 border-r border-b border-border transition-[opacity,background-color] active:opacity-70 hover:bg-muted-foreground/8"
     >
       <div className="flex items-center justify-between mb-2.5">
         <AccountIconBadge type={account.type} color={account.color} size="sm" />

@@ -9,6 +9,7 @@ import PeriodVerdict from './PeriodVerdict'
 import DualBarChart from './DualBarChart'
 import CategoryBreakdownSection from './CategoryBreakdownSection'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 const DELTA_REF: Record<Granularity, string> = {
   week:    'vs sem. anterior',
@@ -117,12 +118,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
           <span className="text-xl font-bold text-foreground">Análisis</span>
           <button
             onClick={() => setShowPicker(true)}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5"
-            style={{
-              background: 'color-mix(in srgb, #6366f1 12%, transparent)',
-              border: '1px solid color-mix(in srgb, #6366f1 27%, transparent)',
-              color: '#6366f1',
-            }}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-primary/27 bg-primary/12 px-3 py-1.5 text-primary transition-colors hover:bg-primary/20"
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
@@ -167,17 +163,14 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
               <span className="text-md font-bold text-foreground">Ingresos y gastos</span>
               <button
                 onClick={toggleShowYoY}
-                className="rounded-full px-2.5 py-1 text-3xs font-bold transition-colors"
-                style={{
-                  background: showYoY
-                    ? 'color-mix(in srgb, #6366f1 12%, transparent)'
-                    : 'var(--muted)',
-                  border: showYoY
-                    ? '1px solid color-mix(in srgb, #6366f1 44%, transparent)'
-                    : '1px solid var(--border)',
-                  color: showYoY ? '#6366f1' : 'var(--muted-foreground)',
-                  cursor: 'pointer',
-                }}
+                aria-pressed={showYoY}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-3xs font-bold transition-colors',
+                  showYoY
+                    ? 'border-primary/44 bg-primary/12 text-primary hover:bg-primary/20'
+                    : 'border-border bg-muted text-muted-foreground hover:bg-muted-foreground/15'
+                )}
+                style={{ cursor: 'pointer' }}
               >
                 vs año ant.
               </button>

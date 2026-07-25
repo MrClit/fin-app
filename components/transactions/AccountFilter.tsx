@@ -1,6 +1,7 @@
 'use client'
 
 import { Box } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { AccountIconBadge } from '@/components/accounts/AccountIconBadge'
 import type { Account } from '@/types'
@@ -32,20 +33,23 @@ export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSel
         showCloseButton="md"
         className="mx-auto w-full max-w-105 rounded-t-[28px] bg-popover px-5 pt-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] md:pt-6 md:pb-6"
       >
-        <SheetTitle className="sr-only">Filtrar por cuenta</SheetTitle>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-border md:hidden" />
 
-        <p className="text-base font-bold text-foreground mb-0.5">Filtrar por cuenta</p>
+        <SheetTitle className="text-base font-bold text-foreground mb-0.5">Filtrar por cuenta</SheetTitle>
         <p className="text-xs text-muted-foreground mb-4">Selecciona una o varias cuentas</p>
 
         <div className="flex flex-col gap-2">
           {/* Todas las cuentas */}
           <button
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-colors"
-            style={{
-              background: allSelected ? 'rgba(99,102,241,0.08)' : 'var(--muted)',
-              borderLeft: allSelected ? '3px solid #6366f1' : '3px solid transparent',
-            }}
+            aria-pressed={allSelected}
+            // Estado seleccionado en clases y no en `style` inline: una `background`
+            // inline ganaría siempre al `hover:bg-*` (#369).
+            className={cn(
+              'flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-colors border-l-[3px]',
+              allSelected
+                ? 'border-l-primary bg-primary/8 hover:bg-primary/15'
+                : 'border-l-transparent bg-muted hover:bg-muted-foreground/15'
+            )}
             onClick={() => { onSelectionChange([]); onOpenChange(false) }}
           >
             <div
@@ -75,11 +79,13 @@ export function AccountFilter({ open, onOpenChange, accounts, selectedIds, onSel
             return (
               <button
                 key={account.id}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-colors"
-                style={{
-                  background: isSelected ? 'rgba(99,102,241,0.08)' : 'var(--muted)',
-                  borderLeft: isSelected ? '3px solid #6366f1' : '3px solid transparent',
-                }}
+                aria-pressed={isSelected}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-colors border-l-[3px]',
+                  isSelected
+                    ? 'border-l-primary bg-primary/8 hover:bg-primary/15'
+                    : 'border-l-transparent bg-muted hover:bg-muted-foreground/15'
+                )}
                 onClick={() => toggleAccount(account.id)}
               >
                 <AccountIconBadge type={account.type} color={account.color} size="md" />
