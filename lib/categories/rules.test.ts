@@ -119,6 +119,9 @@ describe('categorize', () => {
       ['Spotify Premium', 'subscriptions'],
       ['apple.com/bill', 'subscriptions'],
       ['Adobe Creative Cloud', 'subscriptions'],
+      ['Audible ES cuota mensual', 'subscriptions'],
+      ['Kindle Unlimited', 'subscriptions'],
+      ['Amazon Music Unlimited', 'subscriptions'],
     ] as const)('subscriptions matchea %j', (description, expected) => {
       expect(categorize(description)).toBe(expected)
     })
@@ -172,6 +175,18 @@ describe('categorize', () => {
 
     it('"Prime Video" → subscriptions (precede al amazon genérico de Compras)', () => {
       expect(categorize('Prime Video *LV9MI3ZH5')).toBe('subscriptions')
+    })
+
+    // #391: `amzn.com/bill` es el dominio por el que Amazon factura TODO —Prime y
+    // las compras del Marketplace—, así que no puede usarse como señal de
+    // suscripción. Lo que discrimina es la marca.
+    it('"AMZN Mktp" → shopping pese a facturar por amzn.com/bill', () => {
+      expect(categorize('AMZN Mktp ES*Z15NV2H14 (AMZN.COM/BILL)')).toBe('shopping')
+      expect(categorize('WWW.AMAZON*DS9Z33435 (amzn.com/bill)')).toBe('shopping')
+    })
+
+    it('"Amazon Prime" → subscriptions aunque comparta dominio con las compras', () => {
+      expect(categorize('Amazon Prime*RK0186G14 (amazon.es/prm)')).toBe('subscriptions')
     })
 
     it('"El Corte Ingles hogar muebles" → home (precede a shopping)', () => {
