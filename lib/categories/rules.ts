@@ -9,7 +9,10 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Supermercado (incluye cadenas locales catalanas, panaderías y carnicerías)
   { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|panet|turris|pastisseri|carniceri|xarcuteri|xarcobel|cooperativa agricola|bon area|bonarea|\bcarref|peroy|vicsoni|verge montserrat|charter/i, category: 'groceries' },
   // Restaurantes, bares y cafeterías
-  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering|sodexo|green pay|green caf|boncafe|equilibrium/i, category: 'restaurant' },
+  // `restaurant` sin -e final: los descriptores lo escriben en catalán/inglés y la
+  // coincidencia es por subcadena, así que esta forma cubre también `restaurante`
+  // y `restaurants` (#395). No casa con `restauracion`.
+  { pattern: /restaurant|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering|sodexo|green pay|green caf|boncafe|equilibrium/i, category: 'restaurant' },
   // Comida a domicilio
   { pattern: /glovo|deliveroo|just.?eat|uber.?eats/i, category: 'restaurant' },
   // Gasolina (E.S. = estación de servicio)
