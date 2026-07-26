@@ -75,7 +75,6 @@ export default function CategoryBreakdownSection({ byCategory, income, expense, 
                 padding: '4px 12px',
                 borderRadius: 20,
                 border: 'none',
-                cursor: 'pointer',
                 background: catView === v
                   ? (v === 'gastos' ? '#6366f1' : '#22c55e')
                   : 'transparent',

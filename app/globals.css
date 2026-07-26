@@ -234,6 +234,15 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Tailwind v4 retiró del preflight el `cursor: pointer` de `<button>` que traía v3
+     (#378), así que los botones caían al `default` del UA mientras los `<a>` de al lado
+     seguían con la mano. Se restaura aquí, en la misma línea que el anillo de foco: una
+     regla de base en vez de una clase por componente. `:not(:disabled)` deja los
+     deshabilitados en `default` sin que nadie tenga que acordarse.
+     No se incluye `[role="button"]` a propósito: interactivo = elemento nativo. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
   body {
     background-color: var(--background);
     color: var(--foreground);

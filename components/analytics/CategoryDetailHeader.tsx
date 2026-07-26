@@ -48,7 +48,7 @@ export default function CategoryDetailHeader({
           <button
             onClick={onBack}
             aria-label="Volver"
-            className="flex size-8.5 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-secondary text-foreground transition-colors hover:bg-muted-foreground/15"
+            className="flex size-8.5 shrink-0 items-center justify-center rounded-[10px] bg-secondary text-foreground transition-colors hover:bg-muted-foreground/15"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
@@ -65,7 +65,7 @@ export default function CategoryDetailHeader({
         {/* Right: period selector */}
         <button
           onClick={onOpenPicker}
-          className="ml-2 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#6366f1]/27 bg-[#6366f1]/12 px-3 py-1.5 text-[#6366f1] transition-colors hover:bg-[#6366f1]/20"
+          className="ml-2 flex shrink-0 items-center gap-1.5 rounded-full border border-[#6366f1]/27 bg-[#6366f1]/12 px-3 py-1.5 text-[#6366f1] transition-colors hover:bg-[#6366f1]/20"
         >
           <CalendarIcon />
           <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>

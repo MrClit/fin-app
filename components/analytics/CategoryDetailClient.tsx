@@ -33,7 +33,7 @@ function LoadError({ message, onRetry }: { message: string; onRetry: () => void 
       <p className="text-center text-sm text-muted-foreground">{message}</p>
       <button
         onClick={onRetry}
-        className="cursor-pointer rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
+        className="rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
       >
         Reintentar
       </button>

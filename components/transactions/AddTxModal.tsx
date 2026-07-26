@@ -39,7 +39,6 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
         padding: '13px 16px',
         borderRadius: 16,
         background: 'var(--muted)',
-        cursor: onClick ? 'pointer' : 'default',
         // El preflight de Tailwind ya normaliza tipografía y fondo del `<button>`;
         // faltan el ancho y la alineación, que sí difieren del `<div>`.
         ...(onClick ? { width: '100%', textAlign: 'left' as const, border: 'none' } : {}),
@@ -160,7 +159,7 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                 }}
                 aria-pressed={type === tp}
                 className={cn(
-                  'cursor-pointer rounded-[20px] border-none px-5 py-1.5 text-sm font-bold capitalize transition-colors duration-200',
+                  'rounded-[20px] border-none px-5 py-1.5 text-sm font-bold capitalize transition-colors duration-200',
                   type !== tp
                     ? 'bg-transparent text-muted-foreground hover:text-foreground'
                     : tp === 'gasto'
@@ -282,7 +281,6 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
                       borderRadius: 12,
                       border: isCurrent ? `2px solid ${meta.color}` : '1px solid var(--border)',
                       background: isCurrent ? meta.color + '15' : 'var(--muted)',
-                      cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -325,7 +323,6 @@ export function AddTxModal({ open, onOpenChange, manualAccountId, onSave }: AddT
             color: isValid ? 'white' : 'var(--muted-foreground)',
             fontSize: 'var(--text-md)',
             fontWeight: 700,
-            cursor: isValid ? 'pointer' : 'default',
             transition: 'all 0.2s',
             boxShadow: isValid ? `0 8px 24px color-mix(in srgb, ${accentColor} 27%, transparent)` : 'none',
           }}
