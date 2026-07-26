@@ -41,7 +41,7 @@ export default function GranularityPicker({ open, onOpenChange }: GranularityPic
                 key={o.id}
                 onClick={() => select(o.id)}
                 aria-pressed={active}
-                className="flex items-center justify-between rounded-2xl border-none cursor-pointer transition-[filter,background-color] duration-150 hover:brightness-95 dark:hover:brightness-125"
+                className="flex items-center justify-between rounded-2xl border-none transition-[filter,background-color] duration-150 hover:brightness-95 dark:hover:brightness-125"
                 style={{
                   padding: '14px 16px',
                   background: active ? 'color-mix(in srgb, #6366f1 12%, transparent)' : 'var(--secondary)',

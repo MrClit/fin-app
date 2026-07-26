@@ -264,7 +264,7 @@ export default function DualBarChart({
           onClick={() => canGoBack && shift('back')}
           disabled={!canGoBack}
           className="border-none p-0 text-sm font-semibold text-muted-foreground transition-colors
-                     enabled:cursor-pointer enabled:hover:text-foreground disabled:text-transparent"
+                     enabled:hover:text-foreground disabled:text-transparent"
         >
           ‹ Anteriores
         </button>
@@ -272,7 +272,7 @@ export default function DualBarChart({
           onClick={() => canGoFwd && shift('fwd')}
           disabled={!canGoFwd}
           className="border-none p-0 text-sm font-semibold text-muted-foreground transition-colors
-                     enabled:cursor-pointer enabled:hover:text-foreground disabled:text-transparent"
+                     enabled:hover:text-foreground disabled:text-transparent"
         >
           Siguientes ›
         </button>

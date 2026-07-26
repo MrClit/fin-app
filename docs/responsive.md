@@ -160,6 +160,24 @@ era fijo (`bg-primary/10 hover:bg-primary/20`), pasarlo por CSS var cuando era d
 (`RenewBankButton`), o realzar con `brightness` cuando el fondo es un degradado o el
 color de una categoría.
 
+**Cursor de los botones** *(añadido en #378)*. Tailwind v4 retiró de su preflight el
+`cursor: pointer` sobre `<button>` que traía v3, y nadie lo notó hasta la revisión de
+esta sección: los ~55 botones de la app habían caído al `default` del UA y solo 16 sitios
+lo corregían a mano, así que dentro de una misma pantalla unos botones daban mano y otros
+no —y los `<a>` de al lado sí, porque ese lo pone la hoja del navegador—. Se elige
+**restaurarlo**, no adoptar el nuevo default: el argumento de Tailwind (la mano significa
+«enlace», y los botones nativos del SO no la usan) es defendible en abstracto, pero en web
+la convención aprendida es la contraria y la sostienen todos los sistemas de diseño
+mayores; además varios controles de la app no parecen botones (el FAB, el toggle de tema,
+la campana, el avatar, el gutter de `TxRow`) y la mano es su única señal de hover. La
+accesibilidad no entra en la decisión: el cursor no lo lee ninguna tecnología asistiva ni
+existe en táctil. Va donde el anillo de foco —una regla en `@layer base`, no una clase por
+componente—, con `:not(:disabled)` para que un botón inerte nunca prometa clic, y permitió
+**borrar** los 16 ad-hoc en vez de añadir 20 más. Se descartó incluir `[role="button"]` en
+el selector: legitimaría el patrón que esta misma sección prohíbe. Quedan fuera los
+clicables no nativos de las gráficas, que declaran su cursor inline porque ningún selector
+sobre `button` los alcanza.
+
 **Gráficas fuera de alcance, deliberadamente.** Los arcos del donut y las barras siguen
 con `tabIndex={-1}`: son una **ruta redundante**: la misma navegación al detalle está en
 la lista de categorías de debajo, que sí es accesible por teclado. Hacerlas focusables

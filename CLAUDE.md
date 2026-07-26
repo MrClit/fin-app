@@ -129,6 +129,12 @@ variante `md:` y rompe el patrón.
 - Un `background` en `style` inline gana a cualquier `hover:bg-*`. Si un control necesita
   hover, su fondo va en clases (token, o CSS var cuando el color es dinámico); si es un
   degradado o un color de categoría, se realza con `brightness`.
+- El cursor de los botones lo da `button:not(:disabled) { cursor: pointer }` en `@layer base`
+  de `globals.css` (#378) — Tailwind v4 lo retiró de su preflight. **No declarar el cursor
+  en un `<button>`**: ya lo tiene, y un `disabled` debe quedarse en `default` (ojo: escribir
+  la utility aquí en prosa basta para que Tailwind la emita). Lo único que
+  declara el cursor a mano son los clicables **no nativos** de las gráficas (los `<g>` de
+  Recharts y el SVG de `DonutChart`), que el selector no alcanza.
 
 El razonamiento completo y lo descartado, en `docs/responsive.md` (#354).
 

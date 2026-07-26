@@ -26,7 +26,6 @@ export function AddTxFab({ onClick }: AddTxFabProps) {
         borderRadius: '50%',
         background: '#6366f1',
         border: 'none',
-        cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
