@@ -80,6 +80,9 @@ describe('categorize', () => {
       ['Gumen Catering', 'restaurant'],
       ['SODEXO EDIFICIO GREEN CAF', 'restaurant'],
       ['EQUILIBRIUM PRAT', 'restaurant'],
+      // #395: sin -e final (catalán/inglés) y con ella; ambas por subcadena
+      ['RESTAURANT CAMBRAY-T', 'restaurant'],
+      ['Restaurante Pepe', 'restaurant'],
     ] as const)('restaurant matchea %j', (description, expected) => {
       expect(categorize(description)).toBe(expected)
     })
