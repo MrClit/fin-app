@@ -228,6 +228,12 @@ ramas, commits, PRs, merges, release) la ejecuta el subagente **`gh-ops`** (Sonn
 no el hilo principal. El *cómo* vive en la skill **`gh-workflow`**; el release, en la
 skill **`release`** (historial en `CHANGELOG.md`).
 
+El agente y las dos skills **ya no están en este repo**: son genéricos y viven a nivel
+de usuario en `~/.claude/`, enlazados desde el repo `claude-config` (#356). Lo propio de
+fin-app —owner, ids del tablero, ramas, labels, validaciones y pre-vuelo del release—
+está en **`.claude/gh-project.md`**, que es lo que la skill lee al arrancar. Si cambia
+una coordenada, se toca ese fichero, no la skill.
+
 Delegar **en bloques** y con un brief explícito — el subagente arranca en frío y no ve
 la conversación —, nunca llamada a llamada: un spawn para un solo comando cuesta más
 que ejecutarlo directo. Bloques típicos: «crea la issue con este cuerpo, enlázala al
