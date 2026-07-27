@@ -9,7 +9,10 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   // Supermercado (incluye cadenas locales catalanas, panaderías y carnicerías)
   { pattern: /mercadona|carrefour|lidl|aldi|dia\b|eroski|alcampo|hipercor|consum|ahorramas|supercor|caprabo|bonpreu|esclat|condis|sorli|ametller|la sirena|prat supermercat|superverd|supermercat|supermercado|granier|\bfornet\b|panet|turris|pastisseri|carniceri|xarcuteri|xarcobel|cooperativa agricola|bon area|bonarea|\bcarref|peroy|vicsoni|verge montserrat|charter/i, category: 'groceries' },
   // Restaurantes, bares y cafeterías
-  { pattern: /restaurante|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering|sodexo|green pay|green caf|boncafe|equilibrium/i, category: 'restaurant' },
+  // `restaurant` sin -e final: los descriptores lo escriben en catalán/inglés y la
+  // coincidencia es por subcadena, así que esta forma cubre también `restaurante`
+  // y `restaurants` (#395). No casa con `restauracion`.
+  { pattern: /restaurant|mcdonalds|burger.?king|kfc|telepizza|dominos|pizzer|sushi|kebab|cafeter|\bbar\b|\bcafe\b|barbacoa|braseri|\bgranja\b|tapeo|catering|sodexo|green pay|green caf|boncafe|equilibrium/i, category: 'restaurant' },
   // Comida a domicilio
   { pattern: /glovo|deliveroo|just.?eat|uber.?eats/i, category: 'restaurant' },
   // Gasolina (E.S. = estación de servicio)
@@ -48,8 +51,13 @@ export const AUTO_RULES: { pattern: RegExp; category: CategoryId; field?: RuleFi
   { pattern: /zara\b|mango\b|h&m|pull.and.bear|bershka|stradivarius|primark|lefties|el corte ingles moda|zeeman|\bmoda\b|uniformes/i, category: 'clothing' },
   // Electrónica
   { pattern: /apple store|fnac|mediamarkt|pccomponentes|worten|samsung store|vadeaudio/i, category: 'electronics' },
-  // Suscripciones (antes que el "amazon" genérico de Compras)
-  { pattern: /netflix|spotify|apple\.com\/bill|amzn\.com\/bill|google one|microsoft 365|adobe|youtube premium|hbo max|paramount|prime video|primevideo|amazon prime|filmin|dazn|disney\+|claude|twitch/i, category: 'subscriptions' },
+  // Suscripciones (antes que el "amazon" genérico de Compras).
+  // Aquí van MARCAS, no dominios de facturación: `amzn.com/bill` factura tanto
+  // Prime como las compras del Marketplace, así que usarlo como señal mandaba a
+  // Suscripciones toda compra de Amazon (#391). Las suscripciones de Amazon se
+  // cubren por su marca (`amazon prime`, `audible`, …) y lo demás cae en la regla
+  // genérica de Compras.
+  { pattern: /netflix|spotify|apple\.com\/bill|google one|microsoft 365|adobe|youtube premium|hbo max|paramount|prime video|primevideo|amazon prime|audible|kindle unlimited|amazon music|filmin|dazn|disney\+|claude|twitch/i, category: 'subscriptions' },
   // Ocio (cine, espectáculos, loterías, parques temáticos)
   { pattern: /\bcines?\b|cinesa|multicines|teatro|concierto|entradas|ticketmaster|eventbrite|port.?aventura|euro disney|disneyland|tibidabo|loteri|tulotero|espectacul/i, category: 'leisure' },
   // Deporte (esports = deportes en catalán)

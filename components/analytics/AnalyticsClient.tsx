@@ -141,7 +141,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
           <span className="text-xl font-bold text-foreground">Análisis</span>
           <button
             onClick={() => setShowPicker(true)}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-primary/27 bg-primary/12 px-3 py-1.5 text-primary transition-colors hover:bg-primary/20"
+            className="flex items-center gap-1.5 rounded-full border border-primary/27 bg-primary/12 px-3 py-1.5 text-primary transition-colors hover:bg-primary/20"
           >
             <CalendarIcon />
             <span className="text-xs font-bold">{PERIOD_LABELS[granularity]}</span>
@@ -169,7 +169,7 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
             </div>
             <button
               onClick={retry}
-              className="cursor-pointer rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
+              className="rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted-foreground/15"
             >
               Reintentar
             </button>
@@ -214,7 +214,6 @@ export default function AnalyticsClient({ initialData }: { initialData: Analytic
                     ? 'border-primary/44 bg-primary/12 text-primary hover:bg-primary/20'
                     : 'border-border bg-muted text-muted-foreground hover:bg-muted-foreground/15'
                 )}
-                style={{ cursor: 'pointer' }}
               >
                 vs año ant.
               </button>

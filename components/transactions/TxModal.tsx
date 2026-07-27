@@ -34,7 +34,7 @@ function FieldRow({ label, icon, children, onClick, chevron }: FieldRowProps) {
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
         'flex items-center gap-3 rounded-2xl bg-muted px-4 py-3.25',
-        onClick && 'w-full cursor-pointer text-left transition-colors hover:bg-muted-foreground/15'
+        onClick && 'w-full text-left transition-colors hover:bg-muted-foreground/15'
       )}
     >
       <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-[10px] bg-muted-foreground/10 opacity-60">
