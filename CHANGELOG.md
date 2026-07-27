@@ -4,8 +4,9 @@ Historial de versiones publicadas en producción. El proyecto usa
 [versionado semántico](https://semver.org/lang/es/) con tags de git anotados, sobre la base de los
 [Conventional Commits](https://www.conventionalcommits.org/) que se usan en los mensajes de commit.
 
-El procedimiento para publicar un release está en la skill `release`
-([.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md)).
+El procedimiento para publicar un release está en la skill `release`, que vive a nivel de usuario;
+lo específico de este repo (ramas, pre-vuelo) está en
+[.claude/gh-project.md](.claude/gh-project.md).
 
 | Versión | Fecha | Notas |
 | --- | --- | --- |
