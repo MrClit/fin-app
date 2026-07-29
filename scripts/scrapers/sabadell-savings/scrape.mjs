@@ -132,14 +132,17 @@ async function main() {
     return
   }
 
-  const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
-    headless: false,
-    channel: CHROME_CHANNEL,
-    args: CHROME_ARGS,
-    viewport: null,
-  })
-  await context.addInitScript(STEALTH_INIT_SCRIPT)
+  // El launch va DENTRO del try: si falla el arranque de Chrome, el `finally`
+  // devuelve el lock en vez de dejarlo puesto hasta que caduque (#401).
+  let context = null
   try {
+    context = await chromium.launchPersistentContext(USER_DATA_DIR, {
+      headless: false,
+      channel: CHROME_CHANNEL,
+      args: CHROME_ARGS,
+      viewport: null,
+    })
+    await context.addInitScript(STEALTH_INIT_SCRIPT)
     const page = context.pages()[0] ?? (await context.newPage())
 
     await login(page, { infra, cronMode: CRON_MODE, loginCommand: DESCRIPTOR.loginCommand, debug: DEBUG })
@@ -190,8 +193,10 @@ async function main() {
     infra.log(`OK: ${JSON.stringify(result)}`)
     if (CRON_MODE) infra.writeMarker()
   } finally {
-    await context.close()
-    lock.release()
+    if (context) await context.close()
+    // `release` espera a que Chrome suelte el perfil de verdad antes de abrir la
+    // puerta al siguiente scraper Sabadell (#401).
+    await lock.release()
   }
 }
 
