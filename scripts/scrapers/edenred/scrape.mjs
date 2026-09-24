@@ -29,7 +29,7 @@ import {
   setTwoFaPending,
   markLastRelogin,
 } from './auth.mjs'
-import { parseAmount, parseDate } from './parsers.mjs'
+import { looksUnsigned, parseAmount, parseDate, parseMovement } from './parsers.mjs'
 
 // Cuando se invoca desde launchd (EDENRED_CRON=1) se usa un marker diario
 // para tolerar que el Mac estuviera dormido: el plist define varios slots a
@@ -314,16 +314,7 @@ async function extractTransactions(page) {
     const time = rawTime.trim()
     const description = rawDesc.trim().replace(/\s+/g, ' ')
 
-    // Edenred muestra los importes sin signo. Distinguimos por la
-    // descripción literal: "RECARGA" es un ingreso (top-up del ticket
-    // restaurante que carga la empresa: retribución que forma parte de la
-    // nómina), todo lo demás es consumo en restaurante.
-    // Las categorías deben coincidir con un `id` del seed de la tabla
-    // `categories` (supabase/migrations/20260509000000_categories_type.sql):
-    // 'payroll' (Nómina) para la recarga y 'restaurant' (expense) para el consumo.
-    const isRecarga = description.toUpperCase() === 'RECARGA'
-    const amount = isRecarga ? parseAmount(rawAmount) : -parseAmount(rawAmount)
-    const category = isRecarga ? 'payroll' : 'restaurant'
+    const { amount, category } = parseMovement(description, rawAmount)
 
     // external_id estable: fecha + hora (resolución de segundos). Si dos
     // movimientos colisionasen en el mismo segundo, el upsert los trataría
@@ -331,6 +322,14 @@ async function extractTransactions(page) {
     const external_id = `edenred-${transaction_date}-${time}`
 
     txs.push({ external_id, amount, description, transaction_date, category })
+  }
+
+  // Guardarraíl de formato (#413): sin signo no se puede distinguir un consumo
+  // de una devolución, así que se aborta antes de escribir nada.
+  if (looksUnsigned(txs)) {
+    await dumpFailure(page)
+    await notifyScrapeFailed()
+    die(4, 'Importes sin signo: Edenred ha cambiado el formato de la tabla (ver #413)')
   }
   return txs
 }
