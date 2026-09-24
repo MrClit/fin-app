@@ -10,6 +10,35 @@ export function parseAmount(raw) {
   return n
 }
 
+// Importe y categoría de una fila de movimientos (#413).
+//
+// El signo es el que muestra Edenred ("-11,90 €" consumo, "225 €" recarga), sin
+// reinterpretarlo: hasta agosto de 2026 los importes venían sin signo y se
+// negaba todo lo que no fuera "RECARGA", pero Edenred empezó a mostrarlo y esa
+// negación los invertía. Respetarlo también deja bien una devolución: entra en
+// positivo en 'restaurant' (expense) y resta del gasto, como las de los bancos.
+//
+// "RECARGA" es el top-up del ticket restaurante que carga la empresa: retribución
+// que forma parte de la nómina → 'payroll'. Todo lo demás → 'restaurant'. Ambos
+// ids deben existir en `lib/categories/catalog.ts`.
+export function parseMovement(description, rawAmount) {
+  const isRecharge = description.toUpperCase() === 'RECARGA'
+  return {
+    amount: parseAmount(rawAmount),
+    category: isRecharge ? 'payroll' : 'restaurant',
+  }
+}
+
+// Detecta que Edenred ha vuelto a mostrar los importes sin signo (#413): hay
+// movimientos que no son recarga y ninguno es negativo. Una lectura hecha solo
+// de devoluciones daría también true, pero en la ventana de ~8 filas que
+// muestra Edenred es prácticamente imposible, y abortar con aviso es preferible
+// a guardar consumos en positivo en silencio.
+export function looksUnsigned(movements) {
+  const spending = movements.filter(m => m.category !== 'payroll')
+  return spending.length > 0 && spending.every(m => m.amount >= 0)
+}
+
 // "15/05/2026" o "15 may 2026" → "2026-05-15".
 export function parseDate(raw) {
   const m = raw.trim().match(/(\d{1,2})[\/\s-](\d{1,2}|[a-záéíóú]+)[\/\s-](\d{4})/i)

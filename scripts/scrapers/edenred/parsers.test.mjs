@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAmount, parseDate } from './parsers.mjs'
+import { looksUnsigned, parseAmount, parseDate, parseMovement } from './parsers.mjs'
 
 describe('parseAmount', () => {
   it('parsea importes con coma decimal', () => {
@@ -20,6 +20,45 @@ describe('parseAmount', () => {
 
   it('lanza error si no hay número', () => {
     expect(() => parseAmount('abc')).toThrow()
+  })
+})
+
+// Formato real de la celda de importe desde septiembre de 2026 (#413).
+describe('parseMovement', () => {
+  it('un consumo con signo se guarda negativo, no invertido', () => {
+    expect(parseMovement('BAR CHEERS RESTAURANTE', '-11,90 €')).toEqual({
+      amount: -11.9,
+      category: 'restaurant',
+    })
+  })
+
+  it('una devolución en positivo resta del gasto: positiva y en restaurant', () => {
+    expect(parseMovement('BAR CHEERS RESTAURANTE', '+5,00 €')).toEqual({
+      amount: 5,
+      category: 'restaurant',
+    })
+  })
+
+  it('la recarga es nómina y positiva, con o sin "+"', () => {
+    expect(parseMovement('RECARGA', '225 €')).toEqual({ amount: 225, category: 'payroll' })
+    expect(parseMovement('recarga', '+225,00 €')).toEqual({ amount: 225, category: 'payroll' })
+  })
+})
+
+describe('looksUnsigned', () => {
+  const spend = amount => ({ amount, category: 'restaurant' })
+  const recharge = { amount: 225, category: 'payroll' }
+
+  it('detecta consumos sin signo (el formato anterior a septiembre de 2026)', () => {
+    expect(looksUnsigned([spend(11.9), spend(2), recharge])).toBe(true)
+  })
+
+  it('acepta una lectura con consumos negativos, aunque haya devoluciones', () => {
+    expect(looksUnsigned([spend(-11.9), spend(5), recharge])).toBe(false)
+  })
+
+  it('no salta si solo hay recargas', () => {
+    expect(looksUnsigned([recharge])).toBe(false)
   })
 })
 
